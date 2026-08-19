@@ -1,0 +1,1 @@
+NeutronOS App Store release artifacts use immutable versioned package filenames. Catalog entries may move forward, but each published package URL must continue to identify the exact signed bytes for that version.
