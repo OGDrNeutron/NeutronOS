@@ -22,5 +22,26 @@
   "dependencies": [
     "python3",
     "Docker daemon + CLI (installed only when no Jellyfin backend exists)"
-  ]
+  ],
+  "debianDependencies": [
+    "python3"
+  ],
+  "runtimeRequirements": [
+    {
+      "type": "jellyfin-server",
+      "systemUnit": "jellyfin.service",
+      "containerName": "jellyfin",
+      "dockerUnit": "docker.service",
+      "dockerPackages": [
+        "docker.io",
+        "docker-cli"
+      ],
+      "image": "jellyfin/jellyfin:10.11.11",
+      "imageDigest": "sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db",
+      "imageDownloadBytesByArch": {
+        "aarch64": 385660000
+      }
+    }
+  ],
+  "screenshots": []
 }
