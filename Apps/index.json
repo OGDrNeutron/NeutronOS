@@ -9,7 +9,7 @@
     {
       "id": "jellyfin",
       "name": "Neutron Media Libraries",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "developer": "NeutronOS",
       "description": "A controller-first NeutronOS media library powered by Jellyfin with local, Roku, offline Wi-Fi, and direct LAN playback setup.",
       "category": "Media",
@@ -18,17 +18,18 @@
       ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries.Napp",
-      "sha256": "5bd0ccd9ee411a2b43f0a6051beab01db9240118d10edad5e3a581724954f3c6",
-      "signature": "IUGNmBIdHv8wg7EDQcCmE7q1zQ8u9GmnxiCmOxvjvjti2rQ0Vn0uIaHtLCe61EjrHeLWWz1NzSsJPG8TpiwiDw==",
+      "sha256": "447ebf81226f0d07d429fb4a2a3e025f388b8bb79b0da3f4ea3d2a9a143dba36",
+      "signature": "LRBMf5yUbTeg10jtz2jU68g2VALFxoycbXBfzLOY4KWGxrlzYdcKYGCjE9dlM2BenyF+ssWqXudhH2v5zjK4AA==",
       "keyId": "neutronos-release-v1",
-      "size": 3726661,
+      "size": 3727886,
       "permissions": [
         "network",
         "state",
         "media-playback"
       ],
       "dependencies": [
-        "python3"
+        "python3",
+        "Docker daemon + CLI (installed only when no Jellyfin backend exists)"
       ]
     }
   ]
