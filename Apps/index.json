@@ -1,4 +1,35 @@
 {
   "schema": 1,
-  "packages": []
+  "repository": {
+    "id": "neutronos-official",
+    "name": "NeutronOS Official",
+    "description": "Official signed NeutronOS packages"
+  },
+  "packages": [
+    {
+      "id": "jellyfin",
+      "name": "Neutron Media Libraries",
+      "version": "1.0.4",
+      "developer": "NeutronOS",
+      "description": "A controller-first NeutronOS media library powered by Jellyfin with local, Roku, offline Wi-Fi, and direct LAN playback setup.",
+      "category": "Media",
+      "architectures": [
+        "aarch64"
+      ],
+      "minNeutronOS": "1.0.0-alpha",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries.Napp",
+      "sha256": "5bd0ccd9ee411a2b43f0a6051beab01db9240118d10edad5e3a581724954f3c6",
+      "signature": "IUGNmBIdHv8wg7EDQcCmE7q1zQ8u9GmnxiCmOxvjvjti2rQ0Vn0uIaHtLCe61EjrHeLWWz1NzSsJPG8TpiwiDw==",
+      "keyId": "neutronos-release-v1",
+      "size": 3726661,
+      "permissions": [
+        "network",
+        "state",
+        "media-playback"
+      ],
+      "dependencies": [
+        "python3"
+      ]
+    }
+  ]
 }
