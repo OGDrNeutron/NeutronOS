@@ -1,0 +1,193 @@
+--- nmlold/manifest.json	2026-08-19 17:45:00.000000000 +0000
++++ nmlnew/manifest.json	2026-08-19 17:45:00.000000000 +0000
+@@ -69,5 +69,5 @@
+     }
+   ],
+   "uninstallState": [],
+-  "version": "1.0.5"
++  "version": "1.1.0"
+ }
+--- nmlold/payload/qml/apps/jellyfin/Main.qml	2026-08-19 17:45:00.000000000 +0000
++++ nmlnew/payload/qml/apps/jellyfin/Main.qml	2026-08-19 17:45:00.000000000 +0000
+@@ -21,7 +21,7 @@
+     signal backgroundRequested()
+ 
+     readonly property string bridgeBase: "http://127.0.0.1:19520"
+-    readonly property string appVersion: "1.0.4"
++    readonly property string appVersion: "1.1.0"
+     readonly property string jellyfinLogo: Qt.resolvedUrl("../../../themes/Default/apps/icons/jellyfin.png")
+     readonly property string jellyfinLogoSvg: Qt.resolvedUrl("assets/jellyfin-logo.svg")
+ 
+@@ -138,6 +138,8 @@
+     readonly property color focusGlowColor: colorValue("cards.focusGlowColor", "#63E8FF")
+     readonly property real focusGlowStrength: Number(getPath("cards.focusGlowStrength", 0.7))
+     readonly property bool uppercaseHeader: Boolean(getPath("typography.uppercaseHeader", true))
++    readonly property bool serverArtworkBackgroundEnabled: Boolean(getPath("colors.useServerBackdrop", true))
++    property bool serverSplashFailed: false
+ 
+ 
+     function setupSuspiciousSecurityEvents() {
+@@ -468,6 +470,62 @@
+         return value
+     }
+ 
++    function jellyfinServerBaseUrl() {
++        settingsRevision
++        var value = String(getPath("server.url", "") || "").trim()
++        while (value.length > 0 && value.charAt(value.length - 1) === "/")
++            value = value.slice(0, -1)
++        return value
++    }
++
++    function jellyfinSplashscreenUrl() {
++        var base = jellyfinServerBaseUrl()
++        return base.length ? base + "/Branding/Splashscreen" : ""
++    }
++
++    function jellyfinFallbackBackdropUrl() {
++        homeRevision
++        var groups = [
++            homeData ? homeData["continue"] : [],
++            homeData ? homeData.nextup : [],
++            homeData ? homeData.recentMovies : [],
++            homeData ? homeData.recentShows : [],
++            homeData ? homeData.favorites : [],
++            homeData ? homeData.latestEpisodes : [],
++            homeData ? homeData.libraries : []
++        ]
++        for (var g = 0; g < groups.length; ++g) {
++            var items = groups[g] || []
++            for (var i = 0; i < items.length; ++i) {
++                var item = items[i] || ({})
++                var imageId = ""
++                var tag = ""
++                if (String(item.backdropTag || "").length) {
++                    imageId = String(item.id || "")
++                    tag = String(item.backdropTag || "")
++                } else if (String(item.parentBackdropItemId || "").length) {
++                    imageId = String(item.parentBackdropItemId || "")
++                }
++                if (!imageId.length) continue
++                var url = bridgeBase + "/api/image?id=" + encodeURIComponent(imageId) +
++                          "&type=Backdrop&maxWidth=1920"
++                if (tag.length) url += "&tag=" + encodeURIComponent(tag)
++                return url
++            }
++        }
++        return ""
++    }
++
++    function activeServerArtworkUrl() {
++        if (!setupConfigured || setupVisible || !serverArtworkBackgroundEnabled)
++            return ""
++        if (!serverSplashFailed) {
++            var splash = jellyfinSplashscreenUrl()
++            if (splash.length) return splash
++        }
++        return jellyfinFallbackBackdropUrl()
++    }
++
+     function clone(value) {
+         return JSON.parse(JSON.stringify(value))
+     }
+@@ -486,6 +544,8 @@
+     }
+ 
+     function updateSetting(path, value, saveNow) {
++        if ((path === "colors.useServerBackdrop" && Boolean(value)) || path === "server.url")
++            serverSplashFailed = false
+         var copy = clone(settings)
+         setObjectPath(copy, path, value)
+         settings = copy
+@@ -588,6 +648,7 @@
+ 
+     function applyStatusPayload(response) {
+         bridgeReady = true
++        serverSplashFailed = false
+         settings = response.settings || ({})
+         hardware = response.hardware || ({})
+         settingsRevision += 1
+@@ -2060,6 +2121,24 @@
+     }
+ 
+     Rectangle { anchors.fill: parent; color: bgColor }
++
++    Image {
++        id: serverArtworkBackground
++        anchors.fill: parent
++        source: app.activeServerArtworkUrl()
++        visible: String(source).length > 0
++        fillMode: Image.PreserveAspectCrop
++        asynchronous: true
++        cache: true
++        smooth: true
++        opacity: 0.72
++        onStatusChanged: {
++            if (status === Image.Error && !app.serverSplashFailed &&
++                    app.jellyfinSplashscreenUrl().length > 0)
++                app.serverSplashFailed = true
++        }
++    }
++
+     Rectangle {
+         anchors.fill: parent
+         opacity: 0.54
+@@ -2441,6 +2520,11 @@
+                         onActionRequested: function(action, payload) { app.settingsAction(action) }
+                         onPlaybackModeRequested: function(mode) { app.updatePlaybackMode(mode) }
+                         onSectionMoveRequested: function(index, delta) { app.reorderSection(index, delta) }
++                        onHomeRequested: {
++                            app.navIndex = 0
++                            app.navOpen = false
++                            app.loadHome(false)
++                        }
+                     }
+                 }
+             }
+--- nmlold/payload/qml/apps/jellyfin/app.json	2026-08-19 17:45:00.000000000 +0000
++++ nmlnew/payload/qml/apps/jellyfin/app.json	2026-08-19 17:45:00.000000000 +0000
+@@ -7,7 +7,7 @@
+   "entry": "qml/apps/jellyfin/Main.qml",
+   "icon": "jellyfin",
+   "poster": "jellyfin",
+-  "version": "1.0.5",
++  "version": "1.1.0",
+   "controllerFirst": true,
+   "requiresNetwork": false,
+   "permissions": [
+--- nmlold/payload/qml/apps/jellyfin/components/SettingsPage.qml	2026-08-19 17:45:00.000000000 +0000
++++ nmlnew/payload/qml/apps/jellyfin/components/SettingsPage.qml	2026-08-19 17:45:00.000000000 +0000
+@@ -5,7 +5,7 @@
+     id: page
+     property var settings: ({})
+     property int revision: 0
+-    property int categoryIndex: customizationOnly ? 0 : 1
++    property int categoryIndex: 1
+     property int optionIndex: 0
+     property bool categoryFocus: true
+     property color background: "#02040A"
+@@ -40,6 +40,7 @@
+         {id:"diagnostics", label:"Errors & Diagnostics"}
+     ]
+     readonly property var customizationCategories: [
++        {id:"__home", label:"Home"},
+         {id:"home", label:"Home Layout"},
+         {id:"navigation", label:"Navigation Panel"},
+         {id:"colors", label:"Colors & Theme"},
+@@ -80,7 +81,7 @@
+             row("Restore last page", "general.restoreLastPage", "toggle", [], "Return to the previous page after launch"),
+             row("Restore navigation position", "general.restoreLastPosition", "toggle", [], "Remember the selected row and card"),
+             row("Clock format", "general.clock24Hour", "clock", [], "12-hour by default"),
+-            row("Application version", "", "readonly", [], "Neutron Media Libraries 1.0.4"),
++            row("Application version", "", "readonly", [], "Neutron Media Libraries 1.1.0"),
+             row("Reset first-launch setup", "", "action", [], "Show the complete setup wizard again", "resetSetup"),
+             row("Restore all UI defaults", "", "danger", [], "Preserves the Jellyfin connection", "resetAll")
+         ]
+@@ -141,6 +142,7 @@
+             row("Restore navigation defaults", "", "action", [], "Restore panel behavior and size", "resetNavigation")
+         ]
+         if (id === "colors") return [
++            row("Jellyfin server artwork", "colors.useServerBackdrop", "toggle", [], "Use the server splash/backdrop artwork as the app background after login"),
+             row("Main background", "colors.background", "color", [], "Default #02040A"),
+             row("Raised background", "colors.backgroundRaised", "color", [], "Header and footer surfaces"),
+             row("Navigation panel", "colors.panel", "color", [], "Default #081522"),
