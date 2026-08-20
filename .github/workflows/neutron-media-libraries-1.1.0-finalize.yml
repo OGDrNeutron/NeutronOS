@@ -1,0 +1,101 @@
+name: Finalize Neutron Media Libraries 1.1.0
+
+on:
+  push:
+    branches:
+      - apps/neutron-media-libraries-1.1.0
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: apps/neutron-media-libraries-1.1.0
+          fetch-depth: 0
+
+      - name: Finalize release tree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_sha='e624cc4bdaa70fd599f0db35e25935f78c61c2c636fe69f106496c82c0080643'
+          actual_sha="$(sha256sum Apps/NeutronMediaLibraries-1.1.0.Napp | awk '{print $1}')"
+          test "$actual_sha" = "$expected_sha"
+
+          for stem in \
+            NeutronMediaLibraries-1.1.0-01-home \
+            NeutronMediaLibraries-1.1.0-02-collections \
+            NeutronMediaLibraries-1.1.0-03-settings \
+            NeutronMediaLibraries-1.1.0-04-customize
+          do
+            base64 --decode "Apps/screenshots/${stem}.png.b64" > "Apps/screenshots/${stem}.png"
+            test -s "Apps/screenshots/${stem}.png"
+            rm "Apps/screenshots/${stem}.png.b64"
+          done
+
+          cp Apps/NeutronMediaLibraries-1.1.0.Napp Apps/NeutronMediaLibraries.Napp
+          cp Apps/NeutronMediaLibraries-1.1.0.Napp.sig Apps/NeutronMediaLibraries.Napp.sig
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          index_path = Path('Apps/index.json')
+          index = json.loads(index_path.read_text())
+          package = next(p for p in index['packages'] if p.get('id') == 'jellyfin')
+          package = dict(package)
+
+          screenshots = [
+              'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png',
+              'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png',
+              'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png',
+              'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png',
+          ]
+
+          package.update({
+              'version': '1.1.0',
+              'packageUrl': 'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries-1.1.0.Napp',
+              'sha256': 'e624cc4bdaa70fd599f0db35e25935f78c61c2c636fe69f106496c82c0080643',
+              'signature': 'qcUSKo1dSnwnDSlJF9q1Ov+UY9JpjPvSFVlCy7jDewTzmKOdyuGnx/0AFanJ+Bv0tlOg/jocdBbWlRK4dVIKAA==',
+              'keyId': 'neutronos-release-v1',
+              'size': 3729450,
+              'screenshots': screenshots,
+          })
+
+          catalog_text = json.dumps(package, indent=2) + '\n'
+          Path('Apps/NeutronMediaLibraries-1.1.0.catalog-entry.json').write_text(catalog_text)
+          Path('Apps/NeutronMediaLibraries.catalog-entry.json').write_text(catalog_text)
+
+          index['packages'] = [package if p.get('id') == 'jellyfin' else p for p in index['packages']]
+          index_path.write_text(json.dumps(index, indent=2) + '\n')
+          PY
+
+          rm -f .github/workflows/neutron-media-libraries-1.1.0-finalize.yml
+
+          git config user.name 'NeutronOS Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- \
+            Apps/NeutronMediaLibraries-1.1.0.Napp \
+            Apps/NeutronMediaLibraries-1.1.0.Napp.sig \
+            Apps/NeutronMediaLibraries-1.1.0.catalog-entry.json \
+            Apps/NeutronMediaLibraries.Napp \
+            Apps/NeutronMediaLibraries.Napp.sig \
+            Apps/NeutronMediaLibraries.catalog-entry.json \
+            Apps/index.json \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png.b64 \
+            .github/workflows/neutron-media-libraries-1.1.0-finalize.yml
+
+          git commit -m 'Finalize Neutron Media Libraries 1.1.0 release'
+          git push origin HEAD:apps/neutron-media-libraries-1.1.0
