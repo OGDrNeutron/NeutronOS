@@ -1,0 +1,158 @@
+name: Finalize Neutron Media Libraries 1.1.0
+
+on:
+  push:
+    branches:
+      - apps/neutron-media-libraries-1.1.0
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: apps/neutron-media-libraries-1.1.0
+          fetch-depth: 0
+
+      - name: Verify and finalize release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PKG='Apps/NeutronMediaLibraries-1.1.0.Napp'
+          SIG='Apps/NeutronMediaLibraries-1.1.0.Napp.sig'
+          EXPECTED_PKG_SHA='e624cc4bdaa70fd599f0db35e25935f78c61c2c636fe69f106496c82c0080643'
+          RELEASE_SIG='qcUSKo1dSnwnDSlJF9q1Ov+UY9JpjPvSFVlCy7jDewTzmKOdyuGnx/0AFanJ+Bv0tlOg/jocdBbWlRK4dVIKAA=='
+
+          test -f "$PKG"
+          test "$(sha256sum "$PKG" | awk '{print $1}')" = "$EXPECTED_PKG_SHA"
+          printf '%s\n' "$RELEASE_SIG" > "$SIG"
+
+          mkdir -p Apps/screenshots
+
+          decode_shot() {
+            src="$1"
+            dst="$2"
+            expected="$3"
+            test -f "$src"
+            base64 -d "$src" > "$dst"
+            actual="$(sha256sum "$dst" | awk '{print $1}')"
+            if [ "$actual" != "$expected" ]; then
+              echo "Screenshot hash mismatch: $dst" >&2
+              echo "expected=$expected" >&2
+              echo "actual=$actual" >&2
+              exit 1
+            fi
+          }
+
+          decode_shot 'Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png.b64' \
+                      'Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png' \
+                      'af51932ed2563b381f15514b84faac26159cbe1d54629f403af09da7147234c3'
+          decode_shot 'Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png.b64' \
+                      'Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png' \
+                      'f15fc85348b04dbda5797b186626f48597800148a040b5cabb2dcb0423dce2e6'
+          decode_shot 'Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png.b64' \
+                      'Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png' \
+                      'c4823e65a10c8097681055814447b3073a81917abf58490c05e5167aefcdfbbc'
+          decode_shot 'Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png.b64' \
+                      'Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png' \
+                      '20e59f2e7334fd87eb8e9f902bea686a18c1cf1cede82f646e7a9c5488995357'
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          signature = 'qcUSKo1dSnwnDSlJF9q1Ov+UY9JpjPvSFVlCy7jDewTzmKOdyuGnx/0AFanJ+Bv0tlOg/jocdBbWlRK4dVIKAA=='
+          base = 'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/'
+          screenshots = [
+              base + 'NeutronMediaLibraries-1.1.0-01-home.png',
+              base + 'NeutronMediaLibraries-1.1.0-02-collections.png',
+              base + 'NeutronMediaLibraries-1.1.0-03-settings.png',
+              base + 'NeutronMediaLibraries-1.1.0-04-customize.png',
+          ]
+          runtime = [{
+              'type': 'jellyfin-server',
+              'systemUnit': 'jellyfin.service',
+              'containerName': 'jellyfin',
+              'dockerUnit': 'docker.service',
+              'dockerPackages': ['docker.io', 'docker-cli'],
+              'image': 'jellyfin/jellyfin:10.11.11',
+              'imageDigest': 'sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db',
+              'imageDownloadBytesByArch': {'aarch64': 385660000},
+          }]
+          package = {
+              'id': 'jellyfin',
+              'name': 'Neutron Media Libraries',
+              'version': '1.1.0',
+              'developer': 'NeutronOS',
+              'description': 'A controller-first NeutronOS media library powered by Jellyfin with local, Roku, offline Wi-Fi, and direct LAN playback setup.',
+              'category': 'Media',
+              'architectures': ['aarch64'],
+              'minNeutronOS': '1.0.0-alpha',
+              'packageUrl': 'https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries-1.1.0.Napp',
+              'sha256': 'e624cc4bdaa70fd599f0db35e25935f78c61c2c636fe69f106496c82c0080643',
+              'signature': signature,
+              'keyId': 'neutronos-release-v1',
+              'size': 3729450,
+              'permissions': ['network', 'state', 'media-playback'],
+              'dependencies': ['python3', 'Docker daemon + CLI (installed only when no Jellyfin backend exists)'],
+              'debianDependencies': ['python3'],
+              'runtimeRequirements': runtime,
+              'screenshots': screenshots,
+          }
+          catalog = dict(package)
+          index = {
+              'schema': 1,
+              'repository': {
+                  'id': 'neutronos-official',
+                  'name': 'NeutronOS Official',
+                  'description': 'Official signed NeutronOS packages',
+              },
+              'packages': [package],
+          }
+          Path('Apps/NeutronMediaLibraries-1.1.0.catalog-entry.json').write_text(json.dumps(catalog, indent=2) + '\n')
+          Path('Apps/NeutronMediaLibraries.catalog-entry.json').write_text(json.dumps(catalog, indent=2) + '\n')
+          Path('Apps/index.json').write_text(json.dumps(index, indent=2) + '\n')
+          PY
+
+          cp -- "$PKG" Apps/NeutronMediaLibraries.Napp
+          cp -- "$SIG" Apps/NeutronMediaLibraries.Napp.sig
+
+          rm -f -- \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png.b64 \
+            .github/workflows/nml-1.1.0-finalize.yml
+
+          test "$(sha256sum Apps/NeutronMediaLibraries.Napp | awk '{print $1}')" = "$EXPECTED_PKG_SHA"
+          test "$(python3 -c 'import json; print(json.load(open("Apps/index.json"))["packages"][0]["version"])')" = '1.1.0'
+          test "$(python3 -c 'import json; print(len(json.load(open("Apps/index.json"))["packages"][0]["screenshots"]))')" = '4'
+
+          git config user.name 'NeutronOS Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+
+          git add -- \
+            Apps/NeutronMediaLibraries-1.1.0.Napp \
+            Apps/NeutronMediaLibraries-1.1.0.Napp.sig \
+            Apps/NeutronMediaLibraries-1.1.0.catalog-entry.json \
+            Apps/NeutronMediaLibraries.Napp \
+            Apps/NeutronMediaLibraries.Napp.sig \
+            Apps/NeutronMediaLibraries.catalog-entry.json \
+            Apps/index.json \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.png.b64 \
+            Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.png.b64 \
+            .github/workflows/nml-1.1.0-finalize.yml
+
+          git commit -m 'Publish Neutron Media Libraries 1.1.0'
+          git push origin HEAD:apps/neutron-media-libraries-1.1.0
