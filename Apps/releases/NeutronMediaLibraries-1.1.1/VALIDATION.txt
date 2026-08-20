@@ -1,0 +1,26 @@
+Neutron Media Libraries 1.1.1 validation
+
+Package:
+- neutronos-appstore-package.py inspect: PASS
+- manifest/app.json/Main.qml/SettingsPage versions: 1.1.1
+- bridge APP_VERSION: 1.1.1; BRIDGE_VERSION: 68J9
+- Python bridge syntax compile: PASS
+- no package install.sh or uninstall.sh lifecycle scripts: PASS
+
+TV hierarchy mock tests:
+- TV root mixed Series/Season response filters to Series: PASS
+- Series direct Season response returns Season folders: PASS
+- Series with no Season containers falls back to Episodes for QML season synthesis: PASS
+- Season response returns Episodes only: PASS
+- SeriesId/SeasonId normalization: PASS
+
+UI audits:
+- Browse GridView has symmetric computed left/right margins: PASS
+- Exit modal matches ReferenceExitModal action/style contract locally: PASS
+- Customize Home signal path remains wired: PASS
+- Server-artwork background and Customize toggle remain present: PASS
+
+App Store progress patch:
+- QML delimiter balance audit: PASS
+- Existing AppStoreManager busy/activeOperation/statusMessage/progress API only.
+- QML-only, no C++ rebuild required.

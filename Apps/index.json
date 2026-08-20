@@ -9,7 +9,7 @@
     {
       "id": "jellyfin",
       "name": "Neutron Media Libraries",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "developer": "NeutronOS",
       "description": "A controller-first NeutronOS media library powered by Jellyfin with local, Roku, offline Wi-Fi, and direct LAN playback setup.",
       "category": "Media",
@@ -17,29 +17,45 @@
         "aarch64"
       ],
       "minNeutronOS": "1.0.0-alpha",
-      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries-1.1.0.Napp",
-      "sha256": "e624cc4bdaa70fd599f0db35e25935f78c61c2c636fe69f106496c82c0080643",
-      "signature": "qcUSKo1dSnwnDSlJF9q1Ov+UY9JpjPvSFVlCy7jDewTzmKOdyuGnx/0AFanJ+Bv0tlOg/jocdBbWlRK4dVIKAA==",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries-1.1.1.Napp",
+      "sha256": "b0653f8261f2757bc644973f4874ede1b76cbb6e3ae5f47d8eb724105d9ba81d",
+      "signature": "KnjMDjhZwTITu+UKLMvVSFYjnHzgR3JqNxlnHgP4wyTn7qoTkF6uuag/KXP2LDFufvocaV3f28x4fLrX/AZlCA==",
       "keyId": "neutronos-release-v1",
-      "size": 3729450,
-      "permissions": ["network", "state", "media-playback"],
-      "dependencies": ["python3", "Docker daemon + CLI (installed only when no Jellyfin backend exists)"],
-      "debianDependencies": ["python3"],
-      "runtimeRequirements": [{
-        "type": "jellyfin-server",
-        "systemUnit": "jellyfin.service",
-        "containerName": "jellyfin",
-        "dockerUnit": "docker.service",
-        "dockerPackages": ["docker.io", "docker-cli"],
-        "image": "jellyfin/jellyfin:10.11.11",
-        "imageDigest": "sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db",
-        "imageDownloadBytesByArch": {"aarch64": 385660000}
-      }],
+      "size": 3733268,
+      "permissions": [
+        "network",
+        "state",
+        "media-playback"
+      ],
+      "dependencies": [
+        "python3",
+        "Docker daemon + CLI (installed only when no Jellyfin backend exists)"
+      ],
+      "debianDependencies": [
+        "python3"
+      ],
+      "runtimeRequirements": [
+        {
+          "type": "jellyfin-server",
+          "systemUnit": "jellyfin.service",
+          "containerName": "jellyfin",
+          "dockerUnit": "docker.service",
+          "dockerPackages": [
+            "docker.io",
+            "docker-cli"
+          ],
+          "image": "jellyfin/jellyfin:10.11.11",
+          "imageDigest": "sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db",
+          "imageDownloadBytesByArch": {
+            "aarch64": 385660000
+          }
+        }
+      ],
       "screenshots": [
-        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-01-home.jpg",
-        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-02-collections.jpg",
-        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-03-settings.jpg",
-        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.0-04-customize.jpg"
+        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-01-home.png",
+        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-02-collections.png",
+        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-03-settings.png",
+        "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-04-customize.png"
       ]
     }
   ]

@@ -1,0 +1,21 @@
+Neutron Media Libraries 1.1.1
+
+FIXED
+- TV navigation is explicitly TV Library -> Series -> Season -> Episode.
+- A Series page no longer mixes recursive Season/Episode records. The prior mixed result is what caused shows to expose only a small episode subset instead of season folders.
+- If Jellyfin exposes no Season containers, 1.1.1 fetches the series episodes and QML synthesizes season folders from ParentIndexNumber/SeasonName.
+- Bridge-normalized episode data now includes SeriesId and SeasonId.
+- Movies, TV Shows, collections, playlists, music, and other browse-page media-card grids are centered in the content area.
+- Settings now reports Neutron Media Libraries 1.1.1.
+- Exit modal now matches the standard NeutronOS ReferenceExitModal layout, action order, colors, and controller behavior without depending on external package QML imports.
+
+PRESERVED / RE-VALIDATED FROM 1.1
+- Customize has a Home entry and uses the same Home path as Settings.
+- Jellyfin server splash/backdrop artwork is the default logged-in background when available.
+- Customize -> Colors & Theme contains the Jellyfin server artwork ON/OFF setting; default is ON.
+
+APP STORE CORE PATCH
+- Separate QML-only App Store patch adds a blocking INSTALL/UPDATE progress modal.
+- Modal shows operation, package, current phase/status, progress bar, percentage, and a power-off warning.
+- Controller input is captured while install/update is active.
+- Existing transactional package-manager behavior is unchanged.
