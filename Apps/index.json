@@ -7,6 +7,35 @@
   },
   "packages": [
     {
+      "id": "browser",
+      "name": "Browser",
+      "version": "1.2.0",
+      "developer": "NeutronOS",
+      "description": "Native NeutronOS browser with tabs, bookmarks, downloads, HTML/CSS/JavaScript and sandboxed Python web content.",
+      "category": "Apps",
+      "architectures": [
+        "aarch64"
+      ],
+      "minNeutronOS": "1.0.0-alpha",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Browser-1.2.0.Napp",
+      "sha256": "f9686c3165315303822666dda2321cf1e4316048d3f6d8ee00aeea9f3774300e",
+      "signature": "qM8h0BgL+HuCEnaB8fp2u3VipAGAp1lsVRI+nfOuYBiqyCYyiTLr8aG8pZ2QuMx2SeVHYtEsx3zebythqvpzBg==",
+      "keyId": "neutronos-release-v1",
+      "size": 2953884,
+      "installedBytes": 3025927,
+      "permissions": [
+        "network",
+        "downloads",
+        "web-content"
+      ],
+      "dependencies": [
+        "Qt 6 WebEngine QML runtime"
+      ],
+      "debianDependencies": [
+        "qml6-module-qtwebengine"
+      ]
+    },
+    {
       "id": "jellyfin",
       "name": "Neutron Media Libraries",
       "version": "1.1.1",

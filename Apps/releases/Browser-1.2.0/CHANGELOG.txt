@@ -1,0 +1,18 @@
+Browser 1.2.0
+=============
+
+Distribution:
+- Convert Browser into an official signed NeutronOS App Store package.
+- Add declarative Qt WebEngine runtime dependency checking/install.
+- Add official repository metadata for clean App Store reinstall.
+- Preserve Browser state on uninstall/reinstall.
+
+QML structure:
+- BrowserView remains the behavior/orchestration owner.
+- Presentation split into reusable components and modals.
+- Main.qml, Standalone.qml, controller mappings, BrowserManager integration,
+  WebEngine profiles, page/session behavior, capture behavior, and lifecycle
+  semantics are preserved from the approved modularization pass.
+
+This release is intended to migrate the existing source-tree Browser into
+App Store ownership before the uninstall/reinstall verification.

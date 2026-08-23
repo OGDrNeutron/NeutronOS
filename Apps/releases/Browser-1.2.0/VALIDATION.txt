@@ -1,0 +1,42 @@
+Browser 1.2.0 App Store Release Validation
+==========================================
+
+Package: Browser-1.2.0.Napp
+SHA-256: f9686c3165315303822666dda2321cf1e4316048d3f6d8ee00aeea9f3774300e
+Size: 2953884 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Package format:
+- NeutronOS .napp schema 1
+- deterministic ZIP archive
+- manifest.json present
+- modular Browser QML present
+- Browser icon present
+- 1254x1254 Browser poster present
+- no private signing key present
+- no package-provided lifecycle scripts
+- no system files
+
+Dependency provisioning:
+- debianDependencies: qml6-module-qtwebengine
+- NeutronOS App Store broker checks dpkg-query first
+- apt installs only if missing
+- qml6-module-qtwebengine pulls the Qt WebEngine Quick runtime required by Browser
+
+Legacy migration:
+- source-tree Browser version: 1.1.0-unified-apphost
+- App Store version: 1.2.0
+- official signed update is intentionally newer so AppStoreManager can use its
+  legacy-adoption path and retire qml/apps/browser plus the legacy icon/poster
+  transactionally.
+
+Validation completed:
+- archive CRC passed
+- neutronos-appstore-package.py inspect passed
+- package id/version validated
+- dependency declaration preserved
+- Ed25519 public key derived from private credential matched neutronos-release-v1
+- detached signature verified against the exact Napp bytes
+
+No signing key is included in this release material.
