@@ -40,7 +40,7 @@
       "name": "Codex",
       "version": "1.0.0-alpha.3",
       "developer": "OpenAI Integration / NeutronOS",
-      "description": "Controller-first NeutronOS client for the existing local Codex app-server with sessions, streamed activity, approvals, and official authentication.",
+      "description": "An integrated Codex development environment for NeutronOS, bringing AI-assisted coding, persistent sessions, live activity and guarded repository access to the controller.",
       "category": "Developer Tools",
       "architectures": [
         "aarch64"
