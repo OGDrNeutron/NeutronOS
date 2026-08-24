@@ -11,7 +11,7 @@
       "name": "Browser",
       "version": "1.2.0",
       "developer": "NeutronOS",
-      "description": "Native NeutronOS browser with tabs, bookmarks, downloads, HTML/CSS/JavaScript and sandboxed Python web content.",
+      "description": "A controller-first web browser for NeutronOS with tabs, private browsing, bookmarks, downloads, media controls and advanced web features.",
       "category": "Apps",
       "architectures": [
         "aarch64"
