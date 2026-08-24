@@ -1,0 +1,35 @@
+Music Player 1.0.1 App Store Release Validation
+================================================
+
+Package: MusicPlayer-1.0.1.Napp
+Source-tree version: 1.0.0-alpha-61G-E
+App Store version: 1.0.1
+SHA-256: 7a748eb2961f032d4acf0eec6f64e12ce0df41d6362fcab925894d42152bc0aa
+Size: 2804513 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Dependency audit:
+- MusicPlayerManager requires external mpv executable for playback: YES
+- mpv is not in the NeutronOS base-image package list: YES
+- Debian dependency: mpv
+- Media metadata/artwork uses ffmpeg/ffprobe: YES
+- NeutronOS base image installs ffmpeg: YES
+- Audio stack uses OS-provided PipeWire/WirePlumber/ALSA: YES
+- debianDependencies: ["mpv"]
+
+State preservation:
+- state/musicplayer/library-cache.json is NOT packaged
+- state/musicplayer/playlists.json is NOT packaged
+- state/musicplayer/artwork/ is NOT packaged
+- Music Player settings are NOT package-owned
+- uninstallState is empty
+
+Package safety:
+- current modular QML tree included
+- approved Music Player icon included
+- approved Music Player poster included
+- no private signing key
+- no install.sh/uninstall.sh
+- no systemFiles
+- MusicPlayerManager remains OS-owned compiled support

@@ -1,0 +1,15 @@
+Music Player 1.0.1
+==================
+
+Distribution:
+- Convert the current modular Music Player into an official signed NeutronOS App Store package.
+- Preserve current MusicPlayerManager behavior and controller-first UI.
+- Preserve library cache, playlists, downloaded/extracted artwork cache and settings across uninstall/reinstall.
+- Keep MusicPlayerManager compiled support OS-owned.
+
+Dependency contract:
+- mpv is the only App Store Debian dependency.
+- MusicPlayerManager explicitly refuses playback when the mpv executable is unavailable.
+- ffmpeg/ffprobe are already provided by the NeutronOS base image.
+- PipeWire, WirePlumber and ALSA tools are already provided by the NeutronOS base image.
+- QtQuick and QtQuick.Controls are already NeutronOS base runtime modules.

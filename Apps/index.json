@@ -171,6 +171,43 @@
       "requiresDeveloperMode": false
     },
     {
+      "id": "musicplayer",
+      "name": "Music Player",
+      "version": "1.0.1",
+      "developer": "NeutronOS",
+      "description": "Scan and cache music libraries, browse tracks, albums, artists and folders, build playlists and queues, select app-scoped audio outputs, and safely preview and apply batch filename and embedded-metadata repairs.",
+      "category": "Media",
+      "architectures": [
+        "aarch64"
+      ],
+      "minNeutronOS": "1.0.0-alpha",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/MusicPlayer-1.0.1.Napp",
+      "sha256": "7a748eb2961f032d4acf0eec6f64e12ce0df41d6362fcab925894d42152bc0aa",
+      "signature": "e/cvH0tSY5V0ptszVu2yEVXlB2+pVPPgtTtNlDW40AVcV2XrZjMq7Z9FkSnUVNflMpRf1ppYjTWx/hGJdLwJAA==",
+      "keyId": "neutronos-release-v1",
+      "size": 2804513,
+      "installedBytes": 2882479,
+      "permissions": [
+        "music-library",
+        "audio-output",
+        "background-playback",
+        "playlist-storage",
+        "metadata-write",
+        "file-rename",
+        "ffmpeg"
+      ],
+      "dependencies": [
+        "NeutronOS MusicPlayerManager backend (OS-provided)",
+        "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)",
+        "PipeWire / WirePlumber / ALSA runtime (OS-provided by NeutronOS)",
+        "mpv playback engine"
+      ],
+      "debianDependencies": [
+        "mpv"
+      ],
+      "requiresDeveloperMode": false
+    },
+    {
       "id": "jellyfin",
       "name": "Neutron Media Libraries",
       "version": "1.1.1",
