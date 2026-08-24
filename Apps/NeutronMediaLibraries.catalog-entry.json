@@ -3,7 +3,7 @@
   "name": "Neutron Media Libraries",
   "version": "1.1.1",
   "developer": "NeutronOS",
-  "description": "A controller-first NeutronOS media library powered by Jellyfin with local, Roku, offline Wi-Fi, and direct LAN playback setup.",
+  "description": "A complete home media experience for NeutronOS, bringing movies, TV, music and personal libraries together with polished controller-first browsing and flexible playback across your network.",
   "category": "Media",
   "architectures": [
     "aarch64"
