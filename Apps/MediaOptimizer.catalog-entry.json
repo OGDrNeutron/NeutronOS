@@ -5,6 +5,8 @@
   "developer": "NeutronOS",
   "description": "A smart media optimization suite for NeutronOS that analyzes your library, identifies compatibility issues and safely prepares media for smoother playback across devices.",
   "category": "Media",
+  "icon": "optimizer",
+  "poster": "optimizer",
   "architectures": [
     "aarch64"
   ],
