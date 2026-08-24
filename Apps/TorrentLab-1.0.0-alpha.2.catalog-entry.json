@@ -1,0 +1,35 @@
+{
+  "id": "torrentlab",
+  "name": "Torrent Lab",
+  "version": "1.0.0-alpha.2",
+  "developer": "NeutronOS",
+  "description": "A controller-first torrent discovery and injection workspace for NeutronOS with filtered search, qBittorrent queueing, live transfer states and secure API setup.",
+  "category": "Network",
+  "icon": "icons/torrentlab.png",
+  "poster": "posters/torrentlab.png",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/TorrentLab-1.0.0-alpha.2.Napp",
+  "sha256": "498bc1d37266e3430dda97c7caee6a8247f56154db17520186a777327f063839",
+  "signature": "nv/cu3MW1wlNA/PSz2fwfGraRkcC/wTpxKqKlVUDXpwYJEuXb7gQ9IzzB4cPbI/H+O6s0qjPNaIxeOphVoGIAg==",
+  "keyId": "neutronos-release-v1",
+  "size": 2434891,
+  "installedBytes": 2534782,
+  "permissions": [
+    "network",
+    "package-helper",
+    "dormant-remote-capability"
+  ],
+  "dependencies": [
+    "qBittorrent Web API (user/OS-provided)",
+    "Torrent Search API (user-provided)",
+    "NeutronOS PackageAppBridgeManager (OS-provided)"
+  ],
+  "debianDependencies": [
+    "python3",
+    "python3-requests"
+  ],
+  "requiresDeveloperMode": false
+}

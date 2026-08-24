@@ -13,7 +13,9 @@
       "developer": "NeutronOS",
       "description": "A controller-first web browser for NeutronOS with tabs, private browsing, bookmarks, downloads, media controls and advanced web features.",
       "category": "Apps",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Browser-1.2.0.Napp",
       "sha256": "f9686c3165315303822666dda2321cf1e4316048d3f6d8ee00aeea9f3774300e",
@@ -21,9 +23,17 @@
       "keyId": "neutronos-release-v1",
       "size": 2953884,
       "installedBytes": 3025927,
-      "permissions": ["network", "downloads", "web-content"],
-      "dependencies": ["Qt 6 WebEngine QML runtime"],
-      "debianDependencies": ["qml6-module-qtwebengine"]
+      "permissions": [
+        "network",
+        "downloads",
+        "web-content"
+      ],
+      "dependencies": [
+        "Qt 6 WebEngine QML runtime"
+      ],
+      "debianDependencies": [
+        "qml6-module-qtwebengine"
+      ]
     },
     {
       "id": "codex",
@@ -32,7 +42,9 @@
       "developer": "OpenAI Integration / NeutronOS",
       "description": "An integrated Codex development environment for NeutronOS, bringing AI-assisted coding, persistent sessions, live activity and guarded repository access to the controller.",
       "category": "Developer Tools",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Codex-1.0.0-alpha.3.Napp",
       "sha256": "57ad7f5d7c0cc49c8b08ddcc3059eb1b5fda1ea4eaee11d05c1293f9f5509326",
@@ -40,8 +52,18 @@
       "keyId": "neutronos-release-v1",
       "size": 2629361,
       "installedBytes": 2683955,
-      "permissions": ["documents", "repository-filesystem", "network", "notifications", "background-execution", "system-telemetry", "scoped-privileged-operations"],
-      "dependencies": ["Existing Codex CLI runtime"],
+      "permissions": [
+        "documents",
+        "repository-filesystem",
+        "network",
+        "notifications",
+        "background-execution",
+        "system-telemetry",
+        "scoped-privileged-operations"
+      ],
+      "dependencies": [
+        "Existing Codex CLI runtime"
+      ],
       "debianDependencies": [],
       "requiresDeveloperMode": true
     },
@@ -52,7 +74,9 @@
       "developer": "NeutronOS",
       "description": "A polished controller-first media library for NeutronOS, combining photos, screenshots, videos and recordings with albums, favorites, slideshows and rich media details.",
       "category": "Media",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gallery-1.0.0-alpha.2.Napp",
       "sha256": "54d5a82442d893c823894c61b7a822f6875f17f48f589d5ba6b85da11e66c5ab",
@@ -60,9 +84,22 @@
       "keyId": "neutronos-release-v1",
       "size": 2487950,
       "installedBytes": 2532930,
-      "permissions": ["pictures", "videos", "screenshots", "screen-recordings", "file-management", "background-scanning"],
-      "dependencies": ["NeutronOS GalleryManager backend (OS-provided)", "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)", "Qt 6 Multimedia QML runtime"],
-      "debianDependencies": ["qml6-module-qtmultimedia"],
+      "permissions": [
+        "pictures",
+        "videos",
+        "screenshots",
+        "screen-recordings",
+        "file-management",
+        "background-scanning"
+      ],
+      "dependencies": [
+        "NeutronOS GalleryManager backend (OS-provided)",
+        "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)",
+        "Qt 6 Multimedia QML runtime"
+      ],
+      "debianDependencies": [
+        "qml6-module-qtmultimedia"
+      ],
       "requiresDeveloperMode": false
     },
     {
@@ -72,7 +109,9 @@
       "developer": "NeutronOS",
       "description": "A unified gaming hub for NeutronOS that brings local classics, emulation, Flash games and game streaming together in a polished controller-first library.",
       "category": "Entertainment",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Games-1.1.1.Napp",
       "sha256": "648c6c52ddea7658350165376bbb79c39272aaa082b73e3e4f1e6a192d433f2c",
@@ -80,9 +119,24 @@
       "keyId": "neutronos-release-v1",
       "size": 2946660,
       "installedBytes": 2985439,
-      "permissions": ["games", "controller", "filesystem", "network", "package-management", "process-launch"],
-      "dependencies": ["NeutronOS GamesManager backend (OS-provided)", "NeutronOS game display-handoff helpers (OS-provided)", "Python 3 + systemd + util-linux runtime (OS-provided)", "kbd virtual-terminal tools", "Emulators and cloud runtimes are installed on demand per game/system"],
-      "debianDependencies": ["kbd"],
+      "permissions": [
+        "games",
+        "controller",
+        "filesystem",
+        "network",
+        "package-management",
+        "process-launch"
+      ],
+      "dependencies": [
+        "NeutronOS GamesManager backend (OS-provided)",
+        "NeutronOS game display-handoff helpers (OS-provided)",
+        "Python 3 + systemd + util-linux runtime (OS-provided)",
+        "kbd virtual-terminal tools",
+        "Emulators and cloud runtimes are installed on demand per game/system"
+      ],
+      "debianDependencies": [
+        "kbd"
+      ],
       "requiresDeveloperMode": false
     },
     {
@@ -94,7 +148,9 @@
       "category": "Media",
       "icon": "optimizer",
       "poster": "optimizer",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/MediaOptimizer-2.0.1.Napp",
       "sha256": "07a78ee0f726552391bcba07ef791d760a5770272fe0414a96b6b1811cdf3dc1",
@@ -102,8 +158,17 @@
       "keyId": "neutronos-release-v1",
       "size": 2385247,
       "installedBytes": 2449959,
-      "permissions": ["filesystem", "media", "ffmpeg", "storage", "process-launch"],
-      "dependencies": ["NeutronOS MediaOptimizerManager backend (OS-provided)", "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)"],
+      "permissions": [
+        "filesystem",
+        "media",
+        "ffmpeg",
+        "storage",
+        "process-launch"
+      ],
+      "dependencies": [
+        "NeutronOS MediaOptimizerManager backend (OS-provided)",
+        "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)"
+      ],
       "debianDependencies": [],
       "requiresDeveloperMode": false
     },
@@ -114,7 +179,9 @@
       "developer": "NeutronOS",
       "description": "A polished music experience for NeutronOS with rich library browsing, playlists, artwork, flexible audio output and intelligent music metadata tools.",
       "category": "Media",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/MusicPlayer-1.0.1.Napp",
       "sha256": "7a748eb2961f032d4acf0eec6f64e12ce0df41d6362fcab925894d42152bc0aa",
@@ -122,9 +189,24 @@
       "keyId": "neutronos-release-v1",
       "size": 2804513,
       "installedBytes": 2882479,
-      "permissions": ["music-library", "audio-output", "background-playback", "playlist-storage", "metadata-write", "file-rename", "ffmpeg"],
-      "dependencies": ["NeutronOS MusicPlayerManager backend (OS-provided)", "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)", "PipeWire / WirePlumber / ALSA runtime (OS-provided by NeutronOS)", "mpv playback engine"],
-      "debianDependencies": ["mpv"],
+      "permissions": [
+        "music-library",
+        "audio-output",
+        "background-playback",
+        "playlist-storage",
+        "metadata-write",
+        "file-rename",
+        "ffmpeg"
+      ],
+      "dependencies": [
+        "NeutronOS MusicPlayerManager backend (OS-provided)",
+        "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)",
+        "PipeWire / WirePlumber / ALSA runtime (OS-provided by NeutronOS)",
+        "mpv playback engine"
+      ],
+      "debianDependencies": [
+        "mpv"
+      ],
       "requiresDeveloperMode": false
     },
     {
@@ -134,26 +216,42 @@
       "developer": "NeutronOS",
       "description": "A complete home media experience for NeutronOS, bringing movies, TV, music and personal libraries together with polished controller-first browsing and flexible playback across your network.",
       "category": "Media",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronMediaLibraries-1.1.1.Napp",
       "sha256": "b0653f8261f2757bc644973f4874ede1b76cbb6e3ae5f47d8eb724105d9ba81d",
       "signature": "KnjMDjhZwTITu+UKLMvVSFYjnHzgR3JqNxlnHgP4wyTn7qoTkF6uuag/KXP2LDFufvocaV3f28x4fLrX/AZlCA==",
       "keyId": "neutronos-release-v1",
       "size": 3733268,
-      "permissions": ["network", "state", "media-playback"],
-      "dependencies": ["python3", "Docker daemon + CLI (installed only when no Jellyfin backend exists)"],
-      "debianDependencies": ["python3"],
+      "permissions": [
+        "network",
+        "state",
+        "media-playback"
+      ],
+      "dependencies": [
+        "python3",
+        "Docker daemon + CLI (installed only when no Jellyfin backend exists)"
+      ],
+      "debianDependencies": [
+        "python3"
+      ],
       "runtimeRequirements": [
         {
           "type": "jellyfin-server",
           "systemUnit": "jellyfin.service",
           "containerName": "jellyfin",
           "dockerUnit": "docker.service",
-          "dockerPackages": ["docker.io", "docker-cli"],
+          "dockerPackages": [
+            "docker.io",
+            "docker-cli"
+          ],
           "image": "jellyfin/jellyfin:10.11.11",
           "imageDigest": "sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db",
-          "imageDownloadBytesByArch": {"aarch64": 385660000}
+          "imageDownloadBytesByArch": {
+            "aarch64": 385660000
+          }
         }
       ],
       "screenshots": [
@@ -170,7 +268,9 @@
       "developer": "NeutronOS",
       "description": "A polished torrent management experience for NeutronOS with controller-first browsing, transfer controls and seamless connection to local or remote qBittorrent servers.",
       "category": "Network",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/qBittorrent-1.0.1.Napp",
       "sha256": "0305beec6a0b1ca96d3353885c333d5775346d19ab02989fc56585507a4e2848",
@@ -178,8 +278,15 @@
       "keyId": "neutronos-release-v1",
       "size": 2677418,
       "installedBytes": 2942750,
-      "permissions": ["network", "docker", "filesystem"],
-      "dependencies": ["NeutronOS QBitTorrentManager backend (OS-provided)", "Existing qBittorrent Web API, native service, or Docker container (user/OS-provided)"],
+      "permissions": [
+        "network",
+        "docker",
+        "filesystem"
+      ],
+      "dependencies": [
+        "NeutronOS QBitTorrentManager backend (OS-provided)",
+        "Existing qBittorrent Web API, native service, or Docker container (user/OS-provided)"
+      ],
       "debianDependencies": [],
       "requiresDeveloperMode": false
     },
@@ -190,7 +297,9 @@
       "developer": "NeutronOS",
       "description": "A polished writing and coding environment for NeutronOS with intelligent editing tools, syntax awareness, automatic recovery and guarded system-file access.",
       "category": "Productivity",
-      "architectures": ["aarch64"],
+      "architectures": [
+        "aarch64"
+      ],
       "minNeutronOS": "1.0.0-alpha",
       "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/TextEditor-1.1.1.Napp",
       "sha256": "e3b938cf96c669f28f734bd7a5487aeafee503752b740fd77b9658bd1358743f",
@@ -198,9 +307,52 @@
       "keyId": "neutronos-release-v1",
       "size": 2361195,
       "installedBytes": 2403248,
-      "permissions": ["documents", "file-management", "developer-mode-guarded-system-files"],
-      "dependencies": ["NeutronOS TextEditorManager backend (OS-provided)", "NeutronOS Developer Mode safeguards (OS-provided)", "Python 3 syntax diagnostics are optional when Python is available"],
+      "permissions": [
+        "documents",
+        "file-management",
+        "developer-mode-guarded-system-files"
+      ],
+      "dependencies": [
+        "NeutronOS TextEditorManager backend (OS-provided)",
+        "NeutronOS Developer Mode safeguards (OS-provided)",
+        "Python 3 syntax diagnostics are optional when Python is available"
+      ],
       "debianDependencies": [],
+      "requiresDeveloperMode": false
+    },
+    {
+      "id": "torrentlab",
+      "name": "Torrent Lab",
+      "version": "1.0.0-alpha.2",
+      "developer": "NeutronOS",
+      "description": "A controller-first torrent discovery and injection workspace for NeutronOS with filtered search, qBittorrent queueing, live transfer states and secure API setup.",
+      "category": "Network",
+      "icon": "icons/torrentlab.png",
+      "poster": "posters/torrentlab.png",
+      "architectures": [
+        "aarch64"
+      ],
+      "minNeutronOS": "1.0.0-alpha",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/TorrentLab-1.0.0-alpha.2.Napp",
+      "sha256": "498bc1d37266e3430dda97c7caee6a8247f56154db17520186a777327f063839",
+      "signature": "nv/cu3MW1wlNA/PSz2fwfGraRkcC/wTpxKqKlVUDXpwYJEuXb7gQ9IzzB4cPbI/H+O6s0qjPNaIxeOphVoGIAg==",
+      "keyId": "neutronos-release-v1",
+      "size": 2434891,
+      "installedBytes": 2534782,
+      "permissions": [
+        "network",
+        "package-helper",
+        "dormant-remote-capability"
+      ],
+      "dependencies": [
+        "qBittorrent Web API (user/OS-provided)",
+        "Torrent Search API (user-provided)",
+        "NeutronOS PackageAppBridgeManager (OS-provided)"
+      ],
+      "debianDependencies": [
+        "python3",
+        "python3-requests"
+      ],
       "requiresDeveloperMode": false
     }
   ]
