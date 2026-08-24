@@ -1,0 +1,16 @@
+qBittorrent 1.0.1
+=================
+
+Distribution:
+- Convert the current modular qBittorrent frontend into an official signed NeutronOS App Store package.
+- Preserve QBitTorrentManager as OS-owned compiled support.
+- Preserve qBittorrent API settings and credentials across uninstall/reinstall.
+- Preserve existing native qBittorrent services and Docker containers.
+
+Dependency contract:
+- No App Store Debian dependencies.
+- The frontend can connect to an existing local or remote qBittorrent Web API.
+- QBitTorrentManager can reuse an existing qBittorrent native service or Docker container.
+- qBittorrent-nox is NOT forced as an install dependency.
+- Docker is NOT forced as an install dependency.
+- Backend installation/provisioning remains separate from installing/updating the frontend.

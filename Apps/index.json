@@ -258,6 +258,35 @@
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-03-settings.png",
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-04-customize.png"
       ]
+    },
+    {
+      "id": "qbittorrent",
+      "name": "qBittorrent",
+      "version": "1.0.1",
+      "developer": "NeutronOS",
+      "description": "Controller-first qBittorrent manager for torrents, files, transfers, local torrent imports, and download management.",
+      "category": "Network",
+      "architectures": [
+        "aarch64"
+      ],
+      "minNeutronOS": "1.0.0-alpha",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/qBittorrent-1.0.1.Napp",
+      "sha256": "0305beec6a0b1ca96d3353885c333d5775346d19ab02989fc56585507a4e2848",
+      "signature": "9OGgq8Iy5WjyTdNAuTbABVJKiurEp5zOo5mk0bxoK0z39xnXRnI1pJoE6m8d+0pVYGNiKf5Bo9Rkho8rzObEDw==",
+      "keyId": "neutronos-release-v1",
+      "size": 2677418,
+      "installedBytes": 2942750,
+      "permissions": [
+        "network",
+        "docker",
+        "filesystem"
+      ],
+      "dependencies": [
+        "NeutronOS QBitTorrentManager backend (OS-provided)",
+        "Existing qBittorrent Web API, native service, or Docker container (user/OS-provided)"
+      ],
+      "debianDependencies": [],
+      "requiresDeveloperMode": false
     }
   ]
 }

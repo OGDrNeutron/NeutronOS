@@ -1,0 +1,37 @@
+qBittorrent 1.0.1 App Store Release Validation
+==============================================
+
+Package: qBittorrent-1.0.1.Napp
+Source-tree version: 1.0.0
+App Store version: 1.0.1
+SHA-256: 0305beec6a0b1ca96d3353885c333d5775346d19ab02989fc56585507a4e2848
+Size: 2677418 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Dependency audit:
+- QBitTorrentManager talks to qBittorrent Web API: YES
+- Default API URL: http://127.0.0.1:8080
+- Remote/custom API URL supported: YES
+- Existing native qbittorrent.service reuse: YES
+- Existing qbittorrent-nox.service reuse: YES
+- Existing Docker container named qbittorrent reuse: YES
+- No backend type is universally mandatory for the frontend.
+- debianDependencies: []
+
+State preservation:
+- state/qbittorrent/settings.json is NOT packaged
+- state/qbittorrent/last-backend.log is NOT packaged
+- API credentials/settings remain outside package ownership
+- uninstallState is empty
+
+Package safety:
+- current modular qBittorrent QML tree included
+- approved qBittorrent icon included
+- approved qBittorrent poster included
+- no state credentials included
+- no private signing key
+- no install.sh/uninstall.sh
+- no systemFiles
+- QBitTorrentManager remains OS-owned compiled support
+- existing Docker/native backend is not package-owned and is not removed on uninstall
