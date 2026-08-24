@@ -70,7 +70,7 @@
     {
       "id": "gallery",
       "name": "Gallery",
-      "version": "1.0.0-alpha.1",
+      "version": "1.0.0-alpha.2",
       "developer": "NeutronOS",
       "description": "Browse photos, screenshots, videos and screen recordings in one controller-first library with albums, filters, metadata, favorites, slideshows, zoom, panning, file operations and cached video thumbnails.",
       "category": "Media",
@@ -78,12 +78,12 @@
         "aarch64"
       ],
       "minNeutronOS": "1.0.0-alpha",
-      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gallery-1.0.0-alpha.1.Napp",
-      "sha256": "3949b9665699d415fe92ad6a19f059279712c84e888d25249a0678bf5d89cdb3",
-      "signature": "kwNEc4dLDVHbULNxg/iV0y1MYITUPRBh59A6DvK8xAkvQIIOBXFkMzTrE5gdDfkiSt4dgLNcJ5ZSHDeg0OQIBQ==",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gallery-1.0.0-alpha.2.Napp",
+      "sha256": "54d5a82442d893c823894c61b7a822f6875f17f48f589d5ba6b85da11e66c5ab",
+      "signature": "JDdoxKKTwD5ZogHNrMR14id5cDCEAl0BImvdsIhojzsp3SPsEbiNMxBtulPFOjmMvpjQlWPfLnUgEwCCqxOYBg==",
       "keyId": "neutronos-release-v1",
-      "size": 2487946,
-      "installedBytes": 2531974,
+      "size": 2487950,
+      "installedBytes": 2532930,
       "permissions": [
         "pictures",
         "videos",
@@ -94,12 +94,11 @@
       ],
       "dependencies": [
         "NeutronOS GalleryManager backend (OS-provided)",
-        "Qt 6 Multimedia QML runtime",
-        "FFmpeg + ffprobe media tools"
+        "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)",
+        "Qt 6 Multimedia QML runtime"
       ],
       "debianDependencies": [
-        "qml6-module-qtmultimedia",
-        "ffmpeg"
+        "qml6-module-qtmultimedia"
       ],
       "requiresDeveloperMode": false
     },

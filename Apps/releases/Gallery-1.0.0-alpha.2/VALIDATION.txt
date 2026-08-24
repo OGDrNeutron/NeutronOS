@@ -1,0 +1,28 @@
+Gallery 1.0.0-alpha.2 Validation
+================================
+
+Package: Gallery-1.0.0-alpha.2.Napp
+SHA-256: 54d5a82442d893c823894c61b7a822f6875f17f48f589d5ba6b85da11e66c5ab
+Size: 2487950 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Correct dependency contract:
+- OS-provided: NeutronOS GalleryManager backend
+- OS-provided: ffmpeg / ffprobe
+- App Store dependency: qml6-module-qtmultimedia
+- debianDependencies contains exactly:
+  qml6-module-qtmultimedia
+
+Evidence:
+- NeutronOS's clean-image builder explicitly installs ffmpeg.
+- GalleryManager invokes ffprobe and ffmpeg for video metadata/thumbnails.
+- Gallery's VideoPlayerSurface.qml imports QtMultimedia.
+- The clean-image builder does not explicitly install qml6-module-qtmultimedia.
+- Gallery loads the video player only for videos and handles Loader.Error if Qt Multimedia is unavailable.
+
+Package safety:
+- no signing key in Napp
+- no install.sh / uninstall.sh
+- no systemFiles
+- current Gallery payload preserved

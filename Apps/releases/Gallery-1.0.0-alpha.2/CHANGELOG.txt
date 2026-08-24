@@ -1,0 +1,11 @@
+Gallery 1.0.0-alpha.2
+=====================
+
+Dependency correction:
+- Remove ffmpeg from Gallery's App Store Debian dependency list.
+- FFmpeg/ffprobe are already installed by the NeutronOS clean-image builder and are OS-provided runtime tools.
+- Keep only qml6-module-qtmultimedia as an App Store dependency because Gallery's video player imports QtMultimedia and NeutronOS does not declare that module as a base-image dependency.
+- App Store installs Qt Multimedia only if it is actually missing.
+
+No Gallery UI or backend behavior changed.
+The current modular Gallery QML, icon, poster, controller behavior, GalleryManager integration, video metadata, and thumbnail behavior are preserved.
