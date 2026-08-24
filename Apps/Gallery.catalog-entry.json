@@ -3,7 +3,7 @@
   "name": "Gallery",
   "version": "1.0.0-alpha.2",
   "developer": "NeutronOS",
-  "description": "Browse photos, screenshots, videos and screen recordings in one controller-first library with albums, filters, metadata, favorites, slideshows, zoom, panning, file operations and cached video thumbnails.",
+  "description": "A polished controller-first media library for NeutronOS, combining photos, screenshots, videos and recordings with albums, favorites, slideshows and rich media details.",
   "category": "Media",
   "architectures": [
     "aarch64"
