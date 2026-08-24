@@ -1,0 +1,24 @@
+Codex 1.0.0-alpha.3 validation
+================================
+
+Package SHA-256: 57ad7f5d7c0cc49c8b08ddcc3059eb1b5fda1ea4eaee11d05c1293f9f5509326
+Size: 2629361 bytes
+Signing key: neutronos-release-v1
+
+Dependency behavior:
+- debianDependencies is intentionally empty.
+- App Store update installs zero Debian packages.
+- npm is NOT an install/update dependency.
+- ripgrep is NOT an install/update dependency.
+- nodejs is NOT an install/update dependency.
+- git is NOT an install/update dependency.
+- Existing Codex CLI is used as-is.
+- Opening Codex does not force a CLI version upgrade.
+- Opening Codex does not auto-run npm.
+
+Package behavior:
+- Current modular QML tree preserved.
+- Existing package bridge protocol preserved.
+- Optional manual runtime installer remains available only if Codex is absent.
+- No install.sh/uninstall.sh lifecycle scripts.
+- No private signing key in package.

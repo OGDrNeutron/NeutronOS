@@ -1,0 +1,9 @@
+Codex 1.0.0-alpha.3
+===================
+
+- Removes incorrectly declared hard Debian dependencies from Codex updates.
+- Uses the Codex CLI runtime already present on NeutronOS.
+- Removes the forced Codex CLI 0.149.0 minimum introduced in alpha.2.
+- Removes automatic runtime installation/upgrade when Codex opens.
+- Preserves optional manual runtime setup only for systems where Codex is genuinely absent.
+- Preserves the current modular Codex UI and package-owned bridge.
