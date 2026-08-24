@@ -3,7 +3,7 @@
   "name": "Music Player",
   "version": "1.0.1",
   "developer": "NeutronOS",
-  "description": "Scan and cache music libraries, browse tracks, albums, artists and folders, build playlists and queues, select app-scoped audio outputs, and safely preview and apply batch filename and embedded-metadata repairs.",
+  "description": "A polished music experience for NeutronOS with rich library browsing, playlists, artwork, flexible audio output and intelligent music metadata tools.",
   "category": "Media",
   "architectures": [
     "aarch64"
