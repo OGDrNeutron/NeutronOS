@@ -1,0 +1,18 @@
+Gallery 1.0.0-alpha.1
+=====================
+
+Distribution:
+- Convert the current modular Gallery app into an official signed NeutronOS App Store package.
+- Preserve the controller-first Gallery UI, albums, filters, metadata, favorites, slideshow, zoom/pan, file operations, and cached video thumbnails.
+- Add declarative dependency provisioning for Qt Multimedia QML and FFmpeg/ffprobe.
+- Preserve Gallery state across uninstall/reinstall.
+
+Dependency provisioning:
+- qml6-module-qtmultimedia supplies the QtMultimedia QML module used by VideoPlayerSurface.qml.
+- ffmpeg supplies both ffmpeg and ffprobe used by the OS-owned GalleryManager for video thumbnails and metadata.
+- The trusted App Store broker checks dpkg-query first and installs only missing Debian packages.
+
+Architecture:
+- GalleryManager remains OS-owned compiled NeutronOS support.
+- The Napp owns only Gallery QML/assets.
+- Removing Gallery does not remove or rebuild NeutronOS shell code.

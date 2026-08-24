@@ -1,0 +1,39 @@
+Gallery 1.0.0-alpha.1 App Store Release Validation
+======================================================
+
+Package: Gallery-1.0.0-alpha.1.Napp
+SHA-256: 3949b9665699d415fe92ad6a19f059279712c84e888d25249a0678bf5d89cdb3
+Size: 2487946 bytes
+Installed payload: 2531974 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Package format:
+- NeutronOS .napp schema 1
+- deterministic ZIP archive
+- complete current modular Gallery QML tree present
+- 500x500 Gallery icon present
+- 1254x1254 Gallery poster present
+- no private signing key present
+- no package-provided install/uninstall scripts
+- no privileged system files
+
+Dependency provisioning:
+- debianDependencies: qml6-module-qtmultimedia, ffmpeg
+- qml6-module-qtmultimedia supplies QtMultimedia and pulls its required Qt 6 multimedia libraries
+- ffmpeg supplies both ffmpeg and ffprobe
+- broker checks installed packages before apt installation
+
+Legacy migration:
+- source-tree Gallery version: 1.0.0-alpha
+- App Store Gallery version: 1.0.0-alpha.1
+- package version is intentionally newer for source-tree adoption
+
+Validation completed:
+- deterministic rebuild matched byte-for-byte
+- archive CRC passed
+- app/manifest identity and versions validated
+- complete Gallery component/modal tree validated
+- dependency declarations validated
+- private key derived public key matched neutronos-release-v1
+- detached Ed25519 signature verified against exact Napp bytes
