@@ -3,7 +3,7 @@
   "name": "Games",
   "version": "1.1.1",
   "developer": "NeutronOS",
-  "description": "Discover ROMs and Flash games, manage artwork and per-game settings, install compatible emulators, launch cloud services, reorder the library, and start controller-ready runtimes.",
+  "description": "A unified gaming hub for NeutronOS that brings local classics, emulation, Flash games and game streaming together in a polished controller-first library.",
   "category": "Entertainment",
   "architectures": [
     "aarch64"
