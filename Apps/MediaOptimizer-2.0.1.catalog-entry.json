@@ -3,7 +3,7 @@
   "name": "Media Optimizer",
   "version": "2.0.1",
   "developer": "NeutronOS",
-  "description": "Analyze media compatibility, sort by optimization need, manage audio and subtitle tracks, estimate savings, and run guarded FFmpeg optimization.",
+  "description": "A smart media optimization suite for NeutronOS that analyzes your library, identifies compatibility issues and safely prepares media for smoother playback across devices.",
   "category": "Media",
   "architectures": [
     "aarch64"
