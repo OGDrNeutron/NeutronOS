@@ -1,0 +1,31 @@
+{
+  "id": "mediaoptimizer",
+  "name": "Media Optimizer",
+  "version": "2.0.1",
+  "developer": "NeutronOS",
+  "description": "Analyze media compatibility, sort by optimization need, manage audio and subtitle tracks, estimate savings, and run guarded FFmpeg optimization.",
+  "category": "Media",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/MediaOptimizer-2.0.1.Napp",
+  "sha256": "07a78ee0f726552391bcba07ef791d760a5770272fe0414a96b6b1811cdf3dc1",
+  "signature": "dCvWjbAuvUT88zK7djZeMSPrWWCHzHDD6E095Jv9g5Bl4opbY+OU72RtSdvvc49WdRSJEUlGcyklQJkaTgoVAQ==",
+  "keyId": "neutronos-release-v1",
+  "size": 2385247,
+  "installedBytes": 2449959,
+  "permissions": [
+    "filesystem",
+    "media",
+    "ffmpeg",
+    "storage",
+    "process-launch"
+  ],
+  "dependencies": [
+    "NeutronOS MediaOptimizerManager backend (OS-provided)",
+    "FFmpeg + ffprobe media tools (OS-provided by NeutronOS)"
+  ],
+  "debianDependencies": [],
+  "requiresDeveloperMode": false
+}

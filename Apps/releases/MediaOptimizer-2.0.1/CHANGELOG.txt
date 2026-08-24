@@ -1,0 +1,14 @@
+Media Optimizer 2.0.1
+=====================
+
+Distribution:
+- Convert the current modular Media Optimizer into an official signed NeutronOS App Store package.
+- Preserve the approved Media Optimizer UI and MediaOptimizerManager behavior.
+- Preserve settings, presets and scan cache across uninstall/reinstall.
+- Keep MediaOptimizerManager compiled support OS-owned.
+
+Dependency contract:
+- No App Store Debian dependencies.
+- ffmpeg and ffprobe are used by MediaOptimizerManager and are already installed by the NeutronOS base-image builder.
+- QtQuick and QtQuick.Controls are already NeutronOS base runtime modules.
+- No package lifecycle scripts or package-owned system services are added.

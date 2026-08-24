@@ -1,0 +1,33 @@
+Media Optimizer 2.0.1 App Store Release Validation
+===================================================
+
+Package: MediaOptimizer-2.0.1.Napp
+Source-tree version: 2.0.0-61G-A
+App Store version: 2.0.1
+SHA-256: 07a78ee0f726552391bcba07ef791d760a5770272fe0414a96b6b1811cdf3dc1
+Size: 2385247 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Dependency audit:
+- MediaOptimizerManager uses ffmpeg: YES
+- MediaOptimizerManager uses ffprobe: YES
+- NeutronOS clean-image builder installs ffmpeg: YES
+- ffprobe is supplied by Debian's ffmpeg package: OS-provided with ffmpeg
+- QML imports only base QtQuick/QtQuick.Controls modules
+- debianDependencies: []
+
+Package contents:
+- current modular mediaoptimizer/Main.qml
+- current components/
+- current modals/
+- mediaoptimizer/app.json version 2.0.1
+- approved optimizer icon
+- approved optimizer poster
+
+Package safety:
+- no state/cache/settings bundled
+- no private signing key
+- no install.sh/uninstall.sh
+- no systemFiles
+- MediaOptimizerManager remains OS-owned compiled support
