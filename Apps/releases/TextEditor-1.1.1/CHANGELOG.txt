@@ -1,0 +1,16 @@
+Text Editor 1.1.1
+=================
+
+Distribution:
+- Convert the current modular Text Editor into an official signed NeutronOS App Store package.
+- Preserve the current controller-first UI, syntax highlighting, diagnostics, find/replace,
+  autocorrect previews, atomic saves, recovery handling and Developer Mode safeguards.
+- Keep TextEditorManager and DeveloperModeManager OS-owned compiled support.
+- Preserve recovery files, backups, recent-file state and user documents across uninstall/reinstall.
+
+Dependency contract:
+- No App Store Debian dependencies.
+- Python 3 syntax checking is optional. TextEditorManager explicitly skips the external
+  Python syntax check when python3 is unavailable.
+- Structural syntax checks and the editor itself do not depend on external executables.
+- QtQuick, QtQuick.Controls and NeutronOS QML modules are OS-provided.

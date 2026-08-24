@@ -1,0 +1,40 @@
+Text Editor 1.1.1 App Store Release Validation
+===============================================
+
+Package: TextEditor-1.1.1.Napp
+Source-tree version: 1.1.0-alpha
+App Store version: 1.1.1
+SHA-256: e3b938cf96c669f28f734bd7a5487aeafee503752b740fd77b9658bd1358743f
+Size: 2361195 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Dependency audit:
+- TextEditorManager backend: OS-provided
+- DeveloperModeManager safeguards: OS-provided
+- python3 external syntax diagnostic: OPTIONAL
+- Missing python3 causes diagnostic check to return without failing the editor
+- debianDependencies: []
+
+State preservation:
+- state/texteditor/recovery is NOT packaged
+- state/texteditor/backups is NOT packaged
+- recent-file state is NOT package-owned
+- user documents are NOT package-owned
+- uninstallState is empty
+
+Package contents:
+- current modular texteditor/Main.qml
+- current components/
+- current modals/
+- texteditor/app.json version 1.1.1
+- approved Text Editor icon
+- approved Text Editor poster
+
+Package safety:
+- no recovery data bundled
+- no user documents bundled
+- no private signing key
+- no install.sh/uninstall.sh
+- no systemFiles
+- TextEditorManager remains OS-owned compiled support

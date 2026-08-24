@@ -1,0 +1,30 @@
+{
+  "id": "texteditor",
+  "name": "Text Editor",
+  "version": "1.1.1",
+  "developer": "NeutronOS",
+  "description": "Edit text and source files with untitled documents, syntax highlighting, line numbers, syntax diagnostics, previewed autocorrect suggestions, find and replace, undo and redo, atomic saves, recovery files and Developer Mode safeguards.",
+  "category": "Productivity",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/TextEditor-1.1.1.Napp",
+  "sha256": "e3b938cf96c669f28f734bd7a5487aeafee503752b740fd77b9658bd1358743f",
+  "signature": "dX4+qNm3ZFS/Mrl3P2qkYsSzfaLnQvBbyLJW22dGZ4wc+QSZS+M8eMWaTOd5Yk2Q93SfhoO1WPwHeBpl2ORXAw==",
+  "keyId": "neutronos-release-v1",
+  "size": 2361195,
+  "installedBytes": 2403248,
+  "permissions": [
+    "documents",
+    "file-management",
+    "developer-mode-guarded-system-files"
+  ],
+  "dependencies": [
+    "NeutronOS TextEditorManager backend (OS-provided)",
+    "NeutronOS Developer Mode safeguards (OS-provided)",
+    "Python 3 syntax diagnostics are optional when Python is available"
+  ],
+  "debianDependencies": [],
+  "requiresDeveloperMode": false
+}
