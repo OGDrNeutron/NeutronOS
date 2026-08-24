@@ -3,7 +3,7 @@
   "name": "Text Editor",
   "version": "1.1.1",
   "developer": "NeutronOS",
-  "description": "Edit text and source files with untitled documents, syntax highlighting, line numbers, syntax diagnostics, previewed autocorrect suggestions, find and replace, undo and redo, atomic saves, recovery files and Developer Mode safeguards.",
+  "description": "A polished writing and coding environment for NeutronOS with intelligent editing tools, syntax awareness, automatic recovery and guarded system-file access.",
   "category": "Productivity",
   "architectures": [
     "aarch64"
