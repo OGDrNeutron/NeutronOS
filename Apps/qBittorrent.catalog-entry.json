@@ -3,7 +3,7 @@
   "name": "qBittorrent",
   "version": "1.0.1",
   "developer": "NeutronOS",
-  "description": "Controller-first qBittorrent manager for torrents, files, transfers, local torrent imports, and download management.",
+  "description": "A polished torrent management experience for NeutronOS with controller-first browsing, transfer controls and seamless connection to local or remote qBittorrent servers.",
   "category": "Network",
   "architectures": [
     "aarch64"
