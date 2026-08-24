@@ -1,0 +1,39 @@
+Codex 1.0.0-alpha.2 App Store Release Validation
+=================================================
+
+Package: Codex-1.0.0-alpha.2.Napp
+SHA-256: 0be24a3550281c0c0b3754cf6d5ecc31d3bf3b0d300fcbbc0471254453067289
+Size: 2630168 bytes
+Signature key: neutronos-release-v1
+
+Package format:
+- NeutronOS .napp schema 1
+- manifest.json present
+- current modular Codex QML tree present
+- Codex bridge + bridge schema present
+- Codex icon present
+- 1254x1254 Codex poster present
+- no private signing key present
+- no package-provided install.sh/uninstall.sh lifecycle scripts
+
+Dependency provisioning:
+- debianDependencies:
+  - python3
+  - nodejs
+  - npm
+  - ca-certificates
+  - git
+  - ripgrep
+- App Store provisioning installs only missing Debian dependencies.
+- Codex bridge requires Node.js 16+.
+- Codex bridge requires Codex CLI 0.149.0+.
+- Missing/outdated Codex CLI can be installed as @openai/codex@0.149.0 under ~/.local.
+
+Publishing:
+- Fresh clone of OGDrNeutron/NeutronOS into /tmp.
+- Existing Apps/index.json is merged, not replaced.
+- Only the Codex package entry is replaced.
+- Versioned + stable Codex aliases are published.
+- Commit identity is explicitly DrNeutron <OGDrNeutron@proton.me>.
+- Remote main is checked before push.
+- Temporary clone is removed automatically.

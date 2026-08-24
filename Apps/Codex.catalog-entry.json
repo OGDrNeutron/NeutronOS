@@ -1,0 +1,44 @@
+{
+  "id": "codex",
+  "name": "Codex",
+  "version": "1.0.0-alpha.2",
+  "developer": "OpenAI Integration / NeutronOS",
+  "description": "Controller-first NeutronOS client for the official local Codex app-server with dependency-aware setup, sessions, streamed activity, approvals, and official authentication.",
+  "category": "Developer Tools",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Codex-1.0.0-alpha.2.Napp",
+  "sha256": "0be24a3550281c0c0b3754cf6d5ecc31d3bf3b0d300fcbbc0471254453067289",
+  "signature": "RnalIeyV2rU7mkIYuYWRO39Ob2GiuaFJMUYgfSPt2Qubr/8YqspA9girld2WTrfKsqN7hkDJlVg8yG6NhfvIAQ==",
+  "keyId": "neutronos-release-v1",
+  "size": 2630168,
+  "installedBytes": 2686775,
+  "permissions": [
+    "documents",
+    "repository-filesystem",
+    "network",
+    "notifications",
+    "background-execution",
+    "system-telemetry",
+    "scoped-privileged-operations"
+  ],
+  "dependencies": [
+    "Python 3",
+    "Node.js >= 16",
+    "npm",
+    "Git >= 2.23 (recommended for repository helpers)",
+    "ripgrep",
+    "Official Codex CLI >= 0.149.0 (user-local runtime)"
+  ],
+  "debianDependencies": [
+    "python3",
+    "nodejs",
+    "npm",
+    "ca-certificates",
+    "git",
+    "ripgrep"
+  ],
+  "requiresDeveloperMode": true
+}

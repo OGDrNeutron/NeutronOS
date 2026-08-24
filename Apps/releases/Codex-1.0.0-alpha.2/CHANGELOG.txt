@@ -1,0 +1,18 @@
+Codex 1.0.0-alpha.2
+===================
+
+Distribution:
+- Convert the current modular Codex app into an official signed NeutronOS App Store package.
+- Preserve the existing controller-first Codex UI, components, modals, bridge, schema, icon, and poster.
+- Add declarative Debian dependency verification/install through the NeutronOS App Store broker.
+- Verify/install the official Codex CLI runtime from the app only when it is missing or too old.
+
+Dependency provisioning:
+- Debian dependencies are declared in the Napp manifest/catalog.
+- The NeutronOS App Store broker checks installed packages and installs only missing requirements.
+- Codex CLI runtime is pinned to @openai/codex@0.149.0 and installed user-locally when requested by the Codex initialization screen.
+
+Publishing:
+- Uses the same proven temporary-clone publishing model as Browser 1.2.0.
+- Does not depend on ~/NeutronOS/.git.
+- Commits as DrNeutron <OGDrNeutron@proton.me>.
