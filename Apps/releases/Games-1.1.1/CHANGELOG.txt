@@ -1,0 +1,16 @@
+Games 1.1.1
+===========
+
+Distribution:
+- Convert the current modular Games UI into an official signed NeutronOS App Store package.
+- Preserve GamesManager as OS-owned compiled support.
+- Preserve the existing NeutronOS display-handoff, Ruffle, and Moonlight helper model.
+- Do not package ROMs or user card artwork.
+- Do not make any emulator or cloud runtime a hard install-time dependency.
+
+Dependency provisioning:
+- kbd is the only App Store Debian dependency.
+- Games' isolated display handoff requires openvt/chvt and GamesManager uses fgconsole.
+- NeutronOS base already provides Python 3, systemd, util-linux, apt and CA certificates.
+- RetroArch, individual Libretro cores, Mupen64Plus, Dolphin, PPSSPP, Ruffle,
+  Flatpak/Moonlight and other runtimes remain user-selected, on-demand installs.

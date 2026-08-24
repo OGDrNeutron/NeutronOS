@@ -1,0 +1,37 @@
+{
+  "id": "games",
+  "name": "Games",
+  "version": "1.1.1",
+  "developer": "NeutronOS",
+  "description": "Discover ROMs and Flash games, manage artwork and per-game settings, install compatible emulators, launch cloud services, reorder the library, and start controller-ready runtimes.",
+  "category": "Entertainment",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Games-1.1.1.Napp",
+  "sha256": "648c6c52ddea7658350165376bbb79c39272aaa082b73e3e4f1e6a192d433f2c",
+  "signature": "dtiodfMuTNfsMG+HnRmVW+fwt/xy6sU3krr8t9npV5WOuiswCLXCv4A83wn6Bj9TBVU0sjY3bB+MVHqPs3gNBw==",
+  "keyId": "neutronos-release-v1",
+  "size": 2946660,
+  "installedBytes": 2985439,
+  "permissions": [
+    "games",
+    "controller",
+    "filesystem",
+    "network",
+    "package-management",
+    "process-launch"
+  ],
+  "dependencies": [
+    "NeutronOS GamesManager backend (OS-provided)",
+    "NeutronOS game display-handoff helpers (OS-provided)",
+    "Python 3 + systemd + util-linux runtime (OS-provided)",
+    "kbd virtual-terminal tools",
+    "Emulators and cloud runtimes are installed on demand per game/system"
+  ],
+  "debianDependencies": [
+    "kbd"
+  ],
+  "requiresDeveloperMode": false
+}

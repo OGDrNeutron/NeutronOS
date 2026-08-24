@@ -1,0 +1,54 @@
+Games 1.1.1 App Store Release Validation
+==========================================
+
+Package: Games-1.1.1.Napp
+SHA-256: 648c6c52ddea7658350165376bbb79c39272aaa082b73e3e4f1e6a192d433f2c
+Size: 2946660 bytes
+Signature key: neutronos-release-v1
+Signature status: VERIFIED
+
+Package contents:
+- current modular Games Main.qml
+- current Games components/
+- current Games modals/
+- Games app.json version 1.1.1
+- approved 500x500 Games icon
+- approved 1254x1254 Games poster
+- NO ROM files
+- NO user card artwork
+- NO signing key
+- NO lifecycle install.sh/uninstall.sh
+
+OS-owned support audited:
+- GamesManager backend
+- neutronos-game-supervisor.py
+- neutronos-game-runtime.sh
+- install-ruffle-arm64.py
+- install-moonlight-flatpak.sh
+
+Hard Debian dependency:
+- kbd
+
+Reason:
+- game supervisor executes openvt and chvt
+- GamesManager probes fgconsole
+- NeutronOS base-image package list does not explicitly install kbd
+
+Not hard dependencies:
+- RetroArch / Libretro cores
+- Mupen64Plus
+- Dolphin
+- PPSSPP
+- Ruffle
+- Flatpak
+- Moonlight
+These are installed only when the user chooses the corresponding emulator/runtime.
+
+IMPORTANT LEGACY-ADOPTION SAFETY:
+The current NeutronOS package helper treats qml/apps/games as a single legacy
+source directory during first App Store adoption. That directory currently also
+contains user ROMs and card artwork. Games 1.1.1 intentionally does NOT package
+or publish those files. Do not perform first-time Games App Store adoption until
+the OS-owned package helper is updated to preserve games/roms and games/cards.
+Publishing this release to Git is safe; first-time installation on a legacy
+source-tree Games installation is the operation that needs the OS-side fix.
