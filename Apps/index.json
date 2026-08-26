@@ -323,7 +323,7 @@
     {
       "id": "torrentlab",
       "name": "Torrent Lab",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "developer": "NeutronOS",
       "description": "A controller-first torrent discovery and injection workspace for NeutronOS with filtered search, qBittorrent queueing, live transfer states and secure API setup.",
       "category": "Network",
@@ -333,12 +333,12 @@
         "aarch64"
       ],
       "minNeutronOS": "1.0.0-alpha",
-      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/TorrentLab-1.0.2.Napp",
-      "sha256": "3078dbab8b895d6bebfc7f2ed2ce14220cf335c2c64586f1669d82aa3cfe1a97",
-      "signature": "Zm+jI3CGTdsD/ssLTsStKukoyChkt+btQv3aVnLzf1IJztpQE8KFWC7mA0s1HDx5E0rhqs0KUMn1Gs7VJCXGCQ==",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/TorrentLab-1.0.3.Napp",
+      "sha256": "db6c4f5aafa64b29623c24f53faeff0328b20ec2e6ecef0c368f4bcf6f09082b",
+      "signature": "B8FUc9PPfMBC3rCYoeYXwM/E2+csZsHCJQ9zA2ATMyZSy4O49M7zkLy+fYRvyQpI0WwMINrBM892zk9wHaeNAg==",
       "keyId": "neutronos-release-v1",
-      "size": 5049181,
-      "installedBytes": 5375145,
+      "size": 5058610,
+      "installedBytes": 5416831,
       "permissions": [
         "network",
         "package-helper",
