@@ -1,0 +1,35 @@
+{
+  "id": "neutronremotesystems",
+  "name": "Neutron Remote Systems",
+  "version": "1.0.0-alpha.1",
+  "developer": "NeutronOS",
+  "description": "A controller-first security gatekeeper for discovering, authorizing, time-limiting and configuring remote services exposed by installed NeutronOS apps.",
+  "category": "System Tools",
+  "icon": "icons/neutronremotesystems.png",
+  "poster": "posters/neutronremotesystems.png",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronRemoteSystems-1.0.0-alpha.1.Napp",
+  "sha256": "0fdc890fab508ac1301033940df299b31e2d6c8681f7590164000d2bb6236182",
+  "signature": "pjSw5qgvAKigCCy00p6adgLkjE9cxzgY0aLi7crk6g0sgwVaeP6CqU9woiLj2a9k/xVHfzIaxrHrTMhd5hIhAw==",
+  "keyId": "neutronos-release-v1",
+  "size": 2869620,
+  "installedBytes": 2947425,
+  "permissions": [
+    "network",
+    "remote-service-management",
+    "package-discovery",
+    "security-audit"
+  ],
+  "dependencies": [
+    "NeutronOS PackageAppBridgeManager (OS-provided)",
+    "NeutronOS signed App Store transaction layer (OS-provided)",
+    "Python 3"
+  ],
+  "debianDependencies": [
+    "python3"
+  ],
+  "requiresDeveloperMode": false
+}
