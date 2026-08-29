@@ -359,9 +359,9 @@
     {
       "id": "neutronremotesystems",
       "name": "Neutron Remote Systems",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "developer": "NeutronOS",
-      "description": "A controller-first security gatekeeper for discovering, authorizing, time-limiting and configuring remote services exposed by installed NeutronOS apps.",
+      "description": "Central security gatekeeper and policy manager for NeutronOS remote-capable application services, including the built-in Web Controller.",
       "category": "System Tools",
       "icon": "icons/neutronremotesystems.png",
       "poster": "posters/neutronremotesystems.png",
@@ -369,12 +369,12 @@
         "aarch64"
       ],
       "minNeutronOS": "1.0.0-alpha",
-      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronRemoteSystems-1.0.2.Napp",
-      "sha256": "e704e36dad1a5e73f197e272287cc2cce43885c97f2f21f201b72946eab4f75c",
-      "signature": "EzsTsf4IkEEED9XNB1E/vkpYfGajM7mdtD5OoAw7UpgAxqrwpG5ZZV943q4zzTHKFZhTijJenlRAZZ+d1xZpDw==",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/NeutronRemoteSystems-1.0.3.Napp",
+      "sha256": "b310e05e54893f73721f626d05cf60c99050936bc7b03e7686d2a11efbbb90fd",
+      "signature": "NAAESNj13B1JwSk+O19lAv0ZVlJ7uFYmFouW9TJ4Ks7OWTxvHFf45I+54d8tBGMWqn8OVnhxPOS9/wqIHpdJAg==",
       "keyId": "neutronos-release-v1",
-      "size": 2876986,
-      "installedBytes": 2978612,
+      "size": 2877414,
+      "installedBytes": 2964299,
       "permissions": [
         "network",
         "remote-service-management",
@@ -388,7 +388,8 @@
         "Python 3"
       ],
       "debianDependencies": [
-        "python3"
+        "python3",
+        "bubblewrap"
       ],
       "requiresDeveloperMode": false
     }
