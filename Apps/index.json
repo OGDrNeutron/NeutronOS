@@ -396,7 +396,7 @@
     {
       "id": "customcontrollers",
       "name": "Custom Controllers",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "developer": "NeutronOS",
       "description": "Controller-first hardware tuning, remapping, diagnostics and NeutronOS controller appearance customization for PlayStation, Xbox and Switch-family controllers.",
       "category": "Utilities",
@@ -406,12 +406,12 @@
         "aarch64"
       ],
       "minNeutronOS": "1.0.0-alpha",
-      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/CustomControllers-1.0.5.Napp",
-      "sha256": "246a0411ee32a60bb20531f4a22446859b40872d61087d0633ed93f27f9537af",
-      "signature": "2YHdFO5jjzOxiVO0GKBuYgGDXSeGezV9yjgzygKxHl3jC7hPsCxzvpz0kEENfqRIzkHNqhYSlGxL4//WzzdBAQ==",
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/CustomControllers-1.0.6.Napp",
+      "sha256": "b9632642e72609013211ba0b2969e4bdd02f85da4207ea1fb052ae6d012db0bc",
+      "signature": "JgghqehOZOzCc+NHH2nS5yMCW8K9gy+S4OYIC6eGTUlmFO+kvAsuRtFIJzIYbHC31+x4TbKeGGRkhrx6oZKPCQ==",
       "keyId": "neutronos-release-v1",
       "size": 5100425,
-      "installedBytes": 5288196,
+      "installedBytes": 5288231,
       "permissions": [
         "controller",
         "controller-diagnostics",
