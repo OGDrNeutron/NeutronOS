@@ -34,5 +34,6 @@
     "kbd"
   ],
   "requiresDeveloperMode": false,
-  "icon": "icons/games.png"
+  "icon": "icons/games.png",
+  "poster": "posters/games.png"
 }

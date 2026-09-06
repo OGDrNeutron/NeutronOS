@@ -26,5 +26,6 @@
   ],
   "debianDependencies": [],
   "requiresDeveloperMode": false,
-  "icon": "icons/qbittorrent.png"
+  "icon": "icons/qbittorrent.png",
+  "poster": "posters/qbittorrent.png"
 }

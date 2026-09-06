@@ -29,5 +29,6 @@
   ],
   "debianDependencies": [],
   "requiresDeveloperMode": true,
-  "icon": "icons/codex.png"
+  "icon": "icons/codex.png",
+  "poster": "posters/codex.png"
 }

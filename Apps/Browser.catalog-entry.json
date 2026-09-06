@@ -26,5 +26,6 @@
   "debianDependencies": [
     "qml6-module-qtwebengine"
   ],
-  "icon": "icons/browser.png"
+  "icon": "icons/browser.png",
+  "poster": "posters/browser.png"
 }

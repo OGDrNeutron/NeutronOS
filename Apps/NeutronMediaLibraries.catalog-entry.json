@@ -49,5 +49,6 @@
     "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-03-settings.png",
     "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-04-customize.png"
   ],
-  "icon": "icons/jellyfin.png"
+  "icon": "icons/jellyfin.png",
+  "poster": "posters/jellyfin.png"
 }

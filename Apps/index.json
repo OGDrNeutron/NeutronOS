@@ -34,7 +34,8 @@
       "debianDependencies": [
         "qml6-module-qtwebengine"
       ],
-      "icon": "icons/browser.png"
+      "icon": "icons/browser.png",
+      "poster": "posters/browser.png"
     },
     {
       "id": "codex",
@@ -67,7 +68,8 @@
       ],
       "debianDependencies": [],
       "requiresDeveloperMode": true,
-      "icon": "icons/codex.png"
+      "icon": "icons/codex.png",
+      "poster": "posters/codex.png"
     },
     {
       "id": "gallery",
@@ -103,7 +105,8 @@
         "qml6-module-qtmultimedia"
       ],
       "requiresDeveloperMode": false,
-      "icon": "icons/gallery.png"
+      "icon": "icons/gallery.png",
+      "poster": "posters/gallery.png"
     },
     {
       "id": "games",
@@ -141,7 +144,8 @@
         "kbd"
       ],
       "requiresDeveloperMode": false,
-      "icon": "icons/games.png"
+      "icon": "icons/games.png",
+      "poster": "posters/games.png"
     },
     {
       "id": "mediaoptimizer",
@@ -151,7 +155,7 @@
       "description": "A smart media optimization suite for NeutronOS that analyzes your library, identifies compatibility issues and safely prepares media for smoother playback across devices.",
       "category": "Media",
       "icon": "icons/mediaoptimizer.png",
-      "poster": "optimizer",
+      "poster": "posters/mediaoptimizer.png",
       "architectures": [
         "aarch64"
       ],
@@ -212,7 +216,8 @@
         "mpv"
       ],
       "requiresDeveloperMode": false,
-      "icon": "icons/musicplayer.png"
+      "icon": "icons/musicplayer.png",
+      "poster": "posters/musicplayer.png"
     },
     {
       "id": "jellyfin",
@@ -265,7 +270,8 @@
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-03-settings.png",
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-04-customize.png"
       ],
-      "icon": "icons/jellyfin.png"
+      "icon": "icons/jellyfin.png",
+      "poster": "posters/jellyfin.png"
     },
     {
       "id": "qbittorrent",
@@ -295,7 +301,8 @@
       ],
       "debianDependencies": [],
       "requiresDeveloperMode": false,
-      "icon": "icons/qbittorrent.png"
+      "icon": "icons/qbittorrent.png",
+      "poster": "posters/qbittorrent.png"
     },
     {
       "id": "texteditor",
@@ -326,7 +333,8 @@
       ],
       "debianDependencies": [],
       "requiresDeveloperMode": false,
-      "icon": "icons/texteditor.png"
+      "icon": "icons/texteditor.png",
+      "poster": "posters/texteditor.png"
     },
     {
       "id": "torrentlab",

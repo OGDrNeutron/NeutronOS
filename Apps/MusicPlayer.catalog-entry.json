@@ -34,5 +34,6 @@
     "mpv"
   ],
   "requiresDeveloperMode": false,
-  "icon": "icons/musicplayer.png"
+  "icon": "icons/musicplayer.png",
+  "poster": "posters/musicplayer.png"
 }

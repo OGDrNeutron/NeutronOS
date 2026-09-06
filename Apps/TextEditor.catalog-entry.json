@@ -27,5 +27,6 @@
   ],
   "debianDependencies": [],
   "requiresDeveloperMode": false,
-  "icon": "icons/texteditor.png"
+  "icon": "icons/texteditor.png",
+  "poster": "posters/texteditor.png"
 }

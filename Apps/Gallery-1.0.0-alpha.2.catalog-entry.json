@@ -32,5 +32,6 @@
     "qml6-module-qtmultimedia"
   ],
   "requiresDeveloperMode": false,
-  "icon": "icons/gallery.png"
+  "icon": "icons/gallery.png",
+  "poster": "posters/gallery.png"
 }
