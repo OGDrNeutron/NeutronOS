@@ -1,0 +1,233 @@
+name: Sync App Store artwork
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "Apps/*.Napp"
+      - "Apps/*.catalog-entry.json"
+      - ".github/workflows/sync-appstore-artwork.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: neutronos-appstore-artwork
+  cancel-in-progress: false
+
+jobs:
+  sync-artwork:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract package icons and normalize catalog metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import sys
+          import zipfile
+          from pathlib import Path, PurePosixPath
+          from urllib.parse import urlparse, unquote
+
+          repo = Path.cwd()
+          apps = repo / "Apps"
+          index_path = apps / "index.json"
+          icons_dir = apps / "icons"
+          icons_dir.mkdir(parents=True, exist_ok=True)
+
+          if not index_path.is_file():
+              raise SystemExit("Apps/index.json is missing")
+
+          index = json.loads(index_path.read_text(encoding="utf-8"))
+          packages = index.get("packages")
+          if not isinstance(packages, list):
+              raise SystemExit("Apps/index.json packages must be an array")
+
+          def package_filename(package: dict) -> str:
+              url = str(package.get("packageUrl", "")).strip()
+              if not url:
+                  return ""
+              return unquote(PurePosixPath(urlparse(url).path).name)
+
+          def candidate_icon_members(archive: zipfile.ZipFile, package: dict) -> list[str]:
+              package_id = str(package.get("id", "")).strip().lower()
+              raw_icon = str(package.get("icon", "")).strip()
+              raw_icon_name = PurePosixPath(raw_icon).name if raw_icon else ""
+              if raw_icon_name and not raw_icon_name.lower().endswith(".png"):
+                  raw_icon_name += ".png"
+
+              members = []
+              for info in archive.infolist():
+                  if info.is_dir():
+                      continue
+                  name = info.filename.replace("\\", "/")
+                  if not name.startswith("payload/themes/Default/apps/icons/"):
+                      continue
+                  if not name.lower().endswith(".png"):
+                      continue
+                  members.append(name)
+
+              priorities = []
+              if package_id:
+                  priorities.append(f"{package_id}.png")
+              if raw_icon_name:
+                  priorities.append(raw_icon_name)
+
+              for wanted in priorities:
+                  for member in members:
+                      if PurePosixPath(member).name.lower() == wanted.lower():
+                          return [member]
+
+              if len(members) == 1:
+                  return members
+
+              return members
+
+          changed_ids: list[str] = []
+          missing: list[str] = []
+
+          for package in packages:
+              if not isinstance(package, dict):
+                  raise SystemExit("Catalog package entry is not an object")
+
+              package_id = str(package.get("id", "")).strip().lower()
+              name = str(package.get("name", package_id)).strip()
+              description = str(package.get("description", "")).strip()
+              if not package_id:
+                  raise SystemExit("Catalog package is missing id")
+              if not description:
+                  raise SystemExit(f"Catalog package {package_id} is missing description")
+
+              destination = icons_dir / f"{package_id}.png"
+              napp_name = package_filename(package)
+              napp_path = apps / napp_name if napp_name else None
+
+              # Existing repository artwork is valid. Otherwise extract the
+              # package-owned approved icon from the exact .Napp named by the
+              # current catalog entry.
+              if not destination.is_file():
+                  if napp_path is None or not napp_path.is_file():
+                      missing.append(f"{package_id}: package {napp_name or '<missing packageUrl>'} not found")
+                      continue
+
+                  try:
+                      with zipfile.ZipFile(napp_path, "r") as archive:
+                          candidates = candidate_icon_members(archive, package)
+                          if not candidates:
+                              missing.append(f"{package_id}: no package icon found in {napp_name}")
+                              continue
+
+                          # If multiple unrelated icons exist and none matched
+                          # the package ID/current catalog icon, do not guess.
+                          if len(candidates) != 1:
+                              names = ", ".join(PurePosixPath(x).name for x in candidates)
+                              missing.append(f"{package_id}: ambiguous icons in {napp_name}: {names}")
+                              continue
+
+                          data = archive.read(candidates[0])
+                  except zipfile.BadZipFile as exc:
+                      missing.append(f"{package_id}: invalid Napp ZIP: {exc}")
+                      continue
+
+                  if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+                      missing.append(f"{package_id}: extracted artwork is not PNG")
+                      continue
+
+                  destination.write_bytes(data)
+                  changed_ids.append(package_id)
+
+              # Keep catalog paths repository-relative. AppStoreManager resolves
+              # these against the repository base URL when it builds the model.
+              wanted_icon = f"icons/{package_id}.png"
+              if package.get("icon") != wanted_icon:
+                  package["icon"] = wanted_icon
+                  if package_id not in changed_ids:
+                      changed_ids.append(package_id)
+
+          if missing:
+              print("App Store artwork synchronization refused to guess:", file=sys.stderr)
+              for item in missing:
+                  print(f"  - {item}", file=sys.stderr)
+              raise SystemExit(1)
+
+          index_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+
+          # Keep standalone catalog-entry files consistent with index.json.
+          package_icons = {
+              str(p.get("id", "")).strip().lower(): str(p.get("icon", "")).strip()
+              for p in packages if isinstance(p, dict)
+          }
+          for entry_path in sorted(apps.glob("*.catalog-entry.json")):
+              try:
+                  entry = json.loads(entry_path.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  continue
+              package_id = str(entry.get("id", "")).strip().lower()
+              wanted = package_icons.get(package_id)
+              if not wanted or entry.get("icon") == wanted:
+                  continue
+              entry["icon"] = wanted
+              entry_path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
+
+          print("Synchronized App Store icon metadata for:")
+          for package in packages:
+              print(f"  {package['id']}: {package['icon']}")
+          PY
+
+      - name: Validate complete catalog artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          apps = Path("Apps")
+          index = json.loads((apps / "index.json").read_text(encoding="utf-8"))
+          failures = []
+          for package in index.get("packages", []):
+              package_id = str(package.get("id", "")).strip().lower()
+              description = str(package.get("description", "")).strip()
+              icon = str(package.get("icon", "")).strip()
+              expected = f"icons/{package_id}.png"
+              if not description:
+                  failures.append(f"{package_id}: description missing")
+              if icon != expected:
+                  failures.append(f"{package_id}: icon metadata is {icon!r}, expected {expected!r}")
+              path = apps / expected
+              if not path.is_file():
+                  failures.append(f"{package_id}: {expected} missing")
+              elif path.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
+                  failures.append(f"{package_id}: {expected} is not a PNG")
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+          print(f"PASS: {len(index.get('packages', []))} catalog apps have descriptions and Git-hosted PNG icons")
+          PY
+
+      - name: Commit synchronized artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Apps; then
+            echo "App Store artwork is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "NeutronOS App Store Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add Apps/index.json Apps/icons Apps/*.catalog-entry.json
+          git commit -m "Sync App Store icons from signed Napp packages"
+          git push origin HEAD:main
