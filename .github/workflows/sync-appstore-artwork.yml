@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract package icons and normalize catalog metadata
+      - name: Extract package icons and posters and normalize catalog metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -44,7 +44,9 @@ jobs:
           apps = repo / "Apps"
           index_path = apps / "index.json"
           icons_dir = apps / "icons"
+          posters_dir = apps / "posters"
           icons_dir.mkdir(parents=True, exist_ok=True)
+          posters_dir.mkdir(parents=True, exist_ok=True)
 
           if not index_path.is_file():
               raise SystemExit("Apps/index.json is missing")
@@ -60,29 +62,34 @@ jobs:
                   return ""
               return unquote(PurePosixPath(urlparse(url).path).name)
 
-          def candidate_icon_members(archive: zipfile.ZipFile, package: dict) -> list[str]:
+          def candidate_artwork_members(
+              archive: zipfile.ZipFile,
+              package: dict,
+              kind: str,
+          ) -> list[str]:
               package_id = str(package.get("id", "")).strip().lower()
-              raw_icon = str(package.get("icon", "")).strip()
-              raw_icon_name = PurePosixPath(raw_icon).name if raw_icon else ""
-              if raw_icon_name and not raw_icon_name.lower().endswith(".png"):
-                  raw_icon_name += ".png"
+              raw_value = str(package.get(kind, "")).strip()
+              raw_name = PurePosixPath(raw_value).name if raw_value else ""
+              if raw_name and not raw_name.lower().endswith(".png"):
+                  raw_name += ".png"
 
-              members = []
+              prefix = f"payload/themes/Default/apps/{kind}/"
+              members: list[str] = []
               for info in archive.infolist():
                   if info.is_dir():
                       continue
                   name = info.filename.replace("\\", "/")
-                  if not name.startswith("payload/themes/Default/apps/icons/"):
+                  if not name.startswith(prefix):
                       continue
                   if not name.lower().endswith(".png"):
                       continue
                   members.append(name)
 
-              priorities = []
+              priorities: list[str] = []
               if package_id:
                   priorities.append(f"{package_id}.png")
-              if raw_icon_name:
-                  priorities.append(raw_icon_name)
+              if raw_name:
+                  priorities.append(raw_name)
 
               for wanted in priorities:
                   for member in members:
@@ -93,6 +100,35 @@ jobs:
                   return members
 
               return members
+
+          def ensure_artwork(
+              archive: zipfile.ZipFile,
+              package: dict,
+              kind: str,
+              destination: Path,
+              napp_name: str,
+              missing: list[str],
+          ) -> bool:
+              if destination.is_file():
+                  return True
+
+              candidates = candidate_artwork_members(archive, package, kind)
+              package_id = str(package.get("id", "")).strip().lower()
+              if not candidates:
+                  missing.append(f"{package_id}: no {kind[:-1]} found in {napp_name}")
+                  return False
+              if len(candidates) != 1:
+                  names = ", ".join(PurePosixPath(x).name for x in candidates)
+                  missing.append(f"{package_id}: ambiguous {kind} in {napp_name}: {names}")
+                  return False
+
+              data = archive.read(candidates[0])
+              if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+                  missing.append(f"{package_id}: extracted {kind[:-1]} is not PNG")
+                  return False
+
+              destination.write_bytes(data)
+              return True
 
           missing: list[str] = []
 
@@ -107,37 +143,47 @@ jobs:
               if not description:
                   raise SystemExit(f"Catalog package {package_id} is missing description")
 
-              destination = icons_dir / f"{package_id}.png"
+              icon_destination = icons_dir / f"{package_id}.png"
+              poster_destination = posters_dir / f"{package_id}.png"
               napp_name = package_filename(package)
               napp_path = apps / napp_name if napp_name else None
 
-              if not destination.is_file():
+              need_icon = not icon_destination.is_file()
+              need_poster = not poster_destination.is_file()
+
+              if need_icon or need_poster:
                   if napp_path is None or not napp_path.is_file():
-                      missing.append(f"{package_id}: package {napp_name or '<missing packageUrl>'} not found")
+                      missing.append(
+                          f"{package_id}: package {napp_name or '<missing packageUrl>'} not found"
+                      )
                       continue
 
                   try:
                       with zipfile.ZipFile(napp_path, "r") as archive:
-                          candidates = candidate_icon_members(archive, package)
-                          if not candidates:
-                              missing.append(f"{package_id}: no package icon found in {napp_name}")
+                          icon_ok = ensure_artwork(
+                              archive,
+                              package,
+                              "icons",
+                              icon_destination,
+                              napp_name,
+                              missing,
+                          )
+                          poster_ok = ensure_artwork(
+                              archive,
+                              package,
+                              "posters",
+                              poster_destination,
+                              napp_name,
+                              missing,
+                          )
+                          if not icon_ok or not poster_ok:
                               continue
-                          if len(candidates) != 1:
-                              names = ", ".join(PurePosixPath(x).name for x in candidates)
-                              missing.append(f"{package_id}: ambiguous icons in {napp_name}: {names}")
-                              continue
-                          data = archive.read(candidates[0])
                   except zipfile.BadZipFile as exc:
                       missing.append(f"{package_id}: invalid Napp ZIP: {exc}")
                       continue
 
-                  if not data.startswith(b"\x89PNG\r\n\x1a\n"):
-                      missing.append(f"{package_id}: extracted artwork is not PNG")
-                      continue
-
-                  destination.write_bytes(data)
-
               package["icon"] = f"icons/{package_id}.png"
+              package["poster"] = f"posters/{package_id}.png"
 
           if missing:
               print("App Store artwork synchronization refused to guess:", file=sys.stderr)
@@ -147,25 +193,42 @@ jobs:
 
           index_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
 
-          package_icons = {
-              str(p.get("id", "")).strip().lower(): str(p.get("icon", "")).strip()
+          package_artwork = {
+              str(p.get("id", "")).strip().lower(): (
+                  str(p.get("icon", "")).strip(),
+                  str(p.get("poster", "")).strip(),
+              )
               for p in packages if isinstance(p, dict)
           }
+
           for entry_path in sorted(apps.glob("*.catalog-entry.json")):
               try:
                   entry = json.loads(entry_path.read_text(encoding="utf-8"))
               except (OSError, json.JSONDecodeError):
                   continue
-              package_id = str(entry.get("id", "")).strip().lower()
-              wanted = package_icons.get(package_id)
-              if not wanted or entry.get("icon") == wanted:
-                  continue
-              entry["icon"] = wanted
-              entry_path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
 
-          print("Synchronized App Store icon metadata for:")
+              package_id = str(entry.get("id", "")).strip().lower()
+              wanted = package_artwork.get(package_id)
+              if not wanted:
+                  continue
+
+              wanted_icon, wanted_poster = wanted
+              changed = False
+              if entry.get("icon") != wanted_icon:
+                  entry["icon"] = wanted_icon
+                  changed = True
+              if entry.get("poster") != wanted_poster:
+                  entry["poster"] = wanted_poster
+                  changed = True
+
+              if changed:
+                  entry_path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
+
+          print("Synchronized App Store artwork metadata for:")
           for package in packages:
-              print(f"  {package['id']}: {package['icon']}")
+              print(
+                  f"  {package['id']}: icon={package['icon']} poster={package['poster']}"
+              )
           PY
 
       - name: Validate complete catalog artwork
@@ -179,24 +242,40 @@ jobs:
           apps = Path("Apps")
           index = json.loads((apps / "index.json").read_text(encoding="utf-8"))
           failures = []
+
           for package in index.get("packages", []):
               package_id = str(package.get("id", "")).strip().lower()
               description = str(package.get("description", "")).strip()
               icon = str(package.get("icon", "")).strip()
-              expected = f"icons/{package_id}.png"
+              poster = str(package.get("poster", "")).strip()
+              expected_icon = f"icons/{package_id}.png"
+              expected_poster = f"posters/{package_id}.png"
+
               if not description:
                   failures.append(f"{package_id}: description missing")
-              if icon != expected:
-                  failures.append(f"{package_id}: icon metadata is {icon!r}, expected {expected!r}")
-              path = apps / expected
-              if not path.is_file():
-                  failures.append(f"{package_id}: {expected} missing")
-              elif path.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
-                  failures.append(f"{package_id}: {expected} is not a PNG")
+              if icon != expected_icon:
+                  failures.append(
+                      f"{package_id}: icon metadata is {icon!r}, expected {expected_icon!r}"
+                  )
+              if poster != expected_poster:
+                  failures.append(
+                      f"{package_id}: poster metadata is {poster!r}, expected {expected_poster!r}"
+                  )
+
+              for label, relative in (("icon", expected_icon), ("poster", expected_poster)):
+                  path = apps / relative
+                  if not path.is_file():
+                      failures.append(f"{package_id}: {relative} missing")
+                  elif path.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
+                      failures.append(f"{package_id}: {relative} is not a PNG")
 
           if failures:
               raise SystemExit("\n".join(failures))
-          print(f"PASS: {len(index.get('packages', []))} catalog apps have descriptions and Git-hosted PNG icons")
+
+          print(
+              f"PASS: {len(index.get('packages', []))} catalog apps have descriptions, "
+              "Git-hosted PNG icons and Git-hosted PNG posters"
+          )
           PY
 
       - name: Commit synchronized artwork
@@ -210,6 +289,6 @@ jobs:
 
           git config user.name "NeutronOS App Store Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add Apps/index.json Apps/icons Apps/*.catalog-entry.json
-          git commit -m "Sync App Store icons from signed Napp packages"
+          git add Apps/index.json Apps/icons Apps/posters Apps/*.catalog-entry.json
+          git commit -m "Sync App Store icons and posters from signed Napp packages"
           git push origin HEAD:main
