@@ -2,6 +2,9 @@ name: Sync App Store artwork
 
 on:
   workflow_dispatch:
+  issues:
+    types:
+      - opened
   push:
     branches:
       - main
@@ -19,6 +22,7 @@ concurrency:
 
 jobs:
   sync-artwork:
+    if: github.event_name != 'issues' || github.event.issue.title == 'sync-appstore-artwork'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -35,7 +39,6 @@ jobs:
           from __future__ import annotations
 
           import json
-          import os
           import sys
           import zipfile
           from pathlib import Path, PurePosixPath
@@ -95,7 +98,6 @@ jobs:
 
               return members
 
-          changed_ids: list[str] = []
           missing: list[str] = []
 
           for package in packages:
@@ -103,7 +105,6 @@ jobs:
                   raise SystemExit("Catalog package entry is not an object")
 
               package_id = str(package.get("id", "")).strip().lower()
-              name = str(package.get("name", package_id)).strip()
               description = str(package.get("description", "")).strip()
               if not package_id:
                   raise SystemExit("Catalog package is missing id")
@@ -114,9 +115,6 @@ jobs:
               napp_name = package_filename(package)
               napp_path = apps / napp_name if napp_name else None
 
-              # Existing repository artwork is valid. Otherwise extract the
-              # package-owned approved icon from the exact .Napp named by the
-              # current catalog entry.
               if not destination.is_file():
                   if napp_path is None or not napp_path.is_file():
                       missing.append(f"{package_id}: package {napp_name or '<missing packageUrl>'} not found")
@@ -128,14 +126,10 @@ jobs:
                           if not candidates:
                               missing.append(f"{package_id}: no package icon found in {napp_name}")
                               continue
-
-                          # If multiple unrelated icons exist and none matched
-                          # the package ID/current catalog icon, do not guess.
                           if len(candidates) != 1:
                               names = ", ".join(PurePosixPath(x).name for x in candidates)
                               missing.append(f"{package_id}: ambiguous icons in {napp_name}: {names}")
                               continue
-
                           data = archive.read(candidates[0])
                   except zipfile.BadZipFile as exc:
                       missing.append(f"{package_id}: invalid Napp ZIP: {exc}")
@@ -146,15 +140,8 @@ jobs:
                       continue
 
                   destination.write_bytes(data)
-                  changed_ids.append(package_id)
 
-              # Keep catalog paths repository-relative. AppStoreManager resolves
-              # these against the repository base URL when it builds the model.
-              wanted_icon = f"icons/{package_id}.png"
-              if package.get("icon") != wanted_icon:
-                  package["icon"] = wanted_icon
-                  if package_id not in changed_ids:
-                      changed_ids.append(package_id)
+              package["icon"] = f"icons/{package_id}.png"
 
           if missing:
               print("App Store artwork synchronization refused to guess:", file=sys.stderr)
@@ -164,7 +151,6 @@ jobs:
 
           index_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
 
-          # Keep standalone catalog-entry files consistent with index.json.
           package_icons = {
               str(p.get("id", "")).strip().lower(): str(p.get("icon", "")).strip()
               for p in packages if isinstance(p, dict)
