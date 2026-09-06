@@ -33,5 +33,6 @@
   "debianDependencies": [
     "mpv"
   ],
-  "requiresDeveloperMode": false
+  "requiresDeveloperMode": false,
+  "icon": "icons/musicplayer.png"
 }

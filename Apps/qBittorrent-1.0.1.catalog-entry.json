@@ -25,5 +25,6 @@
     "Existing qBittorrent Web API, native service, or Docker container (user/OS-provided)"
   ],
   "debianDependencies": [],
-  "requiresDeveloperMode": false
+  "requiresDeveloperMode": false,
+  "icon": "icons/qbittorrent.png"
 }

@@ -33,5 +33,6 @@
   "debianDependencies": [
     "kbd"
   ],
-  "requiresDeveloperMode": false
+  "requiresDeveloperMode": false,
+  "icon": "icons/games.png"
 }

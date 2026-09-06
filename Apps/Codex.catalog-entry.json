@@ -28,5 +28,6 @@
     "Existing Codex CLI runtime"
   ],
   "debianDependencies": [],
-  "requiresDeveloperMode": true
+  "requiresDeveloperMode": true,
+  "icon": "icons/codex.png"
 }

@@ -33,7 +33,8 @@
       ],
       "debianDependencies": [
         "qml6-module-qtwebengine"
-      ]
+      ],
+      "icon": "icons/browser.png"
     },
     {
       "id": "codex",
@@ -65,7 +66,8 @@
         "Existing Codex CLI runtime"
       ],
       "debianDependencies": [],
-      "requiresDeveloperMode": true
+      "requiresDeveloperMode": true,
+      "icon": "icons/codex.png"
     },
     {
       "id": "gallery",
@@ -100,7 +102,8 @@
       "debianDependencies": [
         "qml6-module-qtmultimedia"
       ],
-      "requiresDeveloperMode": false
+      "requiresDeveloperMode": false,
+      "icon": "icons/gallery.png"
     },
     {
       "id": "games",
@@ -137,7 +140,8 @@
       "debianDependencies": [
         "kbd"
       ],
-      "requiresDeveloperMode": false
+      "requiresDeveloperMode": false,
+      "icon": "icons/games.png"
     },
     {
       "id": "mediaoptimizer",
@@ -146,7 +150,7 @@
       "developer": "NeutronOS",
       "description": "A smart media optimization suite for NeutronOS that analyzes your library, identifies compatibility issues and safely prepares media for smoother playback across devices.",
       "category": "Media",
-      "icon": "optimizer",
+      "icon": "icons/mediaoptimizer.png",
       "poster": "optimizer",
       "architectures": [
         "aarch64"
@@ -207,7 +211,8 @@
       "debianDependencies": [
         "mpv"
       ],
-      "requiresDeveloperMode": false
+      "requiresDeveloperMode": false,
+      "icon": "icons/musicplayer.png"
     },
     {
       "id": "jellyfin",
@@ -259,7 +264,8 @@
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-02-collections.png",
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-03-settings.png",
         "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/screenshots/NeutronMediaLibraries-1.1.1-04-customize.png"
-      ]
+      ],
+      "icon": "icons/jellyfin.png"
     },
     {
       "id": "qbittorrent",
@@ -288,7 +294,8 @@
         "Existing qBittorrent Web API, native service, or Docker container (user/OS-provided)"
       ],
       "debianDependencies": [],
-      "requiresDeveloperMode": false
+      "requiresDeveloperMode": false,
+      "icon": "icons/qbittorrent.png"
     },
     {
       "id": "texteditor",
@@ -318,7 +325,8 @@
         "Python 3 syntax diagnostics are optional when Python is available"
       ],
       "debianDependencies": [],
-      "requiresDeveloperMode": false
+      "requiresDeveloperMode": false,
+      "icon": "icons/texteditor.png"
     },
     {
       "id": "torrentlab",

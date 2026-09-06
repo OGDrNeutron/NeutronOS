@@ -26,5 +26,6 @@
     "Python 3 syntax diagnostics are optional when Python is available"
   ],
   "debianDependencies": [],
-  "requiresDeveloperMode": false
+  "requiresDeveloperMode": false,
+  "icon": "icons/texteditor.png"
 }

@@ -31,5 +31,6 @@
   "debianDependencies": [
     "qml6-module-qtmultimedia"
   ],
-  "requiresDeveloperMode": false
+  "requiresDeveloperMode": false,
+  "icon": "icons/gallery.png"
 }
