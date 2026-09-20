@@ -1,0 +1,33 @@
+{
+  "id": "tailscale-manager",
+  "name": "Tailscale",
+  "version": "1.0.0-alpha.1",
+  "developer": "NeutronOS",
+  "description": "Controller-first encrypted tailnet setup, live connectivity and NeutronOS remote-readiness dashboard. Local-network access is independent.",
+  "category": "Network",
+  "architectures": [
+    "aarch64"
+  ],
+  "minNeutronOS": "1.0.0-alpha",
+  "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Tailscale-1.0.0-alpha.1.Napp",
+  "sha256": "b7336b26790b8314d00bf08a6c965f05a245077427d452229fee5f397f276ded",
+  "size": 2345713,
+  "installedBytes": 2420242,
+  "permissions": [
+    "network",
+    "background-execution",
+    "system-telemetry",
+    "scoped-privileged-operations"
+  ],
+  "dependencies": [
+    "Python 3 (OS provided)",
+    "Tailscale runtime installed on demand from official Debian 13 Trixie repository",
+    "Existing NeutronOS package bridge"
+  ],
+  "debianDependencies": [],
+  "requiresDeveloperMode": false,
+  "icon": "icons/tailscale-manager.png",
+  "poster": "posters/tailscale-manager.png",
+  "signature": "zcP3icXuTMntjQWCU6J1KkmF4Wzg8tWFzGn0W8ZLDZKlC88h28hXYQ1PcO6yb8/wlCYmmSqR5VpVfqXmupf0CQ==",
+  "keyId": "neutronos-release-v1"
+}
