@@ -446,7 +446,7 @@
     {
       "id": "tailscale-manager",
       "name": "Tailscale",
-      "version": "1.0.0-alpha.4",
+      "version": "1.0.0-alpha.5",
       "developer": "NeutronOS",
       "description": "Controller-first encrypted tailnet setup, live connectivity and NeutronOS remote-readiness dashboard. Local-network access is independent.",
       "category": "Network",
@@ -454,10 +454,10 @@
         "aarch64"
       ],
       "minNeutronOS": "1.0.0-alpha",
-      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Tailscale-1.0.0-alpha.4.Napp",
-      "sha256": "5a68e3b072fb53ed2db4cce794013b3b2e9749357fb5b2f35839576ada7db534",
-      "size": 2351416,
-      "installedBytes": 2411961,
+      "packageUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Tailscale-1.0.0-alpha.5.Napp",
+      "sha256": "0ac7b2fb38dfec72fd8b9af2e3f5f8239ca68285de13b034370b0d1cea7b24e7",
+      "size": 3966173,
+      "installedBytes": 4070040,
       "permissions": [
         "network",
         "background-execution",
@@ -473,7 +473,7 @@
       "requiresDeveloperMode": false,
       "icon": "icons/tailscale-manager.png",
       "poster": "posters/tailscale-manager.png",
-      "signature": "14F1AjUNg3qkE/dlkH8Nk4cDzo3kBGlIane3TG5I7kAVfvH/Z2uMCXksBRGea6EE2HF04QvsT+YPRl1sGULwCg==",
+      "signature": "H+xL48P1qddSBfhR0Qf9HQ8iPwJ2B95yWSrHeJoLYlSmfsdeNLvR3Fm/fXBu0QD1x9sBPEpTLOpixAMydq2fDQ==",
       "keyId": "neutronos-release-v1"
     }
   ]
