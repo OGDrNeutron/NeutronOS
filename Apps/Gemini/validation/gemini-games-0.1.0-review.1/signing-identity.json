@@ -1,0 +1,12 @@
+{
+  "available": true,
+  "expectedFingerprint": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0",
+  "fingerprints": [
+    "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0"
+  ],
+  "identities": [
+    "NeutronOS Release Signing <OGDrNeutron@proton.me>"
+  ],
+  "matches": true,
+  "privateMaterialPrinted": false
+}

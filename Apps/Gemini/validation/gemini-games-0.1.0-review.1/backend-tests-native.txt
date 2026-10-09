@@ -1,0 +1,18 @@
+********* Start testing of Tests *********
+Config: Using QtTest library 6.8.2, Qt 6.8.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 14.2.0), debian 13
+PASS   : Tests::initTestCase()
+PASS   : Tests::detection()
+PASS   : Tests::librarySafety()
+PASS   : Tests::incrementalAndDuplicates()
+PASS   : Tests::artworkMatching()
+QINFO  : Tests::artworkFormats() Image plugin unavailable: "webp"
+PASS   : Tests::artworkFormats()
+PASS   : Tests::recommendations()
+PASS   : Tests::lifecycle()
+PASS   : Tests::unsupportedCapabilities()
+PASS   : Tests::archiveSafety()
+PASS   : Tests::redistributablesAreNotGames()
+PASS   : Tests::udfArchiveSafety()
+PASS   : Tests::cleanupTestCase()
+Totals: 13 passed, 0 failed, 0 skipped, 0 blacklisted, 6235ms
+********* Finished testing of Tests *********

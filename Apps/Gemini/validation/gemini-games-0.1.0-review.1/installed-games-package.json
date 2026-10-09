@@ -1,0 +1,141 @@
+{
+  "passed": true,
+  "checks": {
+    "installedCliAcceptsSignedGames": true,
+    "expectedReleaseIdentity": true,
+    "privilegedBoundaryReverifiesGames": true,
+    "signedGeminiCompatibility": true,
+    "signedAmd64Compatibility": true,
+    "allSignedFilesVerified": true,
+    "nativeBuildOwnershipAccepted": true,
+    "noUserDataDeletion": true
+  },
+  "packageSha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
+  "verifier": {
+    "architectures": [
+      "amd64"
+    ],
+    "files": 22,
+    "id": "gemini-games",
+    "manifest": {
+      "architectures": [
+        "amd64"
+      ],
+      "buildFiles": [
+        {
+          "destination": "src/package_apps/gemini-games/GameArtwork.cpp",
+          "mode": "0644",
+          "source": "build/owned/GameArtwork.cpp"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/GameArtwork.h",
+          "mode": "0644",
+          "source": "build/owned/GameArtwork.h"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/GameLibrary.cpp",
+          "mode": "0644",
+          "source": "build/owned/GameLibrary.cpp"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/GameLibrary.h",
+          "mode": "0644",
+          "source": "build/owned/GameLibrary.h"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/GeminiGamesBackend.cpp",
+          "mode": "0644",
+          "source": "build/owned/GeminiGamesBackend.cpp"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/GeminiGamesBackend.h",
+          "mode": "0644",
+          "source": "build/owned/GeminiGamesBackend.h"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/RuntimeAdapters.cpp",
+          "mode": "0644",
+          "source": "build/owned/RuntimeAdapters.cpp"
+        },
+        {
+          "destination": "src/package_apps/gemini-games/RuntimeAdapters.h",
+          "mode": "0644",
+          "source": "build/owned/RuntimeAdapters.h"
+        }
+      ],
+      "debianDependencies": [
+        "python3",
+        "bubblewrap"
+      ],
+      "description": "Native Gemini game library and supervised controller-first sessions.",
+      "fileHashes": {
+        "build/owned/GameArtwork.cpp": "8300953685981cd9400686bdf8d6e41dd90f7e62c82aec6cc1757f85417adaee",
+        "build/owned/GameArtwork.h": "d4a9b5e7cc5b609bcc5be912d66d77a88ee8f58a8a8a810e5a9f6615eead05b3",
+        "build/owned/GameLibrary.cpp": "46593824e308f52a33c2242f4a0c374357c32e4254a9bdfe5798ac1dc942c961",
+        "build/owned/GameLibrary.h": "961a67ab3f698a73a9f6fdda2325f3608e0c7f8369fb0ceb0a53d84c6f9d03c5",
+        "build/owned/GeminiGamesBackend.cpp": "a0fd9f6f4c55813b74a90fc43fe1ded7ed63191b021aed8a971bf13ffd00ee07",
+        "build/owned/GeminiGamesBackend.h": "7c2de0bcc5c90f0af7fe652dea30868930fbe4375c19ec97f37206f66b3512fa",
+        "build/owned/RuntimeAdapters.cpp": "930377485b723a66c29110b2a69ff9f074f27229e227897ef67a6871e8ebc983",
+        "build/owned/RuntimeAdapters.h": "4b79aa2299e9d0aaf29fb0ed4831db118f89dcb004e879be4491a983d7340770",
+        "payload/qml/apps/gemini-games/ArtworkDialog.qml": "6ebc98ec4c764ecf65e47d620092d7ce3315d6bcdc914b799f4a3d801171af7b",
+        "payload/qml/apps/gemini-games/ControllerGlyph.qml": "3977b02c1a31d67d7267e7f5e61e6a26e07719883d28811b48768207edc10924",
+        "payload/qml/apps/gemini-games/ControllerProfile.qml": "eac72d6f74ba2797653b769410fe3392515ef7fa7dcabc2907cb1485dc36534b",
+        "payload/qml/apps/gemini-games/GameCard.qml": "1e7c30cdd32e1854ec697999fdb0d3435e871d5fb1d70d233683632f5b59ad50",
+        "payload/qml/apps/gemini-games/GameMenu.qml": "153b2e8cb01b042ec27c8690a35621bb38a0c4cd4e4cf0376b80c7357103fcf1",
+        "payload/qml/apps/gemini-games/Main.qml": "807b7a2ff5358f20884c403fff7166cd7aa7a291af3158eaf98a969eca15ce96",
+        "payload/qml/apps/gemini-games/NeonPanel.qml": "9eb2cb4226b14924325459411d657968a801a251e0b617d9d91acbf9adb4ad4a",
+        "payload/qml/apps/gemini-games/RuntimeApproval.qml": "fcaaf275d38a6d774d72110d027a25add91fa210b8946894fd87710a13c1e836",
+        "payload/qml/apps/gemini-games/SpaceBackdrop.qml": "e10acc039cc262f1fbaa66b4bcce49c51652ef081f2d5c57b7d346f435667106",
+        "payload/qml/apps/gemini-games/app.json": "9bd7f3d2c375bf1085b95081fa0f201d78629437d16d2e93f102efbe98967a36",
+        "payload/themes/Default/apps/icons/gemini-games.png": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2",
+        "payload/themes/Default/apps/posters/gemini-games.png": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2",
+        "system/owned/etc/systemd/system/neutronos-gemini-game-input.service": "da8fd149a5f8ab1c3bbd508af63bcd5697a62bb58f59789f5f423fa5c7161175",
+        "system/owned/usr/local/lib/neutronos/gemini-games/controller_proxy.py": "a476bb7e74053af4db3638279148ec79afad46df512bebc0f07dbc26f2df3ffa"
+      },
+      "id": "gemini-games",
+      "name": "Games \u2014 Gemini",
+      "permissions": [
+        "filesystem",
+        "removable-storage",
+        "controller",
+        "graphics",
+        "network"
+      ],
+      "platforms": [
+        "gemini"
+      ],
+      "rebuildRequired": true,
+      "schema": 1,
+      "systemFiles": [
+        {
+          "destination": "/usr/local/lib/neutronos/gemini-games/controller_proxy.py",
+          "enableNow": false,
+          "mode": "0755",
+          "ownership": "package",
+          "source": "system/owned/usr/local/lib/neutronos/gemini-games/controller_proxy.py"
+        },
+        {
+          "destination": "/etc/systemd/system/neutronos-gemini-game-input.service",
+          "enableNow": true,
+          "mode": "0644",
+          "ownership": "package",
+          "source": "system/owned/etc/systemd/system/neutronos-gemini-game-input.service"
+        }
+      ],
+      "uninstallState": [],
+      "version": "0.1.0-review.1"
+    },
+    "platforms": [
+      "gemini"
+    ],
+    "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
+    "signer": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0",
+    "success": true,
+    "version": "0.1.0-review.1"
+  },
+  "actualInstall": false,
+  "actualUpdate": false,
+  "actualRemoval": false,
+  "productionTrustChanged": false
+}
+

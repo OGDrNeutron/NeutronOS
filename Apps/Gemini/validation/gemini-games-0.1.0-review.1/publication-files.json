@@ -1,0 +1,162 @@
+[
+  {
+    "path": "Apps/Gemini/GAMES-REVIEW.md",
+    "bytes": 6568,
+    "sha256": "965768c786410b7561ce204daf501f0014d8b4dfe0a66bd97f6da3af1a7b766c"
+  },
+  {
+    "path": "Apps/Gemini/Gemini-Games-0.1.0-review.1-source.zip",
+    "bytes": 117712,
+    "sha256": "fe9e60bf27b40b90c234d911733e14d98374b1c771f93860e99050ef6d7ba2a5"
+  },
+  {
+    "path": "Apps/Gemini/Gemini-Games-0.1.0-review.1.napp",
+    "bytes": 79393,
+    "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04"
+  },
+  {
+    "path": "Apps/Gemini/PUBLISHING.md",
+    "bytes": 3034,
+    "sha256": "49f6943aaf0cf4d57002990e4a75dcdc156bb68caab271b2029d074f87fe1282"
+  },
+  {
+    "path": "Apps/Gemini/changelogs/gemini-games-0.1.0-review.1.md",
+    "bytes": 2601,
+    "sha256": "affc38963b37bfeb8cd0f8acfddb3234b66c062964d336af9921adf731e1c906"
+  },
+  {
+    "path": "Apps/Gemini/icons/gemini-games.png",
+    "bytes": 483401,
+    "sha256": "2a1d19829eb53419edc46be939bd2addf558bc1d4c7aaaa9ef7cd2c3aa2668fc"
+  },
+  {
+    "path": "Apps/Gemini/index.json",
+    "bytes": 1684,
+    "sha256": "c4a92cf196ba19d2390760f2fcc5db70e9c712c69ab4ba8a8469ad3c66080919"
+  },
+  {
+    "path": "Apps/Gemini/index.json.sig",
+    "bytes": 119,
+    "sha256": "5b3a9358fa2b3c31d45de94b76f88a3aedff980690e72894e96b8dc2fe9137ec"
+  },
+  {
+    "path": "Apps/Gemini/integration/gemini-games-0.1.0-review.1-preconditions.json",
+    "bytes": 507,
+    "sha256": "e16363c9fbd42dd2f918dcd14a4a465eb8c2940da21ea324b5fb3d908e6216aa"
+  },
+  {
+    "path": "Apps/Gemini/integration/gemini-games-0.1.0-review.1.patch",
+    "bytes": 6026,
+    "sha256": "1965f1c195398efc40df9d53b650f59fcfbd2ade54c7196a7b8583fddfae5814"
+  },
+  {
+    "path": "Apps/Gemini/posters/gemini-games.png",
+    "bytes": 2794975,
+    "sha256": "fb1a2e8237c54b82781a3cab030f94abf8584c1840c6b98feb81309d4ab0dc3c"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/ARTWORK-AND-FOOTER.md",
+    "bytes": 5034,
+    "sha256": "3b41344105086738325c2d6af7665958016413caae71d18d9ce09ab7e7a4babe"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/COMPATIBILITY.md",
+    "bytes": 5700,
+    "sha256": "358b92e818bbb6ce0d6688246486376a38d93201e2ee462eca1a611a5a11b2ae"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/CONTROLLERS.md",
+    "bytes": 7295,
+    "sha256": "268906da75c9b95b20c3d9310e6157307bf5906b28cebd862794b3f28375a4b2"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/DEPENDENCIES.md",
+    "bytes": 3763,
+    "sha256": "1ae98384f3d20983370b041a2ccac39b37a312039e3a0ca98a82fcadef186f5c"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/INSTALLATION.md",
+    "bytes": 2007,
+    "sha256": "7a599abd8748f51b270dc893b3c4d20b2c294d64edf2781939039aa77884a72c"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/PERFORMANCE.md",
+    "bytes": 710,
+    "sha256": "1b2fe5dd0bd03cd47056d8d0a2962054077b0edecaa09cf1e212f25d7d3c1938"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/VALIDATION.md",
+    "bytes": 12525,
+    "sha256": "84a7656831288b65be6c3038af81259096c9de3f7a5dda301c78278d7c07faf7"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/account-tests.txt",
+    "bytes": 504,
+    "sha256": "7bf297a98925c9becc59b9824dc7f5a1adbc2cc4ba1d614ff91fadd2eb12918e"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/account-tests.xml",
+    "bytes": 888,
+    "sha256": "a994ec80bc5e2823f91b7684c8673260d033d18f6e9580a175d5ea92ac86b440"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/backend-tests-native.txt",
+    "bytes": 799,
+    "sha256": "951c2c3ab063adfbf3709b83439bd3faad92da829dc6aad840c40a51027ba520"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/backend-tests-native.xml",
+    "bytes": 2244,
+    "sha256": "71ff0ce6e277499388eb5459a2a64413ae0b12ba146c91762f8547db22b26309"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/changed-file-manifest.json",
+    "bytes": 27669,
+    "sha256": "c34f0a227603fc86c126b29df32a4fc3c6fe5a69e15a86c5fb9b63f765f2630e"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/changed-source-files.json",
+    "bytes": 3540,
+    "sha256": "77079d045e526c7c32653d87ff4f8005340c2d6127f5105336d2fd6528d03724"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/controller-core.log",
+    "bytes": 109,
+    "sha256": "643c7cfc3921e5830e047bed28578bc933677c101c9c5a9f6610b6207052d03c"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/controller-harness.log",
+    "bytes": 102,
+    "sha256": "feabb4add9e2ca3374e538560634d1ec97dc4f4ce89aab12f3d726e36ea9b2f6"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/installed-games-package.json",
+    "bytes": 6244,
+    "sha256": "d6c238e77ab98f25aecfa1acbb0808dd1568455d3d766f0d00dd43a009facc76"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/package-verification.json",
+    "bytes": 4160,
+    "sha256": "5ceda35724549acff7c00deb1b342b3a8e7f5b8c4a3d75c0e5cf384772ebacb3"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/review-summary.json",
+    "bytes": 1862,
+    "sha256": "bfd1681efba413100178f43a2c2ea12f63c9e41a2352074a3e1cc8daeaa950cf"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/signing-identity.json",
+    "bytes": 298,
+    "sha256": "647ad3d64289f68eff1b79c09b6a54c7655c6353a1d46fb927619f7f81e79533"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/synthetic-sdl-results.json",
+    "bytes": 2958,
+    "sha256": "1835d8db71b21a6f708a610ee13430d906cd58cc1a8e312b354938d7f5bc266a"
+  },
+  {
+    "path": "Apps/Gemini/validation/gemini-games-0.1.0-review.1/ui-results.json",
+    "bytes": 6444,
+    "sha256": "e04998d770c62cc8cce2fa1c270b0b819e48bba5cb05d211a2fd30ec68de49a8"
+  }
+]

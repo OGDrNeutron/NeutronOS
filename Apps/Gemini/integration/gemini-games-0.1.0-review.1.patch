@@ -1,0 +1,148 @@
+--- a/qml/Main.qml
++++ b/qml/Main.qml
+@@ -8,6 +8,72 @@
+ Item {
+     id: root
+     objectName: "GeminiMainRoot"
++
++    // Optional Gemini Games session: no dependency on an uninstalled QML module.
++    property var geminiGameSession: null
++    property var pendingGeminiGamesSwitch: null
++    property string geminiGameInputOwner: "idle"
++    readonly property bool geminiGamesSessionAllowed: root.authenticated && !root.inputLocked && (root.inAppMode || root.inConsoleMode) && !RemoteKeyboardManager.keyboardActive && !globalSearchCenter.visible && !(root.notificationCenterVisible() && notificationCenterOverlay.securityComboOpen)
++    onGeminiGamesSessionAllowedChanged: if (geminiGameSession) geminiGameSession.setSystemAccess(geminiGamesSessionAllowed)
++    onGeminiGameSessionChanged: if (geminiGameSession) geminiGameSession.setSystemAccess(geminiGamesSessionAllowed)
++    function switchFromGeminiGames(appData) {
++        if (!appData || !appHostLoader.item || appHostLoader.item.activeAppId !== "gemini-games")
++            return
++        if (geminiGameSession && !geminiGameSession.prepareSwitch())
++            return
++        pendingGeminiGamesSwitch = appData
++        appHostLoader.item.backgroundApp()
++        geminiGamesSwitchTimer.restart()
++    }
++    Timer {
++        id: geminiGamesSwitchTimer
++        interval: 50
++        repeat: true
++        onTriggered: {
++            if (!root.pendingGeminiGamesSwitch) { stop(); return }
++            if (root.shellMode === "console") {
++                var targetApp = root.pendingGeminiGamesSwitch
++                root.pendingGeminiGamesSwitch = null
++                stop()
++                root.beginLaunchApp(targetApp)
++            }
++        }
++    }
++    Loader {
++        id: geminiGameMenuLoader
++        anchors.fill: parent
++        z: 10000
++        visible: root.geminiGamesSessionAllowed
++        source: root.geminiGameSession ? root.geminiGameSession.menuSource : ""
++        onLoaded: item.session = root.geminiGameSession
++    }
++    Connections {
++        target: root.geminiGameSession
++        function onSessionChanged() {
++            var session = root.geminiGameSession
++            var owner = !session.gameActive ? "idle" : session.menuOpen ? "menu" : session.backgrounded ? "background" : "game"
++            if (owner !== root.geminiGameInputOwner) {
++                root.geminiGameInputOwner = owner
++                root.clearStickNavigation()
++                if (root.inputController) root.inputController.releaseAllInputs()
++                root.pressedActionEdges = ({})
++            }
++        }
++        function onInputReset() {
++            root.clearStickNavigation()
++            if (root.inputController) root.inputController.releaseAllInputs()
++            root.pressedActionEdges = ({})
++        }
++        function onBackgroundAction(action, pressed) {
++            if (pressed) root.routeControllerPressed(action)
++            else root.routeControllerReleased(action)
++        }
++        function onRestoreRequested() {
++            if (root.shellMode === "console" && typeof appManager !== "undefined")
++                root.beginLaunchApp(appManager.appById("gemini-games"))
++        }
++    }
++
+ 
+ 
+     /* NEUTRONOS_REMOTE_UI_BRIDGE_V2
+@@ -1640,6 +1706,14 @@
+             return
+         }
+ 
++        // Owned Games input is routed before ordinary shell shortcuts only
++        // during a live session. Authentication and keyboard ownership above
++        // retain their existing precedence.
++        if (root.geminiGamesSessionAllowed && root.geminiGameSession && root.geminiGameSession.controllerPress(clean)) {
++            root.clearStickNavigation()
++            return
++        }
++
+         // A QML app can take exclusive ownership of the physical controller.
+         // This check intentionally runs before every shell-global shortcut:
+         // Home/PS, developer chords, capture/recording, notification/search,
+@@ -1822,6 +1896,9 @@
+             return
+ 
+         root.releasePressEdge(clean)
++        if (root.geminiGamesSessionAllowed && root.geminiGameSession && root.geminiGameSession.controllerRelease(clean))
++            return
++
+ 
+         if (root.notificationCenterVisible() && notificationCenterOverlay.securityComboOpen) {
+             notificationCenterOverlay.handleControllerReleased(clean)
+@@ -2223,6 +2300,10 @@
+         ignoreUnknownSignals: true
+ 
+         function onActiveUserChanged() {
++            if (root.geminiGameSession) {
++                root.geminiGameSession.accountChanged()
++                root.geminiGameSession.setSystemAccess(root.geminiGamesSessionAllowed)
++            }
+             if (root.authenticated)
+                 root.syncActiveUserProfile(null)
+         }
+@@ -2290,6 +2371,8 @@
+         }
+ 
+         function onControllerConnectedChanged() {
++            if (root.geminiGameSession && root.inputController && !root.inputController.controllerConnected)
++                root.geminiGameSession.controllerRelease("home")
+             root.refreshBluetoothControllerIdleTimer()
+         }
+ 
+@@ -2958,6 +3041,11 @@
+         ignoreUnknownSignals: true
+ 
+         function onRuntimeFocusRequested(appData) {
++            if (root.shellMode === "app" && appHostLoader.item &&
++                    appHostLoader.item.activeAppId === "gemini-games") {
++                root.switchFromGeminiGames(appData)
++                return
++            }
+             if (root.shellMode === "console")
+                 root.beginLaunchApp(appData)
+         }
+--- a/src/ControllerManager.cpp
++++ b/src/ControllerManager.cpp
+@@ -765,6 +765,13 @@
+         return false;
+ 
+     const QString name = readDeviceName(fd);
++    // Gemini session proxy pads belong exclusively to game runtimes. Keep
++    // registration, battery and Bluetooth identity on the physical controller.
++    if (name.startsWith(QStringLiteral("Gemini P"))) {
++        ::close(fd);
++        return false;
++    }
++
+     const InputDeviceKind realKind = classifyInputDeviceName(name);
+ 
+     /*

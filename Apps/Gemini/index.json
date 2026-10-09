@@ -5,5 +5,45 @@
     "name": "NeutronOS Gemini Official",
     "platform": "gemini"
   },
-  "packages": []
+  "packages": [
+    {
+      "architectures": [
+        "amd64"
+      ],
+      "category": "Games",
+      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.1.md",
+      "debianDependencies": [
+        "python3",
+        "bubblewrap"
+      ],
+      "dependencies": [
+        "Reviewed Gemini Games OS session integration (separate patch)",
+        "Python 3 and bubblewrap; controller ownership service",
+        "Optional installed game runtimes require per-game setup and real session validation"
+      ],
+      "description": "Review/testing candidate. Native Gemini game library and artwork. On unchanged Gemini 0.5.4, gameplay is blocked until the separately published Games session/input OS patch is integrated. Physical gameplay and install/update/removal acceptance remain pending.",
+      "developer": "NeutronOS",
+      "icon": "icons/gemini-games.png",
+      "id": "gemini-games",
+      "installedBytes": 190434,
+      "minNeutronOS": "0.5.4",
+      "name": "Games \u2014 Gemini",
+      "packageUrl": "Gemini-Games-0.1.0-review.1.napp",
+      "permissions": [
+        "filesystem",
+        "removable-storage",
+        "controller",
+        "graphics",
+        "network"
+      ],
+      "platforms": [
+        "gemini"
+      ],
+      "poster": "posters/gemini-games.png",
+      "requiresDeveloperMode": false,
+      "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
+      "size": 79393,
+      "version": "0.1.0-review.1"
+    }
+  ]
 }

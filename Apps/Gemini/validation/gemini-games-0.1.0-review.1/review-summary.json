@@ -1,0 +1,57 @@
+{
+  "status": "development-review; physical and installation acceptance pending",
+  "nativeQtBackendTestsPassed": 13,
+  "accountQtTestsPassed": 3,
+  "accountSwitchRegressionPassed": true,
+  "controllerSoftwareTestsPassed": 10,
+  "controllerHarnessTestsPassed": 4,
+  "qmlChecksPassed": 67,
+  "negativePackageTestsPassed": 19,
+  "signedPackage": {
+    "architectures": [
+      "amd64"
+    ],
+    "files": 22,
+    "id": "gemini-games",
+    "platforms": [
+      "gemini"
+    ],
+    "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
+    "signer": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0",
+    "success": true,
+    "version": "0.1.0-review.1"
+  },
+  "apolloFilesUnchanged": 257,
+  "originalGeminiSourceFilesUnchanged": 856,
+  "artworkDirectory": "<validated-human-home>/apps/gemini-games/artwork/",
+  "exactRecoveryAtomGpuVerified": true,
+  "performance": [
+    {
+      "VmHWM": "228300 kB",
+      "VmRSS": "228300 kB",
+      "phase": "visible idle Games QML",
+      "processCpuPercent": 0.13180700000000378,
+      "seconds": 5
+    },
+    {
+      "VmHWM": "227536 kB",
+      "VmRSS": "221508 kB",
+      "phase": "hidden window with released scene resources",
+      "processCpuPercent": 0.11508420000000186,
+      "seconds": 5
+    },
+    {
+      "VmHWM": "246392 kB",
+      "VmRSS": "246392 kB",
+      "phase": "restored window",
+      "processCpuPercent": 1.3463708000000008,
+      "seconds": 5
+    }
+  ],
+  "hardwareGameTestsRun": false,
+  "physicalAcceptance": "Pending user testing on the development PC; no controller, USB or host-display changes authorized",
+  "privilegedInstallUpdateRemovalRun": false,
+  "reviewSnapshot": true,
+  "publicationAuthorization": "User authorized publication of this review candidate on 2026-10-09",
+  "originalReviewSummarySha256": "ced9c31c256bd1978a917a1b8524c926f89ec2e9a0d90ff7fca5e74f2fd55fe9"
+}

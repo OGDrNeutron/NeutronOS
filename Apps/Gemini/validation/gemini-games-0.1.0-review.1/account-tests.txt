@@ -1,0 +1,9 @@
+********* Start testing of AccountTests *********
+Config: Using QtTest library 6.8.2, Qt 6.8.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 14.2.0), neutronos 0.5.4
+PASS   : AccountTests::initTestCase()
+QINFO  : AccountTests::accountSwitch() Validated fixture policy: true true 1000 60000
+PASS   : AccountTests::accountSwitch()
+PASS   : AccountTests::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 863ms
+********* Finished testing of AccountTests *********
+

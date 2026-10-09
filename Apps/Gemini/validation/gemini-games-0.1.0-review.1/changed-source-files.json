@@ -1,0 +1,107 @@
+[
+  {
+    "change": "modified",
+    "path": "qml/Main.qml",
+    "sha256": "1a231808b59073c41e06db3d3e5ef10ec080d2203cb2a6a2e26fc050ac61e52e"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/ArtworkDialog.qml",
+    "sha256": "6ebc98ec4c764ecf65e47d620092d7ce3315d6bcdc914b799f4a3d801171af7b"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/ControllerGlyph.qml",
+    "sha256": "3977b02c1a31d67d7267e7f5e61e6a26e07719883d28811b48768207edc10924"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/ControllerProfile.qml",
+    "sha256": "eac72d6f74ba2797653b769410fe3392515ef7fa7dcabc2907cb1485dc36534b"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/GameCard.qml",
+    "sha256": "1e7c30cdd32e1854ec697999fdb0d3435e871d5fb1d70d233683632f5b59ad50"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/GameMenu.qml",
+    "sha256": "153b2e8cb01b042ec27c8690a35621bb38a0c4cd4e4cf0376b80c7357103fcf1"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/Main.qml",
+    "sha256": "807b7a2ff5358f20884c403fff7166cd7aa7a291af3158eaf98a969eca15ce96"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/NeonPanel.qml",
+    "sha256": "9eb2cb4226b14924325459411d657968a801a251e0b617d9d91acbf9adb4ad4a"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/RuntimeApproval.qml",
+    "sha256": "fcaaf275d38a6d774d72110d027a25add91fa210b8946894fd87710a13c1e836"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/SpaceBackdrop.qml",
+    "sha256": "e10acc039cc262f1fbaa66b4bcce49c51652ef081f2d5c57b7d346f435667106"
+  },
+  {
+    "change": "added",
+    "path": "qml/apps/gemini-games/app.json",
+    "sha256": "9bd7f3d2c375bf1085b95081fa0f201d78629437d16d2e93f102efbe98967a36"
+  },
+  {
+    "change": "added",
+    "path": "scripts/apps/gemini-games/controller_proxy.py",
+    "sha256": "a476bb7e74053af4db3638279148ec79afad46df512bebc0f07dbc26f2df3ffa"
+  },
+  {
+    "change": "modified",
+    "path": "src/ControllerManager.cpp",
+    "sha256": "e5d980eb6d4ca21057ff91b56c339c7481d7491f767ab94c3f160f9950958398"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/GameArtwork.cpp",
+    "sha256": "8300953685981cd9400686bdf8d6e41dd90f7e62c82aec6cc1757f85417adaee"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/GameArtwork.h",
+    "sha256": "d4a9b5e7cc5b609bcc5be912d66d77a88ee8f58a8a8a810e5a9f6615eead05b3"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/GameLibrary.cpp",
+    "sha256": "46593824e308f52a33c2242f4a0c374357c32e4254a9bdfe5798ac1dc942c961"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/GameLibrary.h",
+    "sha256": "961a67ab3f698a73a9f6fdda2325f3608e0c7f8369fb0ceb0a53d84c6f9d03c5"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/GeminiGamesBackend.cpp",
+    "sha256": "a0fd9f6f4c55813b74a90fc43fe1ded7ed63191b021aed8a971bf13ffd00ee07"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/GeminiGamesBackend.h",
+    "sha256": "7c2de0bcc5c90f0af7fe652dea30868930fbe4375c19ec97f37206f66b3512fa"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/RuntimeAdapters.cpp",
+    "sha256": "930377485b723a66c29110b2a69ff9f074f27229e227897ef67a6871e8ebc983"
+  },
+  {
+    "change": "added",
+    "path": "src/package_apps/gemini-games/RuntimeAdapters.h",
+    "sha256": "4b79aa2299e9d0aaf29fb0ed4831db118f89dcb004e879be4491a983d7340770"
+  }
+]

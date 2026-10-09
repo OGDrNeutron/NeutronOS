@@ -1,0 +1,806 @@
+{
+  "reviewFiles": [
+    {
+      "bytes": 117712,
+      "path": "Apps/Gemini/Gemini-Games-0.1.0-review.1-source.zip",
+      "sha256": "fe9e60bf27b40b90c234d911733e14d98374b1c771f93860e99050ef6d7ba2a5"
+    },
+    {
+      "bytes": 79393,
+      "path": "Apps/Gemini/Gemini-Games-0.1.0-review.1.napp",
+      "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04"
+    },
+    {
+      "bytes": 1177,
+      "path": "Apps/Gemini/gemini-games.catalog-entry.json",
+      "sha256": "a58d594ad19178b850f611bb68b7047163fe25018967a8c1bf455da840e20016"
+    },
+    {
+      "bytes": 483401,
+      "path": "Games App Icon.png",
+      "sha256": "2a1d19829eb53419edc46be939bd2addf558bc1d4c7aaaa9ef7cd2c3aa2668fc"
+    },
+    {
+      "bytes": 2794975,
+      "path": "Games App Poster.png",
+      "sha256": "fb1a2e8237c54b82781a3cab030f94abf8584c1840c6b98feb81309d4ab0dc3c"
+    },
+    {
+      "bytes": 3075,
+      "path": "README.md",
+      "sha256": "f6c3cc4fc2135fdee3cc257b41011c63ce986640541efb822c2e15ff52579232"
+    },
+    {
+      "bytes": 5034,
+      "path": "docs/ARTWORK-AND-FOOTER.md",
+      "sha256": "3b41344105086738325c2d6af7665958016413caae71d18d9ce09ab7e7a4babe"
+    },
+    {
+      "bytes": 2601,
+      "path": "docs/CHANGELOG.md",
+      "sha256": "affc38963b37bfeb8cd0f8acfddb3234b66c062964d336af9921adf731e1c906"
+    },
+    {
+      "bytes": 5700,
+      "path": "docs/COMPATIBILITY.md",
+      "sha256": "358b92e818bbb6ce0d6688246486376a38d93201e2ee462eca1a611a5a11b2ae"
+    },
+    {
+      "bytes": 7295,
+      "path": "docs/CONTROLLERS.md",
+      "sha256": "268906da75c9b95b20c3d9310e6157307bf5906b28cebd862794b3f28375a4b2"
+    },
+    {
+      "bytes": 3763,
+      "path": "docs/DEPENDENCIES.md",
+      "sha256": "1ae98384f3d20983370b041a2ccac39b37a312039e3a0ca98a82fcadef186f5c"
+    },
+    {
+      "bytes": 4712,
+      "path": "docs/INSPECTION.md",
+      "sha256": "f33b1b1608a157db4ac83887f626943fc77fa49cb3a9aab0c3811f036719afd2"
+    },
+    {
+      "bytes": 2007,
+      "path": "docs/INSTALLATION.md",
+      "sha256": "7a599abd8748f51b270dc893b3c4d20b2c294d64edf2781939039aa77884a72c"
+    },
+    {
+      "bytes": 710,
+      "path": "docs/PERFORMANCE.md",
+      "sha256": "1b2fe5dd0bd03cd47056d8d0a2962054077b0edecaa09cf1e212f25d7d3c1938"
+    },
+    {
+      "bytes": 2876,
+      "path": "docs/USER-LIBRARY.md",
+      "sha256": "3b22cf340fe97460e034d8c06c504babb1c2cbfaab3f7fd8f028ed8de5a897fa"
+    },
+    {
+      "bytes": 12525,
+      "path": "docs/VALIDATION.md",
+      "sha256": "84a7656831288b65be6c3038af81259096c9de3f7a5dda301c78278d7c07faf7"
+    },
+    {
+      "bytes": 703,
+      "path": "package-system/neutronos-gemini-game-input.service",
+      "sha256": "da8fd149a5f8ab1c3bbd508af63bcd5697a62bb58f59789f5f423fa5c7161175"
+    },
+    {
+      "bytes": 6026,
+      "path": "staging/os-integration/gemini-games-session.patch",
+      "sha256": "1965f1c195398efc40df9d53b650f59fcfbd2ade54c7196a7b8583fddfae5814"
+    },
+    {
+      "bytes": 507,
+      "path": "staging/os-integration/patch-preconditions.json",
+      "sha256": "e16363c9fbd42dd2f918dcd14a4a465eb8c2940da21ea324b5fb3d908e6216aa"
+    },
+    {
+      "bytes": 7902,
+      "path": "staging/package-input/build/owned/GameArtwork.cpp",
+      "sha256": "8300953685981cd9400686bdf8d6e41dd90f7e62c82aec6cc1757f85417adaee"
+    },
+    {
+      "bytes": 1478,
+      "path": "staging/package-input/build/owned/GameArtwork.h",
+      "sha256": "d4a9b5e7cc5b609bcc5be912d66d77a88ee8f58a8a8a810e5a9f6615eead05b3"
+    },
+    {
+      "bytes": 16161,
+      "path": "staging/package-input/build/owned/GameLibrary.cpp",
+      "sha256": "46593824e308f52a33c2242f4a0c374357c32e4254a9bdfe5798ac1dc942c961"
+    },
+    {
+      "bytes": 1705,
+      "path": "staging/package-input/build/owned/GameLibrary.h",
+      "sha256": "961a67ab3f698a73a9f6fdda2325f3608e0c7f8369fb0ceb0a53d84c6f9d03c5"
+    },
+    {
+      "bytes": 22995,
+      "path": "staging/package-input/build/owned/GeminiGamesBackend.cpp",
+      "sha256": "a0fd9f6f4c55813b74a90fc43fe1ded7ed63191b021aed8a971bf13ffd00ee07"
+    },
+    {
+      "bytes": 7673,
+      "path": "staging/package-input/build/owned/GeminiGamesBackend.h",
+      "sha256": "7c2de0bcc5c90f0af7fe652dea30868930fbe4375c19ec97f37206f66b3512fa"
+    },
+    {
+      "bytes": 10661,
+      "path": "staging/package-input/build/owned/RuntimeAdapters.cpp",
+      "sha256": "930377485b723a66c29110b2a69ff9f074f27229e227897ef67a6871e8ebc983"
+    },
+    {
+      "bytes": 704,
+      "path": "staging/package-input/build/owned/RuntimeAdapters.h",
+      "sha256": "4b79aa2299e9d0aaf29fb0ed4831db118f89dcb004e879be4491a983d7340770"
+    },
+    {
+      "bytes": 4903,
+      "path": "staging/package-input/manifest.json",
+      "sha256": "009088d97e2f6398f76415e621345ccdfd337ab69bb13e7534f5c3c42df2cc03"
+    },
+    {
+      "bytes": 3308,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/ArtworkDialog.qml",
+      "sha256": "6ebc98ec4c764ecf65e47d620092d7ce3315d6bcdc914b799f4a3d801171af7b"
+    },
+    {
+      "bytes": 1047,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/ControllerGlyph.qml",
+      "sha256": "3977b02c1a31d67d7267e7f5e61e6a26e07719883d28811b48768207edc10924"
+    },
+    {
+      "bytes": 5060,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/ControllerProfile.qml",
+      "sha256": "eac72d6f74ba2797653b769410fe3392515ef7fa7dcabc2907cb1485dc36534b"
+    },
+    {
+      "bytes": 1782,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/GameCard.qml",
+      "sha256": "1e7c30cdd32e1854ec697999fdb0d3435e871d5fb1d70d233683632f5b59ad50"
+    },
+    {
+      "bytes": 2674,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/GameMenu.qml",
+      "sha256": "153b2e8cb01b042ec27c8690a35621bb38a0c4cd4e4cf0376b80c7357103fcf1"
+    },
+    {
+      "bytes": 49768,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/Main.qml",
+      "sha256": "807b7a2ff5358f20884c403fff7166cd7aa7a291af3158eaf98a969eca15ce96"
+    },
+    {
+      "bytes": 675,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/NeonPanel.qml",
+      "sha256": "9eb2cb4226b14924325459411d657968a801a251e0b617d9d91acbf9adb4ad4a"
+    },
+    {
+      "bytes": 8254,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/RuntimeApproval.qml",
+      "sha256": "fcaaf275d38a6d774d72110d027a25add91fa210b8946894fd87710a13c1e836"
+    },
+    {
+      "bytes": 1365,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/SpaceBackdrop.qml",
+      "sha256": "e10acc039cc262f1fbaa66b4bcce49c51652ef081f2d5c57b7d346f435667106"
+    },
+    {
+      "bytes": 450,
+      "path": "staging/package-input/payload/qml/apps/gemini-games/app.json",
+      "sha256": "9bd7f3d2c375bf1085b95081fa0f201d78629437d16d2e93f102efbe98967a36"
+    },
+    {
+      "bytes": 14438,
+      "path": "staging/package-input/payload/themes/Default/apps/icons/gemini-games.png",
+      "sha256": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2"
+    },
+    {
+      "bytes": 14438,
+      "path": "staging/package-input/payload/themes/Default/apps/posters/gemini-games.png",
+      "sha256": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2"
+    },
+    {
+      "bytes": 703,
+      "path": "staging/package-input/system/owned/etc/systemd/system/neutronos-gemini-game-input.service",
+      "sha256": "da8fd149a5f8ab1c3bbd508af63bcd5697a62bb58f59789f5f423fa5c7161175"
+    },
+    {
+      "bytes": 17193,
+      "path": "staging/package-input/system/owned/usr/local/lib/neutronos/gemini-games/controller_proxy.py",
+      "sha256": "a476bb7e74053af4db3638279148ec79afad46df512bebc0f07dbc26f2df3ffa"
+    },
+    {
+      "bytes": 79393,
+      "path": "staging/repository/Apps/Gemini/Gemini-Games-0.1.0-review.1.napp",
+      "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04"
+    },
+    {
+      "bytes": 2601,
+      "path": "staging/repository/Apps/Gemini/changelogs/gemini-games-0.1.0-review.1.md",
+      "sha256": "affc38963b37bfeb8cd0f8acfddb3234b66c062964d336af9921adf731e1c906"
+    },
+    {
+      "bytes": 14438,
+      "path": "staging/repository/Apps/Gemini/icons/gemini-games.png",
+      "sha256": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2"
+    },
+    {
+      "bytes": 1493,
+      "path": "staging/repository/Apps/Gemini/index.json",
+      "sha256": "d821d2f8b77d6ff05bac16324e360c1441cc5c0051085815025001da50f0f0f1"
+    },
+    {
+      "bytes": 119,
+      "path": "staging/repository/Apps/Gemini/index.json.sig",
+      "sha256": "d7f21008593800d9aedd7dc73b26f133be607ddc74462224bd068809c563685f"
+    },
+    {
+      "bytes": 14438,
+      "path": "staging/repository/Apps/Gemini/posters/gemini-games.png",
+      "sha256": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2"
+    },
+    {
+      "bytes": 1303,
+      "path": "tests/CMakeLists.txt",
+      "sha256": "7db531d6e508a9fc075cfe19725be42e75a139976129bd2ec776c2c7099a87c6"
+    },
+    {
+      "bytes": 3628,
+      "path": "tests/account_isolation.cpp",
+      "sha256": "321e58e1b9e434b97cbf897ea9f044fcd16bd204c82b6c326c8c3029282c1d7c"
+    },
+    {
+      "bytes": 1454,
+      "path": "tests/account_vm.py",
+      "sha256": "52b1505ea9b835b8983e0fea392acfa18753360f9271a512388b57f074e5cd0c"
+    },
+    {
+      "bytes": 15120,
+      "path": "tests/controller_sdl_vm.py",
+      "sha256": "99c12ec74276529d16fa6aab4015697de99bc5a429d2e6800efd188851106a6b"
+    },
+    {
+      "bytes": 14482,
+      "path": "tests/games_test.cpp",
+      "sha256": "3cdc34b75aec7e41af9715f7c4e0d1df69c4e9081b3eabdda18bfa9c64285746"
+    },
+    {
+      "bytes": 2414,
+      "path": "tests/library_probe.cpp",
+      "sha256": "5493d79d9e9bf25f074e88bf07da06e10acb698e101b028f0a4be15923fe0e16"
+    },
+    {
+      "bytes": 4166,
+      "path": "tests/test_controller_proxy.py",
+      "sha256": "746f5213ad44a6cb1859444341c97e36ed3740d42c65ff4e7868b0c22d241c18"
+    },
+    {
+      "bytes": 1448,
+      "path": "tests/test_controller_runtime_harness.py",
+      "sha256": "6193059d4470d910341671c0d424c30e5581a76a6ebe6850d2f651bc96f4e37f"
+    },
+    {
+      "bytes": 307,
+      "path": "tests/ui.qml",
+      "sha256": "9f1f15bbd2948e2e6c1026c650d7c6fad0a41bfcf264339ee2d8eb7d94eea89d"
+    },
+    {
+      "bytes": 20437,
+      "path": "tests/ui_runner.cpp",
+      "sha256": "4b4003a55313c13776f16c80307fc8ec096d396f16b140151d7242f512087473"
+    },
+    {
+      "bytes": 4774,
+      "path": "tests/verify_review_package.py",
+      "sha256": "664b2cb4312a5809a73009633fa14ab8ff81a7306d5dca430be838ba03c18585"
+    },
+    {
+      "bytes": 2127,
+      "path": "tests/vm_games_package_boundary.py",
+      "sha256": "324e07d47b54a5fb361cca0c2e9359c9e7ab726a699e051805b41770f115912e"
+    },
+    {
+      "bytes": 8806,
+      "path": "tools/finalize-review.py",
+      "sha256": "7128720d511d0cf4306eaa10af6566e9bc9451674bc3fa801efac716b29a4773"
+    },
+    {
+      "bytes": 565,
+      "path": "tools/in-build-root",
+      "sha256": "8ea68dc979b23087506b8657e6bd79049077fd1674f16df764a4409ca8738b3d"
+    },
+    {
+      "bytes": 2972,
+      "path": "tools/prepare-review-package.py",
+      "sha256": "172d7990301642e65bbb6d85db3b9153e8942d7535d8b3048b0de089f88fd308"
+    },
+    {
+      "bytes": 6162,
+      "path": "tools/sign-review-package.py",
+      "sha256": "70f1fe32da116a6bc3e5d6e64a24aecb4d493f6d6489b5692457d74558a45edc"
+    },
+    {
+      "bytes": 3314,
+      "path": "tools/start-review-vm.py",
+      "sha256": "dd24fb18b536143d990dec0deefc4b8c76cd154ae65d7b66bd60e5b940ddcc55"
+    },
+    {
+      "bytes": 989,
+      "path": "tools/test-account-isolation.py",
+      "sha256": "70054e6c7cb1cfbdefd7b739a98d0a34b7bc90d066fa80a3157b49050333a473"
+    },
+    {
+      "bytes": 1680,
+      "path": "tools/verify-user-library.py",
+      "sha256": "57435d8e11590556ba47bb8a6bb606a43454c6fdfb1ad566840cbf846cb31e3b"
+    },
+    {
+      "bytes": 3263,
+      "path": "tools/vm-control.py",
+      "sha256": "3cae3296826e7fea45fca5831b213c4c6579117128abc8e80b83330acdc0a9d8"
+    },
+    {
+      "bytes": 610,
+      "path": "validation/account-proot-fixture-failure.txt",
+      "sha256": "790796c3984f408f7762958b9fd70709c32feeb823c1a7941dd4db0c9818742c"
+    },
+    {
+      "bytes": 531,
+      "path": "validation/account-test-build.log",
+      "sha256": "53eb389808257480dc52caae03bbc5f0150b3a91139e9a897c9a82769e963bee"
+    },
+    {
+      "bytes": 504,
+      "path": "validation/account-tests.txt",
+      "sha256": "7bf297a98925c9becc59b9824dc7f5a1adbc2cc4ba1d614ff91fadd2eb12918e"
+    },
+    {
+      "bytes": 888,
+      "path": "validation/account-tests.xml",
+      "sha256": "a994ec80bc5e2823f91b7684c8673260d033d18f6e9580a175d5ea92ac86b440"
+    },
+    {
+      "bytes": 87435,
+      "path": "validation/apollo-after.json",
+      "sha256": "d94e275ad09462feb3564daf790ea043f672c03c676b52e41101a60ada304f2c"
+    },
+    {
+      "bytes": 59165,
+      "path": "validation/apollo-before.json",
+      "sha256": "3e3cef154edc736a55bb581570a6d17123a93dac2cddb8d825e3be7ae97ef323"
+    },
+    {
+      "bytes": 1382,
+      "path": "validation/apollo-reference-payload.json",
+      "sha256": "b22c3ceb8256be2ac92ad9ff9f6ab917245d5de7d48cc54245281fd61112cf9b"
+    },
+    {
+      "bytes": 541,
+      "path": "validation/archive-test-build.log",
+      "sha256": "fb683a56e12c5318b46cc7a9f4b630605303df1ba20d7ba42c4b79e4e4a3c18c"
+    },
+    {
+      "bytes": 713,
+      "path": "validation/archives-before.txt",
+      "sha256": "5b12187323e656d3620b2120aa78dade74cbeb16cfb1d8afdf2a26123cc1c410"
+    },
+    {
+      "bytes": 799,
+      "path": "validation/backend-tests-native.txt",
+      "sha256": "951c2c3ab063adfbf3709b83439bd3faad92da829dc6aad840c40a51027ba520"
+    },
+    {
+      "bytes": 2244,
+      "path": "validation/backend-tests-native.xml",
+      "sha256": "71ff0ce6e277499388eb5459a2a64413ae0b12ba146c91762f8547db22b26309"
+    },
+    {
+      "bytes": 884,
+      "path": "validation/backend-tests.txt",
+      "sha256": "797b7f1a42deae4f1e093e4345165d4dd60b9ff5c051463e08b08f7e01a0c17c"
+    },
+    {
+      "bytes": 1346,
+      "path": "validation/backend-tests.xml",
+      "sha256": "29a6496b41779994842b994e01200320399202634b6572d2a6943b2130fec806"
+    },
+    {
+      "bytes": 978,
+      "path": "validation/build.log",
+      "sha256": "439714eaf07a999d0358fb048d9be28bd176f8702ae775d146399f84e827c0d4"
+    },
+    {
+      "bytes": 138,
+      "path": "validation/catalog-preservation.json",
+      "sha256": "8e57e6f80587ae911b751f0a80975006fe1041fdc0d3c4f69e81321087ba2c30"
+    },
+    {
+      "bytes": 3540,
+      "path": "validation/changed-source-files.json",
+      "sha256": "77079d045e526c7c32653d87ff4f8005340c2d6127f5105336d2fd6528d03724"
+    },
+    {
+      "bytes": 814,
+      "path": "validation/configure.log",
+      "sha256": "ae36bb40b6a3ede79345520a3aefecd2e7aa3c19b207e8135358084600431cd3"
+    },
+    {
+      "bytes": 109,
+      "path": "validation/controller-core.log",
+      "sha256": "643c7cfc3921e5830e047bed28578bc933677c101c9c5a9f6610b6207052d03c"
+    },
+    {
+      "bytes": 102,
+      "path": "validation/controller-harness.log",
+      "sha256": "feabb4add9e2ca3374e538560634d1ec97dc4f4ce89aab12f3d726e36ea9b2f6"
+    },
+    {
+      "bytes": 3719,
+      "path": "validation/dependency-before.log",
+      "sha256": "fa5c3df36894f896a516b5aae46e1904c1311ac431b84819266d8b984b33a721"
+    },
+    {
+      "bytes": 937,
+      "path": "validation/dependency-test-build.log",
+      "sha256": "f1243074d142014819c8935e9ae750cc06d329453913efa08258dbd38ef3bc99"
+    },
+    {
+      "bytes": 314493,
+      "path": "validation/footer-atom-frame-1.png",
+      "sha256": "acea30174983893803d0f49d65a683a81a3df75098ae220b10cabc46f69cdc61"
+    },
+    {
+      "bytes": 315669,
+      "path": "validation/footer-atom-frame-2.png",
+      "sha256": "5a810694127c7d8f0cf3bcfc9f0fce5d5ac63da4aaef391ed1687334f2a6a508"
+    },
+    {
+      "bytes": 4667,
+      "path": "validation/games-vm/boot.png",
+      "sha256": "e3287ef22d3072d3dff37fce3668e4e67b0a5a65a3e7b32f06bcb02ea835d449"
+    },
+    {
+      "bytes": 73698,
+      "path": "validation/games-vm/controller-sdl-runtime.json",
+      "sha256": "1f0405bf3d571548095a241f0a361dbe0a4324e3941dfa189e385b51b0c6aeb5"
+    },
+    {
+      "bytes": 69162,
+      "path": "validation/games-vm/controller-sdl-stale-snapshot-failure.json",
+      "sha256": "c0daa60bc955ca1bc0db40d68769b28c689b5cc6e8d2e87e5fde95bfafb07336"
+    },
+    {
+      "bytes": 4478,
+      "path": "validation/games-vm/current-state.json",
+      "sha256": "d837e59e85252389f33af78cfed55eb9d49e005a49b27ec603e724a96e177131"
+    },
+    {
+      "bytes": 4667,
+      "path": "validation/games-vm/games-first.png",
+      "sha256": "e3287ef22d3072d3dff37fce3668e4e67b0a5a65a3e7b32f06bcb02ea835d449"
+    },
+    {
+      "bytes": 4321,
+      "path": "validation/games-vm/installed-boundary.json",
+      "sha256": "68c415b445b454a20628718a443deebb9ebbeb9983e054fe198c1f6356fb863c"
+    },
+    {
+      "bytes": 6244,
+      "path": "validation/games-vm/installed-games-package.json",
+      "sha256": "d6c238e77ab98f25aecfa1acbb0808dd1568455d3d766f0d00dd43a009facc76"
+    },
+    {
+      "bytes": 552,
+      "path": "validation/games-vm/provenance.json",
+      "sha256": "7d2eb4c02a7985b87b8d0f54c7798a397e834d0258893bf585afd9cb17b151db"
+    },
+    {
+      "bytes": 67,
+      "path": "validation/gemini-054-preservation.json",
+      "sha256": "b51d2b7c3ef8f9d39cfaa92bd11847f9b211901f79886d30bda81cd6460857cb"
+    },
+    {
+      "bytes": 14438,
+      "path": "validation/gemini-games.png",
+      "sha256": "1ca93290d6fe9caa80c4757c8aef874f78e237e300b30d1c5e1ceb7e1bb297b2"
+    },
+    {
+      "bytes": 97946,
+      "path": "validation/gemini-source-before.json",
+      "sha256": "1ae8174fd9575bd2e943c4db081794854f3ef050a671a8488721b25147a98f67"
+    },
+    {
+      "bytes": 173428,
+      "path": "validation/os-qml-parse.log",
+      "sha256": "c729c4ddec8d7bdabaef7d2b8b00af32be2d3bde39aed75bd41354f68e79da6f"
+    },
+    {
+      "bytes": 185,
+      "path": "validation/package-input.json",
+      "sha256": "a7a016450a5bd3d0ddadb2228179cc9b415bc8dd7242736c0e907b36fe5f5cbb"
+    },
+    {
+      "bytes": 4160,
+      "path": "validation/package-verification.json",
+      "sha256": "5ceda35724549acff7c00deb1b342b3a8e7f5b8c4a3d75c0e5cf384772ebacb3"
+    },
+    {
+      "bytes": 4463,
+      "path": "validation/profile-before.log",
+      "sha256": "b3b1bf9d3972b3813a74a91089aa7aac0142c6d2222316b6b13390180b5cf4ed"
+    },
+    {
+      "bytes": 584,
+      "path": "validation/profile-test-build.log",
+      "sha256": "80f8b94b4e57fbf1030ab88ef946f508c2cbe7018fd5b61894a00ae84dfcad5f"
+    },
+    {
+      "bytes": 21,
+      "path": "validation/runtime-apt-cache.txt",
+      "sha256": "74aa4223b7259b2bf84dd5b38b28fbb70db3bad3f1a6061ce0f39d466fca68ca"
+    },
+    {
+      "bytes": 507,
+      "path": "validation/runtime-capabilities-before.txt",
+      "sha256": "e81aff8e2244e4fe70b878696d2bd9d8ca9613feb5f37a97d8f39ce74acba1f4"
+    },
+    {
+      "bytes": 457,
+      "path": "validation/shell-build.log",
+      "sha256": "be141cdd67714872d8a233ba5414d3c1f43c3cbbf74fa7f9b8055eee2c9d0bad"
+    },
+    {
+      "bytes": 1885,
+      "path": "validation/shell-configure.log",
+      "sha256": "3151a442f6ea0833bc24511223a401ad735cccb4792b602bf8ac304120b9e8b1"
+    },
+    {
+      "bytes": 208,
+      "path": "validation/signing-blocker.json",
+      "sha256": "ef8303bdc676305272fd6fdc11f47d6fa7496ba17e8249cbd51f43e5523d6a71"
+    },
+    {
+      "bytes": 298,
+      "path": "validation/signing-identity.json",
+      "sha256": "647ad3d64289f68eff1b79c09b6a54c7655c6353a1d46fb927619f7f81e79533"
+    },
+    {
+      "bytes": 347,
+      "path": "validation/signing-process.json",
+      "sha256": "985a540da6b44a95e54e7df305ee3531b1535329346bc01f6f63e94aa2738607"
+    },
+    {
+      "bytes": 141,
+      "path": "validation/signing-sandbox-attempt.json",
+      "sha256": "aabb2ded72ee40402e307be2f7b13904d8099272be922bd45338c6d411476ad2"
+    },
+    {
+      "bytes": 1414,
+      "path": "validation/test-build.log",
+      "sha256": "05cdc867e9cc1637e179dfc57530f358f2aca22d23675cf5aea12e2fd0f830df"
+    },
+    {
+      "bytes": 209,
+      "path": "validation/test-configure.log",
+      "sha256": "480e884700ef39d231c55b950a222a6ad6207adc4e0b7b105eff6ffc5681100e"
+    },
+    {
+      "bytes": 1204,
+      "path": "validation/tests-build.log",
+      "sha256": "1f10d331e9a90526c5da343db59f78e9777021c9f9bf2d2adc6494b1b32c74e4"
+    },
+    {
+      "bytes": 200111,
+      "path": "validation/ui-artwork-management.png",
+      "sha256": "0ca215ff7d10585b000948dc654c4b0568fab1aad21f412b30a823e5d326d8d4"
+    },
+    {
+      "bytes": 248939,
+      "path": "validation/ui-controller-profile.png",
+      "sha256": "aaf408dea4ab7fa8dbbafc044a4bc3587bcfac971915c17bcd54e9a9a6a91df7"
+    },
+    {
+      "bytes": 232796,
+      "path": "validation/ui-game-menu.png",
+      "sha256": "4bf1c021feafeb06ac1c9237642fb29cec70ddf8c2dfb548489a5da37306c22c"
+    },
+    {
+      "bytes": 318799,
+      "path": "validation/ui-page-0.png",
+      "sha256": "e38ef63e023a33a4f04dad05c507851b9ed502c1257f28049c8ffa84ef3e52c9"
+    },
+    {
+      "bytes": 320206,
+      "path": "validation/ui-page-1.png",
+      "sha256": "d15f278ba1a7188b3ea15a227891d72681c7f1e7315535f859ce159149cae879"
+    },
+    {
+      "bytes": 230342,
+      "path": "validation/ui-page-2.png",
+      "sha256": "d839cd05ab3a0a3b8a9cb1d8940c9f0d3e9b13df7cfc562b1e482deada7e450a"
+    },
+    {
+      "bytes": 236031,
+      "path": "validation/ui-page-3.png",
+      "sha256": "9c85ffb25b7d09375ae6a216a441e691aa9dbdc40e73673eb63c28fe0ed20be1"
+    },
+    {
+      "bytes": 239423,
+      "path": "validation/ui-page-4.png",
+      "sha256": "fe791ae880209833e36733874fe848ae238ac3de57132e105b7f4e1b6873b2b0"
+    },
+    {
+      "bytes": 236469,
+      "path": "validation/ui-page-5.png",
+      "sha256": "ca2fd0d48e438c7ed077e744fd72bbd349c54af28619b1cf6c3591b6f0e68477"
+    },
+    {
+      "bytes": 270910,
+      "path": "validation/ui-page-6.png",
+      "sha256": "06020717abe10ad33367c110c05af5c5cfa556a4843405059bb5272c95d5393a"
+    },
+    {
+      "bytes": 314395,
+      "path": "validation/ui-page-7.png",
+      "sha256": "ce129dc35e86e568aa826967339cd7415ab486ad28d146a5e090cfe82c9af121"
+    },
+    {
+      "bytes": 7910,
+      "path": "validation/ui-results.json",
+      "sha256": "4b1c52a4977cd4f4543b821429c794aa5e7d2ef0c09bcab7b62a243e7a88246f"
+    },
+    {
+      "bytes": 336411,
+      "path": "validation/ui-runtime-approval.png",
+      "sha256": "213bded8d2201257771908e2cf6272007bcb51bca10aa7db05764d5ce6745270"
+    },
+    {
+      "bytes": 3578,
+      "path": "validation/ui.log",
+      "sha256": "7978baf2a1214afe52652b6188034d1edd9a8ee44d76898971d577653a25c83d"
+    },
+    {
+      "bytes": 2764,
+      "path": "validation/user-game-archives.json",
+      "sha256": "7dcd875d3d4ffa3f1709160e7a36840e2a0131eeb50b50006201cb6c17a52619"
+    },
+    {
+      "bytes": 186719,
+      "path": "validation/user-games-before.json",
+      "sha256": "f2c1165e77c68c52bbd0f12226aa9b599a5ad656526cf283c12e033e6db7cdae"
+    },
+    {
+      "bytes": 730,
+      "path": "validation/user-games-preservation.json",
+      "sha256": "b80e591947d4fbfb958877828d6822f95f3e40693e242c14e6a15c67d85943ec"
+    },
+    {
+      "bytes": 10456,
+      "path": "validation/user-library-added-candidate.json",
+      "sha256": "48fb2d46a1344160cc5ac6f5466817c6db603aeb7694e0c91f54989525bc6335"
+    },
+    {
+      "bytes": 15001,
+      "path": "validation/user-library-probe.json",
+      "sha256": "f9c329c97ea9d6223b7eadb36f8594edf6a71847b03c9871e5ebd9cefdd05781"
+    },
+    {
+      "bytes": 1016,
+      "path": "validation/user-wii-archive-list.json",
+      "sha256": "48a42a6520d32bffe07e3d3c58d8ff28bf8e97af4b547c302121e35193ffac68"
+    },
+    {
+      "bytes": 117378,
+      "path": "validation/review-summary.json",
+      "sha256": "ced9c31c256bd1978a917a1b8524c926f89ec2e9a0d90ff7fca5e74f2fd55fe9"
+    }
+  ],
+  "sourceChanges": [
+    {
+      "change": "modified",
+      "path": "qml/Main.qml",
+      "sha256": "1a231808b59073c41e06db3d3e5ef10ec080d2203cb2a6a2e26fc050ac61e52e"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/ArtworkDialog.qml",
+      "sha256": "6ebc98ec4c764ecf65e47d620092d7ce3315d6bcdc914b799f4a3d801171af7b"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/ControllerGlyph.qml",
+      "sha256": "3977b02c1a31d67d7267e7f5e61e6a26e07719883d28811b48768207edc10924"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/ControllerProfile.qml",
+      "sha256": "eac72d6f74ba2797653b769410fe3392515ef7fa7dcabc2907cb1485dc36534b"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/GameCard.qml",
+      "sha256": "1e7c30cdd32e1854ec697999fdb0d3435e871d5fb1d70d233683632f5b59ad50"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/GameMenu.qml",
+      "sha256": "153b2e8cb01b042ec27c8690a35621bb38a0c4cd4e4cf0376b80c7357103fcf1"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/Main.qml",
+      "sha256": "807b7a2ff5358f20884c403fff7166cd7aa7a291af3158eaf98a969eca15ce96"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/NeonPanel.qml",
+      "sha256": "9eb2cb4226b14924325459411d657968a801a251e0b617d9d91acbf9adb4ad4a"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/RuntimeApproval.qml",
+      "sha256": "fcaaf275d38a6d774d72110d027a25add91fa210b8946894fd87710a13c1e836"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/SpaceBackdrop.qml",
+      "sha256": "e10acc039cc262f1fbaa66b4bcce49c51652ef081f2d5c57b7d346f435667106"
+    },
+    {
+      "change": "added",
+      "path": "qml/apps/gemini-games/app.json",
+      "sha256": "9bd7f3d2c375bf1085b95081fa0f201d78629437d16d2e93f102efbe98967a36"
+    },
+    {
+      "change": "added",
+      "path": "scripts/apps/gemini-games/controller_proxy.py",
+      "sha256": "a476bb7e74053af4db3638279148ec79afad46df512bebc0f07dbc26f2df3ffa"
+    },
+    {
+      "change": "modified",
+      "path": "src/ControllerManager.cpp",
+      "sha256": "e5d980eb6d4ca21057ff91b56c339c7481d7491f767ab94c3f160f9950958398"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/GameArtwork.cpp",
+      "sha256": "8300953685981cd9400686bdf8d6e41dd90f7e62c82aec6cc1757f85417adaee"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/GameArtwork.h",
+      "sha256": "d4a9b5e7cc5b609bcc5be912d66d77a88ee8f58a8a8a810e5a9f6615eead05b3"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/GameLibrary.cpp",
+      "sha256": "46593824e308f52a33c2242f4a0c374357c32e4254a9bdfe5798ac1dc942c961"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/GameLibrary.h",
+      "sha256": "961a67ab3f698a73a9f6fdda2325f3608e0c7f8369fb0ceb0a53d84c6f9d03c5"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/GeminiGamesBackend.cpp",
+      "sha256": "a0fd9f6f4c55813b74a90fc43fe1ded7ed63191b021aed8a971bf13ffd00ee07"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/GeminiGamesBackend.h",
+      "sha256": "7c2de0bcc5c90f0af7fe652dea30868930fbe4375c19ec97f37206f66b3512fa"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/RuntimeAdapters.cpp",
+      "sha256": "930377485b723a66c29110b2a69ff9f074f27229e227897ef67a6871e8ebc983"
+    },
+    {
+      "change": "added",
+      "path": "src/package_apps/gemini-games/RuntimeAdapters.h",
+      "sha256": "4b79aa2299e9d0aaf29fb0ed4831db118f89dcb004e879be4491a983d7340770"
+    }
+  ]
+}

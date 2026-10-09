@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "reviewCandidateBytesPreserved": true,
+  "sourceArchiveBytesPreserved": true,
+  "catalogSigner": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0",
+  "packageSigner": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0",
+  "packageSha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
+  "packageBytes": 79393,
+  "signedFileHashesVerified": 22,
+  "allPriorCatalogEntriesPreserved": true,
+  "approvedIconPosterIncluded": true,
+  "apolloRecordedHashesUnchanged": 257,
+  "originalGeminiSourceHashesUnchanged": 856,
+  "patchAppliesToInspected054": true,
+  "patchInstalled": false,
+  "stock054GameplayBlocked": true,
+  "physicalControllerTestsRun": false,
+  "actualInstallUpdateRemovalRun": false,
+  "reviewTestingCandidate": true,
+  "privateMaterialIncluded": false,
+  "replacesOsImage": false
+}
