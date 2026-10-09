@@ -1,0 +1,118 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "SDL2 sees exactly two game controllers",
+      "passed": true
+    },
+    {
+      "name": "both sticks retain signed intermediate movement",
+      "passed": true
+    },
+    {
+      "name": "both triggers preserve intermediate analog values",
+      "passed": true
+    },
+    {
+      "name": "multiplayer axes remain independent",
+      "passed": true
+    },
+    {
+      "name": "evdev button 304 reaches SDL control 0",
+      "passed": true
+    },
+    {
+      "name": "evdev button 305 reaches SDL control 1",
+      "passed": true
+    },
+    {
+      "name": "evdev button 307 reaches SDL control 2",
+      "passed": true
+    },
+    {
+      "name": "evdev button 308 reaches SDL control 3",
+      "passed": true
+    },
+    {
+      "name": "evdev button 310 reaches SDL control 9",
+      "passed": true
+    },
+    {
+      "name": "evdev button 311 reaches SDL control 10",
+      "passed": true
+    },
+    {
+      "name": "evdev button 314 reaches SDL control 4",
+      "passed": true
+    },
+    {
+      "name": "evdev button 315 reaches SDL control 6",
+      "passed": true
+    },
+    {
+      "name": "evdev button 317 reaches SDL control 7",
+      "passed": true
+    },
+    {
+      "name": "evdev button 318 reaches SDL control 8",
+      "passed": true
+    },
+    {
+      "name": "D-pad reaches SDL controller buttons",
+      "passed": true
+    },
+    {
+      "name": "short Home is absent from gameplay",
+      "passed": true
+    },
+    {
+      "name": "continuous three-second Home hold fires once",
+      "passed": true
+    },
+    {
+      "name": "modal transition releases gameplay buttons and axes",
+      "passed": true
+    },
+    {
+      "name": "modal receives controller action without gameplay input",
+      "passed": true
+    },
+    {
+      "name": "held control stays blocked after Resume",
+      "passed": true
+    },
+    {
+      "name": "Resume restores controls without reconnect",
+      "passed": true
+    },
+    {
+      "name": "SDL sees disconnection without duplicated device",
+      "passed": true
+    },
+    {
+      "name": "transport identity remains stable",
+      "passed": true
+    },
+    {
+      "name": "SDL discovers reconnected pad in private namespace",
+      "passed": true
+    },
+    {
+      "name": "reconnected pad restores analog and face button input",
+      "passed": true
+    }
+  ],
+  "environment": "Disposable Gemini VM; production Pad; actual Linux evdev/uinput and installed SDL2; bwrap game-side namespace",
+  "physicalControllerTest": false,
+  "actualGameTitleTest": false,
+  "productionDiscoveryReplaced": false,
+  "guestShellIsolation": {
+    "pid": 1220,
+    "mechanism": "SIGSTOP only the disposable guest NeutronShell during synthetic pad lifetime; SIGCONT after pad destruction",
+    "restored": true,
+    "bootId": "273ef510-fe9b-47ff-83d3-a6eb9fbdbcd9",
+    "bootUnchanged": true,
+    "serviceRestarted": false,
+    "physicalDevicesTouched": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "appliedToOriginal": false,
+  "baseline": "Gemini 0.5.4",
+  "files": {
+    "qml/Main.qml": {
+      "afterSha256": "1a231808b59073c41e06db3d3e5ef10ec080d2203cb2a6a2e26fc050ac61e52e",
+      "beforeSha256": "ca48ac8ac7e82e07a3cd0007e1c571c665e5c7c83ce6bb9e11c1b83b29a42dd4"
+    },
+    "src/ControllerManager.cpp": {
+      "afterSha256": "e5d980eb6d4ca21057ff91b56c339c7481d7491f767ab94c3f160f9950958398",
+      "beforeSha256": "d410d306e5ec1636bf494b4132712eb5308cde5b36788709a8403aeb08770828"
+    }
+  }
+}

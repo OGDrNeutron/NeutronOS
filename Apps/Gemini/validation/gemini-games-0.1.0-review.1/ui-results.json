@@ -1,0 +1,297 @@
+{
+  "actualGamePerformanceMeasured": false,
+  "checks": [
+    {
+      "name": "actual Recovery atom component loaded",
+      "passed": true
+    },
+    {
+      "name": "Recovery atom pixels animate",
+      "passed": true
+    },
+    {
+      "name": "page 0 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 1 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 2 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 3 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 4 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 5 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 6 rendered",
+      "passed": true
+    },
+    {
+      "name": "page 7 rendered",
+      "passed": true
+    },
+    {
+      "name": "footer initially visible",
+      "passed": true
+    },
+    {
+      "name": "footer hides after 10 seconds",
+      "passed": true
+    },
+    {
+      "name": "hidden footer releases actual atom",
+      "passed": true
+    },
+    {
+      "name": "Start opens footer",
+      "passed": true
+    },
+    {
+      "name": "Triangle opens installed carousel",
+      "passed": true
+    },
+    {
+      "name": "leaving footer dismisses carousel",
+      "passed": true
+    },
+    {
+      "name": "Start closes footer",
+      "passed": true
+    },
+    {
+      "name": "manual footer remains visible",
+      "passed": true
+    },
+    {
+      "name": "background Games releases footer atom",
+      "passed": true
+    },
+    {
+      "name": "returning Games restores footer atom",
+      "passed": true
+    },
+    {
+      "name": "active gameplay suspends footer atom",
+      "passed": true
+    },
+    {
+      "name": "visible Games can animate with backgrounded game",
+      "passed": true
+    },
+    {
+      "name": "controller reaches Settings",
+      "passed": true
+    },
+    {
+      "name": "Add Folder dialog opens",
+      "passed": true
+    },
+    {
+      "name": "controller keyboard opens",
+      "passed": true
+    },
+    {
+      "name": "dialog returns focus",
+      "passed": true
+    },
+    {
+      "name": "message is controller reachable",
+      "passed": true
+    },
+    {
+      "name": "X acknowledges critical message",
+      "passed": true
+    },
+    {
+      "name": "artwork management opens through controller",
+      "passed": true
+    },
+    {
+      "name": "artwork refresh keeps focus",
+      "passed": true
+    },
+    {
+      "name": "controller assigns a real custom image",
+      "passed": true
+    },
+    {
+      "name": "controller restores automatic artwork",
+      "passed": true
+    },
+    {
+      "name": "controller profile opens a named-button editor",
+      "passed": true
+    },
+    {
+      "name": "button remapping swaps both controls without duplicates",
+      "passed": true
+    },
+    {
+      "name": "stick inversion is a controller toggle",
+      "passed": true
+    },
+    {
+      "name": "profile save persists remapping and inversion",
+      "passed": true
+    },
+    {
+      "name": "profile save returns prior controller focus",
+      "passed": true
+    },
+    {
+      "name": "profile cancellation preserves saved profile",
+      "passed": true
+    },
+    {
+      "name": "controller can restore default mapping",
+      "passed": true
+    },
+    {
+      "name": "missing runtime opens approval review without installation",
+      "passed": true
+    },
+    {
+      "name": "runtime review excludes unsigned providers",
+      "passed": true
+    },
+    {
+      "name": "selecting provider only opens confirmation",
+      "passed": true
+    },
+    {
+      "name": "unknown dependency footprint blocks install",
+      "passed": true
+    },
+    {
+      "name": "cancelling runtime review restores focus",
+      "passed": true
+    },
+    {
+      "name": "explicit runtime approval dispatches existing App Store install",
+      "passed": true
+    },
+    {
+      "name": "changed catalog cannot install stale provider",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 0 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 0 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 1 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 1 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 2 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 2 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 3 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 3 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 4 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 4 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 5 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 5 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 6 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 6 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 7 reachable",
+      "passed": true
+    },
+    {
+      "name": "Settings tab 7 last action reachable",
+      "passed": true
+    },
+    {
+      "name": "game modal loaded",
+      "passed": true
+    },
+    {
+      "name": "game modal visible",
+      "passed": true
+    },
+    {
+      "name": "Resume calls session and dismisses modal",
+      "passed": true
+    },
+    {
+      "name": "Close calls graceful session action",
+      "passed": true
+    },
+    {
+      "name": "Force action calls only after timeout",
+      "passed": true
+    }
+  ],
+  "environment": "Existing isolated Weston OpenGL display; retained Gemini Qt 6.8.2; native host Radeon RX470; real Recovery component; fixture games/store; no physical controller or game session",
+  "performance": [
+    {
+      "VmHWM": "228300 kB",
+      "VmRSS": "228300 kB",
+      "phase": "visible idle Games QML",
+      "processCpuPercent": 0.13180700000000378,
+      "seconds": 5
+    },
+    {
+      "VmHWM": "227536 kB",
+      "VmRSS": "221508 kB",
+      "phase": "hidden window with released scene resources",
+      "processCpuPercent": 0.11508420000000186,
+      "seconds": 5
+    },
+    {
+      "VmHWM": "246392 kB",
+      "VmRSS": "246392 kB",
+      "phase": "restored window",
+      "processCpuPercent": 1.3463708000000008,
+      "seconds": 5
+    }
+  ]
+}

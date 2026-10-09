@@ -1,0 +1,126 @@
+{
+  "success": true,
+  "package": {
+    "success": true,
+    "id": "gemini-games",
+    "version": "0.1.0-review.1",
+    "platforms": [
+      "gemini"
+    ],
+    "architectures": [
+      "amd64"
+    ],
+    "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
+    "files": 22,
+    "signer": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0"
+  },
+  "catalogSigner": "F1A1E10BD2DB35060D6E61187CEB773D5ABD64B0",
+  "signedPlatformArchitectureVerified": true,
+  "everyFileHashVerified": true,
+  "negativeTests": [
+    {
+      "case": "unsigned",
+      "rejected": true,
+      "reason": "NAPP has duplicate names or lacks its signed manifest"
+    },
+    {
+      "case": "modified-payload",
+      "rejected": true,
+      "reason": "NAPP payload hash mismatch: payload/qml/apps/gemini-trust-test/Main.qml"
+    },
+    {
+      "case": "modified-manifest",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "bad-signature",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "unknown-signer",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "embedded-attacker-key",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "apollo-only",
+      "rejected": true,
+      "reason": "NAPP is not signed for this NeutronOS platform"
+    },
+    {
+      "case": "arm64-only",
+      "rejected": true,
+      "reason": "NAPP is not signed for this CPU architecture"
+    },
+    {
+      "case": "missing-platform",
+      "rejected": true,
+      "reason": "NAPP is not signed for this NeutronOS platform"
+    },
+    {
+      "case": "missing-architecture",
+      "rejected": true,
+      "reason": "NAPP is not signed for this CPU architecture"
+    },
+    {
+      "case": "signed-hash-mismatch",
+      "rejected": true,
+      "reason": "NAPP payload hash mismatch: payload/qml/apps/gemini-trust-test/Main.qml"
+    },
+    {
+      "case": "signed-app-identity-mismatch",
+      "rejected": true,
+      "reason": "Signed NAPP identity disagrees with application metadata"
+    },
+    {
+      "case": "metadata-tampering",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "game-unsigned",
+      "rejected": true,
+      "reason": "NAPP has duplicate names or lacks its signed manifest"
+    },
+    {
+      "case": "game-modified-manifest",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "game-modified-payload",
+      "rejected": true,
+      "reason": "NAPP payload hash mismatch: payload/qml/apps/gemini-games/Main.qml"
+    },
+    {
+      "case": "game-bad-signature",
+      "rejected": true,
+      "reason": "NAPP release signature rejected: NeutronOS release signature is invalid, unsigned, expired, revoked or from an untrusted signer."
+    },
+    {
+      "case": "game-embedded-key",
+      "rejected": true,
+      "reason": "Signed NAPP file list differs from archive contents"
+    },
+    {
+      "case": "catalog-package-hash-mismatch",
+      "rejected": true,
+      "reason": "NAPP package hash differs from authenticated catalog"
+    }
+  ],
+  "archiveInspectorAccepted": true,
+  "requiresPrivilegedBoundary": true,
+  "offlinePublicKeyOwnerException": true,
+  "productionTrustEnforcementChanged": false,
+  "actualPrivilegedInstallationTested": false,
+  "actualUpdateTested": false,
+  "actualRemovalTested": false,
+  "userDataRemovalDeclared": false,
+  "versionComparisonTested": true
+}

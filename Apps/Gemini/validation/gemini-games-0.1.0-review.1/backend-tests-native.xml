@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCase name="Tests">
+  <Environment>
+    <QtVersion>6.8.2</QtVersion>
+    <QtBuild>Qt 6.8.2 (x86_64&#x002D;little_endian&#x002D;lp64 shared (dynamic) release build; by GCC 14.2.0)</QtBuild>
+    <QTestVersion>6.8.2</QTestVersion>
+  </Environment>
+  <TestFunction name="initTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.014749"/>
+  </TestFunction>
+  <TestFunction name="detection">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2.60291"/>
+  </TestFunction>
+  <TestFunction name="librarySafety">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1223.01"/>
+  </TestFunction>
+  <TestFunction name="incrementalAndDuplicates">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="1710.12"/>
+  </TestFunction>
+  <TestFunction name="artworkMatching">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="2618.89"/>
+  </TestFunction>
+  <TestFunction name="artworkFormats">
+  <Message type="qinfo" file="" line="0">
+    <Description><![CDATA[Image plugin unavailable: "webp"]]></Description>
+  </Message>
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="322.955"/>
+  </TestFunction>
+  <TestFunction name="recommendations">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.06459"/>
+  </TestFunction>
+  <TestFunction name="lifecycle">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="352.641"/>
+  </TestFunction>
+  <TestFunction name="unsupportedCapabilities">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.058629"/>
+  </TestFunction>
+  <TestFunction name="archiveSafety">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.353057"/>
+  </TestFunction>
+  <TestFunction name="redistributablesAreNotGames">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.344827"/>
+  </TestFunction>
+  <TestFunction name="udfArchiveSafety">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.836373"/>
+  </TestFunction>
+  <TestFunction name="cleanupTestCase">
+    <Incident type="pass" file="" line="0" />
+    <Duration msecs="0.00999"/>
+  </TestFunction>
+  <Duration msecs="6235.11"/>
+</TestCase>
