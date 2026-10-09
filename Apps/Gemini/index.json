@@ -11,24 +11,22 @@
         "amd64"
       ],
       "category": "Games",
-      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.1.md",
+      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.2.md",
       "debianDependencies": [
-        "python3",
         "bubblewrap"
       ],
       "dependencies": [
-        "Reviewed Gemini Games OS session integration (separate patch)",
-        "Python 3 and bubblewrap; controller ownership service",
-        "Optional installed game runtimes require per-game setup and real session validation"
+        "Gemini 0.5.5 package-session/controller-proxy API v1",
+        "Qt 6.8.2; bubblewrap"
       ],
-      "description": "Review/testing candidate. Native Gemini game library and artwork. On unchanged Gemini 0.5.4, gameplay is blocked until the separately published Games session/input OS patch is integrated. Physical gameplay and install/update/removal acceptance remain pending.",
+      "description": "Self-contained Gemini native Games package. Requires Gemini 0.5.5; physical gameplay confirmation pending.",
       "developer": "NeutronOS",
       "icon": "icons/gemini-games.png",
       "id": "gemini-games",
-      "installedBytes": 190434,
-      "minNeutronOS": "0.5.4",
+      "installedBytes": 605920,
+      "minNeutronOS": "0.5.5",
       "name": "Games \u2014 Gemini",
-      "packageUrl": "Gemini-Games-0.1.0-review.1.napp",
+      "packageUrl": "Gemini-Games-0.1.0-review.2.napp",
       "permissions": [
         "filesystem",
         "removable-storage",
@@ -41,9 +39,18 @@
       ],
       "poster": "posters/gemini-games.png",
       "requiresDeveloperMode": false,
-      "sha256": "8f2e3157886f42615f94da74cfc1713933e9331fe4bb9ff6188676c771d00a04",
-      "size": 79393,
-      "version": "0.1.0-review.1"
+      "sha256": "7d5a3b00a90720778dbb537334c93b7ec23d035407fe4e52f6d93315e6ebbc3c",
+      "size": 248328,
+      "version": "0.1.0-review.2",
+      "osRequirements": {
+        "minimumVersion": "0.5.5",
+        "capabilities": {
+          "package-session": 1,
+          "controller-proxy": 1,
+          "gemini-geometry": 1
+        },
+        "qtVersion": "6.8.2"
+      }
     }
   ]
 }
