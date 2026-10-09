@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "repository": {
+    "id": "neutronos-official",
+    "name": "NeutronOS Gemini Official",
+    "platform": "gemini"
+  },
+  "packages": []
+}
