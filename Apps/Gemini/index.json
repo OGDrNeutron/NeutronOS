@@ -11,22 +11,22 @@
         "amd64"
       ],
       "category": "Games",
-      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.2.md",
+      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.3.md",
       "debianDependencies": [
         "bubblewrap"
       ],
       "dependencies": [
-        "Gemini 0.5.5 package-session/controller-proxy API v1",
+        "Gemini 0.5.6 shared-desktop-carousel/package-session/controller-proxy API v1",
         "Qt 6.8.2; bubblewrap"
       ],
-      "description": "Self-contained Gemini native Games package. Requires Gemini 0.5.5; physical gameplay confirmation pending.",
+      "description": "Controller-first Gemini Games review with folder browsing and shared desktop integration. Requires Gemini 0.5.6; physical acceptance pending.",
       "developer": "NeutronOS",
       "icon": "icons/gemini-games.png",
       "id": "gemini-games",
-      "installedBytes": 605920,
-      "minNeutronOS": "0.5.5",
+      "installedBytes": 3895864,
+      "minNeutronOS": "0.5.6",
       "name": "Games \u2014 Gemini",
-      "packageUrl": "Gemini-Games-0.1.0-review.2.napp",
+      "packageUrl": "Gemini-Games-0.1.0-review.3.napp",
       "permissions": [
         "filesystem",
         "removable-storage",
@@ -39,15 +39,16 @@
       ],
       "poster": "posters/gemini-games.png",
       "requiresDeveloperMode": false,
-      "sha256": "7d5a3b00a90720778dbb537334c93b7ec23d035407fe4e52f6d93315e6ebbc3c",
-      "size": 248328,
-      "version": "0.1.0-review.2",
+      "sha256": "294fe8e675e4c6c5576c9038a0971af098d42c2b1e289820a0378f07dff56d8a",
+      "size": 3516937,
+      "version": "0.1.0-review.3",
       "osRequirements": {
-        "minimumVersion": "0.5.5",
+        "minimumVersion": "0.5.6",
         "capabilities": {
           "package-session": 1,
           "controller-proxy": 1,
-          "gemini-geometry": 1
+          "gemini-geometry": 1,
+          "shared-desktop-carousel": 1
         },
         "qtVersion": "6.8.2"
       }
