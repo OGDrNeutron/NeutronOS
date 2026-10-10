@@ -1,0 +1,21 @@
+[
+  {"id":"getting-started","title":"Getting Started","summary":"Sign in, navigate with D-pad, press X to select, and use O to go back."},
+  {"id":"controller","title":"Controller Guide","summary":"PS/Home toggles the modal Dashboard tab selector from every Dashboard-owned surface, including Legacy. While it is open, Up/Down move only its highlight, X activates, and Circle or PS/Home closes it. Hold Start opens System Overview Manager • Circle x5 returns once to the configured Home Dashboard Tab • Triangle details • Square actions • L1/R1 sections."},
+  {"id":"dashboard","title":"Dashboard","summary":"PS/Home opens and closes System Overview, Security, Storage, Apps, Legacy and custom tabs. Hold Start manages widget availability, size, movement, defaults, and custom tabs. Running Apps > Square > Make App a Tab reuses the running lifecycle. Apps uses poster artwork with dynamic name plates. Focus uses a luminous couch-distance treatment."},
+  {"id":"applications","title":"Applications","summary":"Open Apps, choose a tile, and press X. Running Apps keeps background sessions visible. Docker is available through Apps or Services."},
+  {"id":"settings","title":"Settings","summary":"Settings groups System, Display, Audio, Bluetooth, Network, Security, Notifications, Recovery, Controller, Applications, and Developer controls."},
+  {"id":"networking","title":"Networking","summary":"Open Network, choose Wi-Fi, scan, select an SSID, and enter its password with the virtual keyboard. Diagnostics never change the active route."},
+  {"id":"bluetooth","title":"Bluetooth","summary":"Open Bluetooth, scan, choose a device, then X to pair/connect. Triangle shows battery, signal, trust, and device details."},
+  {"id":"audio","title":"Audio","summary":"Open Audio, select HDMI, USB DAC, or Bluetooth output, then adjust volume. Use Test Left, Test Right, or Test Stereo."},
+  {"id":"storage","title":"Storage","summary":"Storage Manager shows mounted drives and low-space warnings. Backups can target a mounted USB or external drive."},
+  {"id":"security","title":"Security","summary":"Security Overview shows the Unified Security Core. Profiles map to DEFCON; MAXIMUM keeps the existing double-arm requirement."},
+  {"id":"updates","title":"Updates","summary":"Check, download, signature-verify, and stage a release. VERIFIED appears only after the trusted manifest and artifact hash pass."},
+  {"id":"recovery","title":"Recovery","summary":"Developer Mode exposes one-shot Recovery in Power. The next boot is a local terminal; reboot from Recovery returns to normal."},
+  {"id":"notifications","title":"Notifications","summary":"Open Notification Center for persistent grouped history. Read state is retained. Security-critical alerts bypass Do Not Disturb."},
+  {"id":"troubleshooting","title":"Troubleshooting","summary":"Run System Diagnostics, inspect evidence, open Logs, check failed Services, and reboot only after preserving useful evidence."},
+  {"id":"keyboard","title":"Keyboard","summary":"Text fields open the local virtual keyboard. D-pad navigates, X types, Square changes layout where available, and O closes."},
+  {"id":"developer","title":"Developer Mode","summary":"Developer Mode unlocks Recovery and advanced controls. It does not bypass authorization, protected-service policy, or update signatures."},
+  {"id":"backup","title":"Create a Backup","summary":"Open Recovery > Backups, select settings, profiles, layouts, app configuration, and optional app data, then choose a mounted destination and Create."},
+  {"id":"safe-mode","title":"Safe Mode","summary":"After three genuine startup failures NeutronOS stops the GUI loop and opens a tty. Inspect journalctl -b -u neutronos.service, repair, then reboot."},
+  {"id":"defcon","title":"DEFCON and Profiles","summary":"NORMAL through MAXIMUM are human-friendly policy sets above the existing DEFCON engine; they do not create a second security engine."}
+]

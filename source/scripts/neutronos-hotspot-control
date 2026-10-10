@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+    manual-enable) command=wifi-enable ;;
+    manual-disable) command=wifi-disable ;;
+    auto-enable) command=auto-enable ;;
+    auto-disable) command=auto-disable ;;
+    status) command=status ;;
+    *)
+        printf 'Usage: %s {manual-enable|manual-disable|auto-enable|auto-disable|status}\n' "$0" >&2
+        exit 2
+        ;;
+esac
+exec "$(dirname -- "$0")/neutronos-offline-network-control" "$command"

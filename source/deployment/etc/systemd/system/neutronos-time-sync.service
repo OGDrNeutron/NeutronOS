@@ -1,0 +1,17 @@
+[Unit]
+Description=NeutronOS capture network-synchronized clock
+After=NetworkManager.service network-online.target systemd-timesyncd.service
+Wants=network-online.target systemd-timesyncd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/neutronos-time-keeper.py capture --timeout 60
+User=root
+Group=root
+StateDirectory=neutronos/time
+StateDirectoryMode=0750
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+ProtectClock=no
+ReadWritePaths=/var/lib/systemd/timesync

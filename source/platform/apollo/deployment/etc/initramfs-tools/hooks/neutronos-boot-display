@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+case "${1:-}" in prereqs) exit 0 ;; esac
+. /usr/share/initramfs-tools/hook-functions
+# Preserve the Pi's early KMS modules formerly included by Plymouth. Merely
+# copy existing modules and dependencies; never change the installed kernel.
+manual_add_modules vc4 v3d

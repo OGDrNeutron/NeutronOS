@@ -1,0 +1,21 @@
+{
+  "id": "terminal",
+  "name": "Terminal",
+  "subtitle": "Shared PTY and phone mirror",
+  "description": "Controller-first NeutronOS terminal with a shared browser mirror, persistent snippets, and lightweight typo correction.",
+  "type": "qml",
+  "entry": "terminal/Main.qml",
+  "qmlSource": "terminal/Main.qml",
+  "category": "System",
+  "favorite": true,
+  "hidden": false,
+  "developerOnly": false,
+  "icon": "terminal",
+  "poster": "terminal",
+  "permissions": ["terminal", "filesystem", "network"],
+  "version": "1.2.0",
+  "launchMode": "apphost",
+  "fullscreen": true,
+  "controllerOnly": true,
+  "suspendsConsole": true
+}

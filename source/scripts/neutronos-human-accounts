@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""List Linux accounts that qualify as NeutronOS human login owners."""
+
+from __future__ import annotations
+
+import argparse
+import pathlib
+import sys
+
+
+NON_INTERACTIVE_SHELLS = {
+    "/bin/false",
+    "/bin/sync",
+    "/sbin/halt",
+    "/sbin/nologin",
+    "/sbin/shutdown",
+    "/usr/bin/false",
+    "/usr/sbin/nologin",
+}
+
+
+def uid_bounds(root: pathlib.Path) -> tuple[int, int]:
+    minimum, maximum = 1000, 60000
+    try:
+        lines = (root / "etc/login.defs").read_text(errors="replace").splitlines()
+    except OSError:
+        return minimum, maximum
+    for line in lines:
+        fields = line.split("#", 1)[0].split()
+        if len(fields) != 2 or not fields[1].isdigit():
+            continue
+        if fields[0] == "UID_MIN":
+            minimum = int(fields[1])
+        elif fields[0] == "UID_MAX":
+            maximum = int(fields[1])
+    return minimum, maximum
+
+
+def human_accounts(root: pathlib.Path):
+    minimum, maximum = uid_bounds(root)
+    passwd = root / "etc/passwd"
+    try:
+        lines = passwd.read_text(errors="replace").splitlines()
+    except OSError as error:
+        raise SystemExit(f"cannot read {passwd}: {error}") from error
+
+    for line in lines:
+        fields = line.split(":")
+        if len(fields) < 7:
+            continue
+        username, _, uid_text, gid_text, _, home, shell = fields[:7]
+        try:
+            uid, gid = int(uid_text), int(gid_text)
+        except ValueError:
+            continue
+        home_path = pathlib.PurePosixPath(home)
+        rooted_home = root / home.lstrip("/")
+        interactive_shell = (
+            shell.startswith("/")
+            and shell not in NON_INTERACTIVE_SHELLS
+            and not shell.endswith("/nologin")
+            and not shell.endswith("/false")
+        )
+        real_home = (
+            home_path.is_absolute()
+            and home not in ("/", "/nonexistent")
+            and rooted_home.is_dir()
+        )
+        if username != "root" and minimum <= uid <= maximum and interactive_shell and real_home:
+            yield username, uid, gid, home, shell
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=pathlib.Path, default=pathlib.Path("/"))
+    parser.add_argument("--assert-none", action="store_true")
+    arguments = parser.parse_args()
+    accounts = list(human_accounts(arguments.root.resolve()))
+    for account in accounts:
+        print("\t".join(str(value) for value in account))
+    if arguments.assert_none and accounts:
+        print("factory image contains human login accounts", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

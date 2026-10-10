@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+for _ in $(seq 1 90); do
+    [[ -e /run/neutronos/shell-frame-ready ]] || { sleep 1; continue; }
+    [[ "$(systemctl is-active neutronos.service 2>/dev/null || true)" == active ]] || exit 0
+    sleep 1
+done
+[[ -e /run/neutronos/shell-frame-ready ]]
+[[ "$(systemctl is-active neutronos.service 2>/dev/null || true)" == active ]]
+exec /usr/local/sbin/neutronos-recovery-control mark-stable

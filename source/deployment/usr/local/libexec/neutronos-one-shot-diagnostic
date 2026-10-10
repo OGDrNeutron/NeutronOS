@@ -1,0 +1,211 @@
+#!/usr/bin/python3
+"""One-boot, bounded physical-runtime evidence capture for SSH and Bluetooth."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import signal
+import stat
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path('/var/lib/neutronos/diagnostics/one-shot')
+SSH_EVENTS = ROOT / 'ssh-events.jsonl'
+SSH_STDOUT = ROOT / 'ssh-keygen.stdout.log'
+SSH_STDERR = ROOT / 'ssh-keygen.stderr.log'
+UNIT = 'neutronos-ssh-hostkeys.service'
+MAX_TEXT = 256 * 1024
+
+
+def utc_now() -> str:
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+
+
+def clean_text(value: object, limit: int = MAX_TEXT) -> str:
+    text = str(value).replace('\x00', '\\0')
+    return text[-limit:]
+
+
+def command(argv: list[str], timeout: int = 15) -> dict:
+    result = {'argv': argv}
+    try:
+        proc = subprocess.run(argv, stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, check=False, timeout=timeout)
+        result.update(returncode=proc.returncode,
+                      signal=(-proc.returncode if proc.returncode < 0 else None),
+                      stdout=clean_text(proc.stdout), stderr=clean_text(proc.stderr))
+    except BaseException as exc:  # diagnostics must never block the failing unit
+        result['capture_error'] = repr(exc)
+    return result
+
+
+def identity(path: Path) -> dict:
+    result = {'path': str(path), 'exists': path.exists()}
+    try:
+        info = path.stat()
+        result.update(size=info.st_size, mode=oct(stat.S_IMODE(info.st_mode)),
+                      uid=info.st_uid, gid=info.st_gid,
+                      mtime_ns=info.st_mtime_ns,
+                      sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+    except OSError as exc:
+        result['error'] = repr(exc)
+    return result
+
+
+def read_file(path: Path, limit: int = MAX_TEXT) -> str:
+    try:
+        return clean_text(path.read_text(encoding='utf-8', errors='replace'), limit)
+    except OSError as exc:
+        return '<unavailable: ' + repr(exc) + '>'
+
+
+def ssh_keys() -> list[dict]:
+    result = []
+    for algorithm in ('rsa', 'ecdsa', 'ed25519'):
+        for suffix in ('', '.pub'):
+            result.append(identity(Path(f'/etc/ssh/ssh_host_{algorithm}_key{suffix}')))
+    return result
+
+
+def core_files() -> list[dict]:
+    try:
+        return [identity(path) for path in sorted(ROOT.glob('core.*'))]
+    except OSError as exc:
+        return [{'error': repr(exc)}]
+
+
+def cgroup_memory() -> dict:
+    base = Path('/sys/fs/cgroup/system.slice/neutronos-ssh-hostkeys.service')
+    return {name: read_file(base / name, 16384)
+            for name in ('memory.current', 'memory.peak', 'memory.events',
+                         'memory.events.local', 'memory.pressure')}
+
+
+def unit_state() -> dict:
+    properties = command([
+        '/usr/bin/systemctl', 'show', UNIT,
+        '-p', 'LoadState', '-p', 'ActiveState', '-p', 'SubState',
+        '-p', 'Result', '-p', 'ExecMainCode', '-p', 'ExecMainStatus',
+        '-p', 'ExecMainPID', '-p', 'MainPID', '-p', 'StatusText',
+        '-p', 'MemoryCurrent', '-p', 'MemoryPeak', '-p', 'OOMPolicy',
+        '-p', 'ExecStart', '-p', 'ExecStartPre', '-p', 'ExecStartPost',
+        '-p', 'ExecStopPost', '-p', 'Environment', '-p', 'EnvironmentFiles',
+        '-p', 'After', '-p', 'Before', '-p', 'Requires', '-p', 'Wants',
+        '-p', 'ConditionResult', '-p', 'AssertResult', '-p', 'FragmentPath',
+        '-p', 'DropInPaths', '-p', 'User', '-p', 'Group', '-p', 'WorkingDirectory',
+        '-p', 'StandardInput', '-p', 'StandardOutput', '-p', 'StandardError',
+        '-p', 'LimitCORE'], timeout=10)
+    status = command(['/usr/bin/systemctl', 'status', '--no-pager', '--full', UNIT], timeout=10)
+    journal = command(['/usr/bin/journalctl', '-b', '-u', UNIT, '--no-pager',
+                       '--output=short-precise', '-n', '300'], timeout=15)
+    return {'properties': properties, 'status': status, 'journal': journal}
+
+
+def runtime_common(action: str) -> dict:
+    return {
+        'action': action, 'timestamp_utc': utc_now(), 'timestamp_ns': time.time_ns(),
+        'capture_pid': os.getpid(), 'uid': os.getuid(), 'gid': os.getgid(),
+        'environment': dict(sorted(os.environ.items())),
+        'kernel': read_file(Path('/proc/version'), 16384),
+        'cpuinfo': read_file(Path('/proc/cpuinfo'), 65536),
+        'meminfo': read_file(Path('/proc/meminfo'), 65536),
+        'memory_pressure': read_file(Path('/proc/pressure/memory'), 16384),
+        'self_cgroup': read_file(Path('/proc/self/cgroup'), 16384),
+    }
+
+
+def append_event(payload: dict) -> None:
+    ROOT.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(SSH_EVENTS, os.O_WRONLY | os.O_APPEND | os.O_CREAT |
+                         getattr(os, 'O_CLOEXEC', 0), 0o600)
+    try:
+        os.fchmod(descriptor, 0o600)
+        os.fchown(descriptor, 0, 0)
+        os.write(descriptor, (json.dumps(payload, sort_keys=True, separators=(',', ':')) + '\n').encode())
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def kernel_evidence() -> dict:
+    return {
+        'dmesg': command(['/usr/bin/dmesg', '--ctime'], timeout=15),
+        'kernel_journal': command(['/usr/bin/journalctl', '-b', '-k', '--no-pager',
+                                   '--output=short-precise', '-n', '500'], timeout=15),
+    }
+
+
+def ssh_before() -> None:
+    payload = runtime_common('ssh-before')
+    payload.update(
+        exact_command=['/usr/bin/ssh-keygen', '-A'],
+        executable=identity(Path('/usr/bin/ssh-keygen')),
+        shared_libraries=command(['/usr/bin/ldd', '/usr/bin/ssh-keygen']),
+        unit=unit_state(), host_keys=ssh_keys(), cgroup_memory=cgroup_memory(),
+        stdout_path=str(SSH_STDOUT), stderr_path=str(SSH_STDERR))
+    append_event(payload)
+
+
+def ssh_after(action: str) -> None:
+    payload = runtime_common(action)
+    payload.update(
+        exact_command=['/usr/bin/ssh-keygen', '-A'],
+        service_result=os.environ.get('SERVICE_RESULT'),
+        exit_code=os.environ.get('EXIT_CODE'),
+        exit_status=os.environ.get('EXIT_STATUS'),
+        main_pid=os.environ.get('MAINPID'),
+        unit=unit_state(), host_keys=ssh_keys(), cgroup_memory=cgroup_memory(),
+        stdout=read_file(SSH_STDOUT), stderr=read_file(SSH_STDERR),
+        core_files=core_files(), kernel_evidence=kernel_evidence())
+    append_event(payload)
+
+
+def bluetooth_before() -> None:
+    payload = runtime_common('bluetooth-before')
+    payload.update(
+        exact_command=['/usr/bin/bluetoothctl', '--agent', 'NoInputNoOutput'],
+        executable=identity(Path('/usr/bin/bluetoothctl')),
+        shared_libraries=command(['/usr/bin/ldd', '/usr/bin/bluetoothctl']),
+        adapter_powered=command(['/usr/bin/busctl', '--system', '--timeout=4', 'get-property',
+                                 'org.bluez', '/org/bluez/hci0', 'org.bluez.Adapter1', 'Powered']),
+        adapter_discovering=command(['/usr/bin/busctl', '--system', '--timeout=4', 'get-property',
+                                     'org.bluez', '/org/bluez/hci0', 'org.bluez.Adapter1', 'Discovering']),
+        rfkill=command(['/usr/sbin/rfkill', '--json', 'list', 'bluetooth']))
+    path = ROOT / 'bluetooth-before.json'
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    os.chmod(path, 0o600)
+    with path.open('rb') as handle:
+        os.fsync(handle.fileno())
+
+
+def main() -> int:
+    try:
+        ROOT.mkdir(parents=True, exist_ok=True)
+        action = sys.argv[1] if len(sys.argv) > 1 else ''
+        if action == 'ssh-before':
+            ssh_before()
+        elif action == 'ssh-after':
+            ssh_after('ssh-after')
+        elif action == 'systemd-failure':
+            ssh_after('systemd-failure')
+        elif action == 'bluetooth-before':
+            bluetooth_before()
+        else:
+            append_event({'action': 'invalid', 'argv': sys.argv, 'timestamp_utc': utc_now()})
+    except BaseException as exc:
+        try:
+            ROOT.mkdir(parents=True, exist_ok=True)
+            (ROOT / 'capture-errors.log').open('a', encoding='utf-8').write(
+                f'{utc_now()} action={sys.argv[1:]!r} error={exc!r}\n')
+        except BaseException:
+            pass
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

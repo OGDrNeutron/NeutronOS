@@ -1,0 +1,46 @@
+[Unit]
+Description=NeutronOS Remote Web Controller
+Documentation=file:/opt/neutronos/README.md
+After=neutronos-state-setup.service network.target
+Wants=network.target
+Requires=neutronos-state-setup.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/neutronos/neutronos.conf
+WorkingDirectory=/opt/neutronos
+User=neutronos
+Group=neutronos
+SupplementaryGroups=neutronos-shell
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/neutronos-remote-controller.py
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neutronos-remote-controller
+Environment=NEUTRONOS_ROOT=/opt/neutronos
+Environment=NEUTRONOS_REMOTE_HOST=0.0.0.0
+Environment=NEUTRONOS_REMOTE_PORT=8091
+Environment=NEUTRONOS_REMOTE_STATIC_DIR=/opt/neutronos/services/remote/Static
+Environment=NEUTRONOS_WEB_CONTROLLER_EVENT_FILE=/run/neutronos/controller/remote-event.json
+Environment=NEUTRONOS_REMOTE_TOKEN_FILE=/var/lib/neutronos/remote/controller.token
+Environment=PYTHONPATH=/opt/neutronos/scripts
+Environment=NEUTRONOS_REMOTE_STATE_DIR=/var/lib/neutronos/remote/controller
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/neutronos/remote/controller /run/neutronos/controller
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=neutronos.target

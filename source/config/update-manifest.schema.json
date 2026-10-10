@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neutronos.local/schema/update-manifest-v2.json",
+  "title": "NeutronOS signed update manifest envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "signedPayload", "signature"],
+  "properties": {
+    "format": {"const": "neutronos.update-manifest.v2"},
+    "signedPayload": {"type": "string", "contentEncoding": "base64"},
+    "signature": {"type": "string", "contentEncoding": "base64"}
+  },
+  "$comment": "signedPayload decodes to UTF-8 JSON containing product, codename, version, channel, architecture, artifact {url,sha256,size}, releaseNotes, releaseTimestamp, minimumCompatibleVersion, minimumUpdaterVersion, updateFormatVersion, and rollbackCompatible. The OpenPGP detached signature covers the exact decoded signedPayload bytes and must verify against the independently installed pinned NeutronOS release public key."
+}

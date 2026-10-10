@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "product": "NeutronOS",
+  "codename": "Gemini",
+  "version": "0.5.6",
+  "build": 2,
+  "channel": "candidate",
+  "releaseId": "NeutronOS-Gemini-0.5.6-candidate.r2",
+  "releaseDate": "2026-10-10",
+  "baseDistribution": "Debian GNU/Linux 13 (trixie)",
+  "architecture": "amd64",
+  "minimumUpdaterVersion": "0.5.0",
+  "updateFormatVersion": 3,
+  "displayName": "NeutronOS Gemini 0.5.6 candidate R2"
+}

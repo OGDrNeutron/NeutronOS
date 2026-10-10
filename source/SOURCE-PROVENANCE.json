@@ -1,0 +1,84 @@
+{
+  "authoritative_deployed_qml_sha256": "83b9d646a25e586938659a201254a2d84ffd1dba0ab16870bda28f13e8cf5c80",
+  "candidate_defined_public_weak_symbols": 4528,
+  "candidate_symbols_new": [
+    "NotificationManager::clearAllSecurityAuthenticated()",
+    "NotificationManager::saveList(QList<QVariant> const&) const",
+    "SecurityManager::authenticatedNotificationClearFinished(QMap<QString, QVariant> const&)",
+    "SecurityManager::beginAuthenticatedNotificationClear(QString const&, QString const&)",
+    "SecurityManager::setNotificationManager(NotificationManager*)"
+  ],
+  "cxx_three_differences": [
+    {
+      "file": "src/PackageAppBridgeManager.cpp",
+      "historical": {
+        "path": "/home/echo/neutronos-release-work/source/src/PackageAppBridgeManager.cpp",
+        "sha256": "2807a041285517e9b728f8dae00e54173d6b6a3e4cc2d7b0a4a4a1f6b002f919",
+        "size_bytes": 19215
+      },
+      "reconciled": {
+        "path": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/reconciled/src/PackageAppBridgeManager.cpp",
+        "sha256": "ae2e209362b63e9e594012172e0170adcf6266d1ac5ee993a82d0d47694c7a7e",
+        "size_bytes": 20749
+      },
+      "status": "inherited later development source; deployed binary behavior compared by symbols and focused tests; exact prior source revision unavailable"
+    },
+    {
+      "file": "src/SecureIpcClient.cpp",
+      "historical": {
+        "path": "/home/echo/neutronos-release-work/source/src/SecureIpcClient.cpp",
+        "sha256": "65da144ba74272a58e95f24773a0bda125d9e71cadfc1242d79e9c9d6a141a1c",
+        "size_bytes": 6947
+      },
+      "reconciled": {
+        "path": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/reconciled/src/SecureIpcClient.cpp",
+        "sha256": "26fd76c5305e2c4d4b780da7d2feefc544ae3bdde0a70642cc1b6d8a42a0af09",
+        "size_bytes": 6110
+      },
+      "status": "inherited later development source; deployed binary behavior compared by symbols and focused tests; exact prior source revision unavailable"
+    },
+    {
+      "file": "src/main.cpp",
+      "historical": {
+        "path": "/home/echo/neutronos-release-work/source/src/main.cpp",
+        "sha256": "b852806876c6e50cbf8a8c35cad2c610c0f960abac1deec0311c2c203e64564f",
+        "size_bytes": 49073
+      },
+      "reconciled": {
+        "path": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/reconciled/src/main.cpp",
+        "sha256": "c92e69ba9c2cf7405a4a566d3a77543df24f3592c253ea2feed1b7b1c291f817",
+        "size_bytes": 49146
+      },
+      "status": "inherited later development source; deployed binary behavior compared by symbols and focused tests; exact prior source revision unavailable"
+    }
+  ],
+  "historical_comparison_manifest": {
+    "path": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/manifests/historical-source-comparison.json",
+    "sha256": "777ffcfb2031b3893319b4e805973dbe0f990149a905aefd9d302fcaa57d141e",
+    "size_bytes": 212588
+  },
+  "installed_defined_public_weak_symbols": 4524,
+  "installed_shell": {
+    "path": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/deployed-reference/opt/neutronos/build/NeutronShell",
+    "sha256": "9d101baeeb16a5f011b0b70c5b7a195d57217f2360f7151ea6656b980dc8aace",
+    "size_bytes": 6660888
+  },
+  "installed_symbols_missing_from_candidate": [
+    "SecurityManager::ComboRecord::ComboRecord()"
+  ],
+  "limitations": [
+    "Exact source commit for historical installed NeutronShell cannot be recovered from the executable; RC1 replacement is source-backed but bit-for-bit rebuild reproducibility across toolchains is not yet established."
+  ],
+  "rc1_shell": {
+    "path": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/build/NeutronShell",
+    "sha256": "f3222a40f9f63246c7970e4b2adcc45e0f918b08215c2738805191eaa1e25b36",
+    "size_bytes": 6661280
+  },
+  "release_id": "NeutronOS-Apollo-1.0.0-rc1",
+  "source_classification": {
+    "cpp": "reconstructed from later development source plus documented account hotfix and new Notifications backend",
+    "historical_installed_binary": "exact original source revision unresolved; preserved independently, not attributed to new source commit",
+    "new_rc1_binary": "built from source/reconciled in isolated staging with two jobs; exact hash recorded",
+    "qml_python_services": "verified deployed bytes, except intentional Notifications overlay and RC1 release identity"
+  }
+}

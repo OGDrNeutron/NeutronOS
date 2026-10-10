@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "repository": {
+    "id": "neutronos-official",
+    "name": "NeutronOS Official",
+    "description": "Official signed NeutronOS packages"
+  },
+  "packages": []
+}

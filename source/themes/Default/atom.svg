@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="4096"
+     height="4096"
+     viewBox="0 0 1024 1024"
+     fill="none"
+     role="img"
+     aria-labelledby="title description">
+  <title id="title">Neutron OS atom logo</title>
+  <desc id="description">A luminous red and blue atom symbol with three electrons on a transparent background.</desc>
+
+  <defs>
+    <linearGradient id="orbit-a" x1="180" y1="512" x2="844" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff164e"/>
+      <stop offset="0.24" stop-color="#ff3f83"/>
+      <stop offset="0.52" stop-color="#a855f7"/>
+      <stop offset="0.76" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#168bff"/>
+    </linearGradient>
+
+    <linearGradient id="orbit-b" x1="190" y1="730" x2="830" y2="294" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#168bff"/>
+      <stop offset="0.33" stop-color="#35e7ff"/>
+      <stop offset="0.62" stop-color="#b967ff"/>
+      <stop offset="1" stop-color="#ff164e"/>
+    </linearGradient>
+
+    <linearGradient id="orbit-c" x1="190" y1="294" x2="830" y2="730" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff164e"/>
+      <stop offset="0.35" stop-color="#ff4aa1"/>
+      <stop offset="0.68" stop-color="#45d9ff"/>
+      <stop offset="1" stop-color="#168bff"/>
+    </linearGradient>
+
+    <radialGradient id="nucleus" cx="0" cy="0" r="1" gradientTransform="translate(473 463) rotate(46) scale(154)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.18" stop-color="#d8fbff"/>
+      <stop offset="0.43" stop-color="#37d9ff"/>
+      <stop offset="0.67" stop-color="#2466ff"/>
+      <stop offset="0.84" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#ff164e"/>
+    </radialGradient>
+
+    <radialGradient id="electron-blue">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.3" stop-color="#c7fbff"/>
+      <stop offset="0.64" stop-color="#32d9ff"/>
+      <stop offset="1" stop-color="#1474ff"/>
+    </radialGradient>
+
+    <radialGradient id="electron-red">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.28" stop-color="#ffd2df"/>
+      <stop offset="0.62" stop-color="#ff3c70"/>
+      <stop offset="1" stop-color="#e8003d"/>
+    </radialGradient>
+
+    <clipPath id="nucleus-clip">
+      <circle cx="512" cy="512" r="105"/>
+    </clipPath>
+  </defs>
+
+  <!-- Soft energy bloom: decorative only; the logo remains complete without filters. -->
+  <g opacity="0.08" stroke-width="24">
+    <ellipse cx="512" cy="512" rx="330" ry="154" stroke="url(#orbit-a)"/>
+    <ellipse cx="512" cy="512" rx="330" ry="154" stroke="url(#orbit-b)" transform="rotate(60 512 512)"/>
+    <ellipse cx="512" cy="512" rx="330" ry="154" stroke="url(#orbit-c)" transform="rotate(-60 512 512)"/>
+  </g>
+
+  <!-- Three interlocking orbital paths. -->
+  <g stroke-width="20" stroke-linecap="round">
+    <ellipse cx="512" cy="512" rx="330" ry="154" stroke="url(#orbit-a)"/>
+    <ellipse cx="512" cy="512" rx="330" ry="154" stroke="url(#orbit-b)" transform="rotate(60 512 512)"/>
+    <ellipse cx="512" cy="512" rx="330" ry="154" stroke="url(#orbit-c)" transform="rotate(-60 512 512)"/>
+  </g>
+
+  <!-- Electron nodes form a balanced triangular silhouette. -->
+  <g>
+    <circle cx="182" cy="512" r="28" fill="url(#electron-red)"/>
+    <circle cx="677" cy="798" r="28" fill="url(#electron-blue)"/>
+    <circle cx="677" cy="226" r="28" fill="url(#electron-red)"/>
+  </g>
+
+  <!-- Neutron core. -->
+  <circle cx="512" cy="512" r="126" fill="#2466ff" opacity="0.1"/>
+  <circle cx="512" cy="512" r="105" fill="url(#nucleus)"/>
+  <g clip-path="url(#nucleus-clip)" opacity="0.9">
+    <path d="M418 541C458 506 477 505 505 526C536 550 556 553 613 518"
+          stroke="#ffffff" stroke-opacity="0.78" stroke-width="8" stroke-linecap="round"/>
+    <path d="M441 470C478 493 504 488 528 461C551 435 575 438 612 467"
+          stroke="#bff8ff" stroke-opacity="0.6" stroke-width="6" stroke-linecap="round"/>
+    <path d="M456 594C487 570 517 568 548 591C568 606 589 608 618 599"
+          stroke="#ffb3c8" stroke-opacity="0.56" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <ellipse cx="481" cy="476" rx="33" ry="22" fill="#ffffff" opacity="0.56" transform="rotate(-34 481 476)"/>
+  <circle cx="512" cy="512" r="105" stroke="#d9fbff" stroke-opacity="0.78" stroke-width="5"/>
+</svg>

@@ -1,0 +1,7 @@
+[Unit]
+Description=Reset NeutronOS crash counter after a stable ready session
+After=neutronos.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/neutronos-shell-mark-stable

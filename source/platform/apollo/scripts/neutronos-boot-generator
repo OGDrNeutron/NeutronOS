@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Generate zero-resident systemd milestone hooks for NeutronOS Patch 85."""
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+CONFIG = Path(os.environ.get(
+    "NEUTRONOS_BOOT_MILESTONES",
+    "/usr/share/neutronos/boot/neutronos-boot-milestones.json"))
+
+def write(path: Path, content: str) -> None:
+    path.write_text(content, encoding="utf-8")
+    os.chmod(path, 0o644)
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        return 0
+    destination = Path(sys.argv[1])
+    try:
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        stages = config["stages"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError):
+        return 0
+    destination.mkdir(parents=True, exist_ok=True)
+    wants = destination / "neutronos-boot-milestones.target.wants"
+    wants.mkdir(parents=True, exist_ok=True)
+    previous = ""
+    for stage in stages:
+        percent = int(stage["percent"])
+        after = str(stage["after"])
+        unit = f"neutronos-boot-milestone-{percent:03d}.service"
+        ordering = f"After={after}" + (f" {previous}" if previous else "")
+        gate = ("" if percent == 0 else
+                "ConditionPathExists=/run/neutronos/plymouth-boot.valid\n")
+        command = ("/usr/local/sbin/neutronos-plymouth-adopt --milestone"
+                   if percent == 0 else
+                   f"/usr/local/sbin/neutronos-boot-progress {percent}")
+        content = f"""[Unit]
+Description=NeutronOS boot milestone {percent}%
+DefaultDependencies=no
+JobRunningTimeoutSec=15s
+{ordering}
+Wants={after}
+Before=neutronos-boot-milestones.target
+{gate}
+
+[Service]
+Type=oneshot
+ExecStart={command}
+"""
+        write(destination / unit, content)
+        link = wants / unit
+        try: link.symlink_to(f"../{unit}")
+        except FileExistsError: pass
+        previous = unit
+    milestone_names = " ".join(
+        f"neutronos-boot-milestone-{int(stage['percent']):03d}.service"
+        for stage in stages)
+    write(destination / "neutronos-boot-milestones.target", f"""[Unit]
+Description=NeutronOS completed real boot milestones
+DefaultDependencies=no
+After={milestone_names}
+""")
+    multi_wants = destination / "multi-user.target.wants"
+    multi_wants.mkdir(parents=True, exist_ok=True)
+    try:
+        (multi_wants / "neutronos-boot-milestones.target").symlink_to(
+            "../neutronos-boot-milestones.target")
+    except FileExistsError:
+        pass
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

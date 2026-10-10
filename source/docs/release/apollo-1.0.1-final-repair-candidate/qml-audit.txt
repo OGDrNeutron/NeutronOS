@@ -1,0 +1,2 @@
+Command: python3 scripts/neutronos-qml-audit.py qml
+Result: NeutronOS QML audit passed: 190 files

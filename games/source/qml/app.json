@@ -1,0 +1,35 @@
+{
+  "id": "gemini-games",
+  "name": "Games \u2014 Gemini",
+  "version": "0.1.0-review.4",
+  "type": "qml",
+  "entry": "Main.qml",
+  "platforms": [
+    "gemini"
+  ],
+  "architectures": [
+    "amd64"
+  ],
+  "description": "Native Gemini game library and supervised controller-first sessions.",
+  "permissions": [
+    "filesystem",
+    "removable-storage",
+    "controller",
+    "graphics",
+    "network"
+  ],
+  "icon": "gemini-games-review4",
+  "poster": "gemini-games-review4",
+  "category": "Games",
+  "osRequirements": {
+    "minimumVersion": "0.5.6",
+    "capabilities": {
+      "package-session": 1,
+      "controller-proxy": 1,
+      "gemini-geometry": 1,
+      "shared-desktop-carousel": 1,
+      "appstore-dependency-lifecycle": 1
+    },
+    "qtVersion": "6.8.2"
+  }
+}

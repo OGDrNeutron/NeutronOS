@@ -1,0 +1,17 @@
+{
+  "id": "settings",
+  "name": "Settings",
+  "subtitle": "Control Centre",
+  "description": "Configure NeutronOS, Raspberry Pi hardware, apps, storage, appearance, security and accessibility.",
+  "category": "System",
+  "type": "qml",
+  "qmlSource": "settings/Main.qml",
+  "entry": "Main.qml",
+  "icon": "settings",
+  "poster": "settings",
+  "version": "2.0.0",
+  "favorite": true,
+  "controllerOnly": true,
+  "fullscreen": true,
+  "permissions": ["settings", "systemd", "network", "storage", "users"]
+}

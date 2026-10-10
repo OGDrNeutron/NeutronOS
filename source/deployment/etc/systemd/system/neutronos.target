@@ -1,0 +1,9 @@
+[Unit]
+Description=NeutronOS Gemini Controller-First Shell Target
+Documentation=file:/opt/neutronos/README.md
+Wants=neutronos-state-setup.service neutronos-remote-controller.service neutronos.service
+After=neutronos-state-setup.service
+Requires=neutronos-state-setup.service
+
+[Install]
+WantedBy=multi-user.target

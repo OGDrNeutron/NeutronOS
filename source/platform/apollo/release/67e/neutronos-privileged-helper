@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import json, os, pwd, grp, re, secrets, subprocess, sys
+from pathlib import Path
+
+SETUP_DIR=Path('/var/lib/neutronos/setup')
+SECURITY_DIR=Path('/var/lib/neutronos/security-core')
+REMOTE_DIR=Path('/var/lib/neutronos/remote')
+CONF_DIR=Path('/etc/neutronos')
+
+def run(cmd, *, input_text=None, check=True):
+    return subprocess.run(cmd, input=input_text, text=True, check=check)
+
+def valid_timezone(v):
+    p=(Path('/usr/share/zoneinfo')/v).resolve()
+    return bool(v) and p.is_file() and str(p).startswith('/usr/share/zoneinfo/')
+
+def setup_region(args):
+    if len(args)!=3 or not valid_timezone(args[0]): raise SystemExit('invalid region request')
+    timezone, locale, keyboard=args
+    run(['timedatectl','set-timezone',timezone])
+    if locale:
+        if not re.fullmatch(r'[A-Za-z_]+(?:\.[A-Za-z0-9-]+)?',locale): raise SystemExit('invalid locale')
+        run(['localectl','set-locale',f'LANG={locale}'])
+    if keyboard:
+        if not re.fullmatch(r'[A-Za-z0-9_-]{1,32}',keyboard): raise SystemExit('invalid keyboard layout')
+        run(['localectl','set-keymap',keyboard])
+
+def setup_identity(args):
+    if len(args)!=3: raise SystemExit('invalid identity request')
+    host,user,display=args
+    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?',host): raise SystemExit('invalid hostname')
+    if not re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}',user): raise SystemExit('invalid username')
+    password=sys.stdin.readline().rstrip('\n')
+    if len(password)<8: raise SystemExit('password must contain at least 8 characters')
+    try: pwd.getpwnam(user)
+    except KeyError:
+        cmd=['useradd','-m','-s','/bin/bash']
+        if display: cmd += ['-c',display[:64]]
+        cmd += [user]
+        run(cmd)
+    groups=[g for g in ('sudo','audio','video','input','render','plugdev','netdev','bluetooth','neutronos-shell') if any(x.gr_name==g for x in grp.getgrall())]
+    if groups: run(['usermod','-aG',','.join(groups),user])
+    run(['chpasswd'],input_text=f'{user}:{password}\n')
+    run(['hostnamectl','set-hostname',host])
+
+def atomic_json(path,data,mode=0o640):
+    path.parent.mkdir(parents=True,exist_ok=True)
+    tmp=path.with_suffix(path.suffix+'.tmp')
+    tmp.write_text(json.dumps(data,indent=2)+'\n')
+    os.chmod(tmp,mode); os.replace(tmp,path)
+
+def apply_power(pref):
+    mode='eco' if str(pref).lower()=='eco' else 'normal'
+    cap=1200000 if mode=='eco' else 1500000
+    for policy in Path('/sys/devices/system/cpu/cpufreq').glob('policy*'):
+        governors=(policy/'scaling_available_governors').read_text().split() if (policy/'scaling_available_governors').exists() else []
+        governor='powersave' if mode=='eco' and 'powersave' in governors else ('schedutil' if 'schedutil' in governors else ('ondemand' if 'ondemand' in governors else ''))
+        if governor:
+            try: (policy/'scaling_governor').write_text(governor)
+            except OSError: pass
+        try:
+            hw=int((policy/'cpuinfo_max_freq').read_text().strip())
+            (policy/'scaling_max_freq').write_text(str(min(hw,cap)))
+        except OSError: pass
+    power_state=Path('/var/lib/neutronos/power_mode.json')
+    atomic_json(power_state,{'mode':mode,'source':'setup-wizard'},0o640)
+    try: os.chown(power_state,pwd.getpwnam('neutronos').pw_uid,grp.getgrnam('neutronos-shell').gr_gid)
+    except KeyError: pass
+
+def configure_ssh(enable):
+    if enable:
+        run(['ssh-keygen','-A'])
+        run(['systemctl','enable','--now','ssh.service'])
+    else:
+        run(['systemctl','disable','--now','ssh.service'],check=False)
+        run(['systemctl','disable','--now','ssh.socket'],check=False)
+
+def reload_firewall():
+    run(['nft','-c','-f','/etc/nftables.conf'])
+    run(['systemctl','reload-or-restart','nftables.service'])
+
+def configure_remote(enable):
+    REMOTE_DIR.mkdir(parents=True,exist_ok=True)
+    token_path=REMOTE_DIR/'controller.token'
+    env_path=CONF_DIR/'remote-controller.conf'
+    rule_dir=Path('/etc/nftables.d'); rule_dir.mkdir(parents=True,exist_ok=True)
+    rule_path=rule_dir/'neutronos-remote.nft'
+    if enable:
+        try:
+            token=token_path.read_text().strip()
+        except OSError:
+            token=''
+        if len(token) < 32:
+            token=secrets.token_urlsafe(36)
+            token_path.write_text(token+'\n')
+        os.chmod(token_path,0o640)
+        try:
+            uid=pwd.getpwnam('neutronos').pw_uid; gid=grp.getgrnam('neutronos-shell').gr_gid
+            os.chown(token_path,uid,gid)
+        except KeyError: pass
+        env_path.write_text('NEUTRONOS_REMOTE_HOST=0.0.0.0\nNEUTRONOS_REMOTE_PORT=8091\n')
+        os.chmod(env_path,0o640)
+        rule_path.write_text('add rule inet neutronos_filter input ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 } tcp dport 8091 ct state new limit rate 30/second accept comment "Authenticated NeutronOS Remote Controller IPv4"\nadd rule inet neutronos_filter input ip6 saddr { fc00::/7, fe80::/10 } tcp dport 8091 ct state new limit rate 30/second accept comment "Authenticated NeutronOS Remote Controller IPv6"\n')
+        reload_firewall()
+        run(['systemctl','enable','--now','neutronos-remote-controller.service'])
+        SETUP_DIR.mkdir(parents=True,exist_ok=True)
+        out=SETUP_DIR/'remote-token.txt'; out.write_text(token+'\n'); os.chmod(out,0o600)
+        try: os.chown(out,pwd.getpwnam('neutronos').pw_uid,pwd.getpwnam('neutronos').pw_gid)
+        except KeyError: pass
+    else:
+        run(['systemctl','disable','--now','neutronos-remote-controller.service'],check=False)
+        for p in (token_path,env_path,rule_path,SETUP_DIR/'remote-token.txt'):
+            try: p.unlink()
+            except FileNotFoundError: pass
+        reload_firewall()
+
+def apply_security(level):
+    level=str(level).lower(); profile={'low':'balanced','medium':'strict','high':'fortified'}.get(level,'strict')
+    SECURITY_DIR.mkdir(parents=True,exist_ok=True)
+    config_path=SECURITY_DIR/'config.json'
+    try: cfg=json.loads(config_path.read_text())
+    except Exception: cfg={}
+    cfg.update({'learningMode':False,'enforcementEnabled':True,'responseEngineEnabled':True,'activeHardeningProfile':profile,'setupStrictness':level,'automaticBanThreshold':8 if level=='low' else (5 if level=='medium' else 3),'notificationMinimumSeverity':4 if level=='low' else (3 if level=='medium' else 2),'backgroundScanEnabled':level!='low'})
+    atomic_json(config_path,cfg)
+    state_path=SECURITY_DIR/'hardening-state.json'
+    try: state=json.loads(state_path.read_text())
+    except Exception: state={}
+    state.update({'activeProfile':profile,'lastResult':f'{profile.title()} release profile selected during setup.'})
+    atomic_json(state_path,state)
+    try:
+        uid=pwd.getpwnam('neutronos').pw_uid; gid=grp.getgrnam('neutronos-shell').gr_gid
+        os.chown(config_path,uid,gid); os.chown(state_path,uid,gid)
+    except KeyError: pass
+
+def write_cpufreq(args):
+    if len(args)!=2: raise SystemExit('invalid cpufreq request')
+    path=Path(args[0]).resolve(); value=args[1]
+    if not re.fullmatch(r'/sys/devices/system/cpu/cpufreq/policy[0-9]+/(scaling_governor|scaling_max_freq|min_perf_pct|max_perf_pct)',str(path)):
+        raise SystemExit('cpufreq path denied')
+    if path.name=='scaling_governor':
+        if not re.fullmatch(r'[a-z0-9_-]{1,32}',value): raise SystemExit('invalid governor')
+    elif not re.fullmatch(r'[0-9]{1,10}',value):
+        raise SystemExit('invalid frequency value')
+    path.write_text(value)
+
+def apply_preferences(args):
+    if len(args)!=1: raise SystemExit('invalid preferences request')
+    path=Path(args[0]).resolve()
+    if path != (SETUP_DIR/'preferences.json').resolve(): raise SystemExit('invalid preferences path')
+    data=json.loads(path.read_text())
+    apply_security(data.get('securityStrictness','medium'))
+    apply_power(data.get('performancePreference','Normal'))
+    configure_ssh(bool(data.get('sshEnabled',False)))
+    configure_remote(bool(data.get('remoteControllerEnabled',False)))
+    run(['systemctl','restart','neutron-securityd.service'],check=False)
+
+def main():
+    if os.geteuid()!=0: raise SystemExit('root required')
+    if len(sys.argv)<2: raise SystemExit('action required')
+    action,args=sys.argv[1],sys.argv[2:]
+    {'setup-region':setup_region,'setup-identity':setup_identity,'apply-preferences':apply_preferences,'write-cpufreq':write_cpufreq}.get(action,lambda a: (_ for _ in ()).throw(SystemExit('unsupported action')))(args)
+if __name__=='__main__': main()

@@ -1,0 +1,27 @@
+[Unit]
+Description=NeutronOS USB controller registration and Bluetooth auto-reconnect bridge
+After=bluetooth.service
+Wants=bluetooth.service
+
+[Service]
+Type=simple
+User=neutronos
+Group=neutronos
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=+/usr/local/libexec/neutronos-one-shot-diagnostic bluetooth-before
+ExecStart=/usr/bin/python3 /opt/neutronos/scripts/neutronos-controller-status-bridge.py
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+StateDirectory=neutronos/controller
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/neutronos/diagnostics/one-shot
+LimitCORE=64M
+RestrictAddressFamilies=AF_INET AF_UNIX
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

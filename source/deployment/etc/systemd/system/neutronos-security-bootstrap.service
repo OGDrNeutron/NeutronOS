@@ -1,0 +1,15 @@
+[Unit]
+Description=Establish authoritative NeutronOS Security state after First Boot Setup
+After=local-fs.target neutronos-state-setup.service neutronos-firewall-guard.service
+Before=neutron-securityd.service
+Requires=neutronos-state-setup.service neutronos-firewall-guard.service
+
+[Service]
+Type=oneshot
+Environment=PYTHONPATH=/usr/local/lib/neutronos
+ExecStart=/usr/bin/python3 /usr/local/libexec/neutronos-security-bootstrap.py
+User=root
+Group=root
+NoNewPrivileges=yes
+PrivateTmp=yes
+

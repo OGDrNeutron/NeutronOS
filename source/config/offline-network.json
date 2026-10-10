@@ -1,0 +1,40 @@
+{
+  "auto_fallback_enabled": false,
+  "check_interval_seconds": 30,
+  "dnsmasq": {
+    "domain": "neutronos.local",
+    "wildcard_dns_to_gateway": true
+  },
+  "lan": {
+    "address": "10.42.2.1/24",
+    "connection_name": "NeutronOS LAN Hotspot",
+    "dhcp_end": "10.42.2.200",
+    "dhcp_start": "10.42.2.20",
+    "dnsmasq_enabled": true,
+    "gateway": "10.42.2.1",
+    "interface": "",
+    "lease_hours": 12,
+    "manual_enabled": false,
+    "max_connections": 8
+  },
+  "mode": "normal-wifi",
+  "offline_roku_enabled": false,
+  "socket_group": "neutronos-shell",
+  "startup_grace_seconds": 20,
+  "version": 3,
+  "wifi": {
+    "address": "10.42.1.1/24",
+    "connection_name": "NeutronOS Local Hotspot",
+    "credential_path": "/var/lib/neutronos/network/hotspot.psk",
+    "dhcp_end": "10.42.1.200",
+    "dhcp_start": "10.42.1.20",
+    "dnsmasq_enabled": true,
+    "gateway": "10.42.1.1",
+    "interface": "",
+    "lease_hours": 12,
+    "manual_enabled": false,
+    "max_connections": 8,
+    "security": "wpa2",
+    "ssid": "NeutronOS"
+  }
+}

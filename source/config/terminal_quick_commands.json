@@ -1,0 +1,79 @@
+[
+    {
+        "command": "uptime && echo && free -h && echo && df -h",
+        "developerOnly": false,
+        "enter": true,
+        "group": "System",
+        "icon": "monitor",
+        "id": "system-status",
+        "label": "System Status",
+        "requiresArmed": false,
+        "rootRequired": false
+    },
+    {
+        "command": "hostname -I && echo && nmcli -f GENERAL.DEVICE,GENERAL.TYPE,GENERAL.STATE,GENERAL.CONNECTION,IP4.ADDRESS device show",
+        "developerOnly": false,
+        "enter": true,
+        "group": "System",
+        "icon": "network",
+        "id": "network-status",
+        "label": "Network Status",
+        "requiresArmed": false,
+        "rootRequired": false
+    },
+    {
+        "command": "docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'",
+        "developerOnly": false,
+        "enter": true,
+        "group": "Docker",
+        "icon": "docker",
+        "id": "docker-containers",
+        "label": "Docker Containers",
+        "requiresArmed": false,
+        "rootRequired": false
+    },
+    {
+        "command": "journalctl -u neutronos.service -n 240 --no-pager | grep -iE 'MediaOptimizer|ffmpeg|ffprobe' || true",
+        "developerOnly": false,
+        "enter": true,
+        "group": "Logs",
+        "icon": "logs",
+        "id": "mediaoptimizer-logs",
+        "label": "Media Optimizer Logs",
+        "requiresArmed": false,
+        "rootRequired": false
+    },
+    {
+        "command": "docker restart jellyfin",
+        "developerOnly": false,
+        "enter": true,
+        "group": "Armed",
+        "icon": "restart",
+        "id": "restart-jellyfin",
+        "label": "Restart Jellyfin",
+        "requiresArmed": true,
+        "rootRequired": false
+    },
+    {
+        "command": "docker restart qbittorrent",
+        "developerOnly": false,
+        "enter": true,
+        "group": "Armed",
+        "icon": "restart",
+        "id": "restart-qbit",
+        "label": "Restart qBit",
+        "requiresArmed": true,
+        "rootRequired": false
+    },
+    {
+        "command": "cd / && ls -la",
+        "developerOnly": true,
+        "enter": true,
+        "group": "Developer",
+        "icon": "terminal",
+        "id": "root-filesystem",
+        "label": "Root Filesystem",
+        "requiresArmed": true,
+        "rootRequired": true
+    }
+]

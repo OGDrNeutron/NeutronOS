@@ -1,0 +1,15 @@
+[Unit]
+Description=NeutronOS Gemini Wayland socket readiness
+Requires=neutronos-compositor.service
+After=neutronos-compositor.service
+Before=neutronos.service neutronos-recovery-ui.service
+PartOf=neutronos-compositor.service
+
+[Service]
+Type=oneshot
+User=neutronos
+Group=neutronos
+ExecStart=/usr/local/libexec/neutronos-wayland-ready
+RemainAfterExit=yes
+TimeoutStartSec=180
+StandardInput=null

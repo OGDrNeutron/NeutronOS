@@ -1,0 +1,74 @@
+[Unit]
+Description=NeutronOS Gemini Shell
+Documentation=file:/opt/neutronos/README.md
+After=neutronos-state-setup.service systemd-user-sessions.service neutronos-compositor.service neutronos-wayland-ready.service
+Before=getty@tty2.service
+Wants=neutronos-shell-stability.path
+Requires=neutronos-state-setup.service neutronos-compositor.service neutronos-wayland-ready.service
+Conflicts=getty@tty2.service
+OnFailure=neutronos-shell-failure.service
+StartLimitIntervalSec=180
+StartLimitBurst=3
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/neutronos/neutronos.conf
+WorkingDirectory=/opt/neutronos
+
+# The graphical shell is a dedicated non-human display account. Hardware
+# access is group-scoped; privileged setup/security actions stay behind the
+# root services and the narrowly authorized neutronos-privileged-helper.
+User=neutronos
+Group=neutronos
+SupplementaryGroups=audio video input render tty bluetooth neutronos-shell
+
+ExecStartPre=+/usr/local/sbin/neutronos-state-setup
+ExecStartPre=-+/usr/local/sbin/neutronos-shell-start-prep
+ExecStart=/opt/neutronos/build/NeutronShell
+Restart=on-failure
+RestartSec=2
+SuccessExitStatus=0
+TimeoutStartSec=0
+TimeoutStopSec=15
+
+StandardInput=tty
+TTYPath=/dev/tty2
+TTYReset=no
+TTYVHangup=no
+TTYVTDisallocate=no
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neutronos
+
+# Display shell environment.
+Environment=QT_QPA_PLATFORM=wayland
+Environment=XDG_RUNTIME_DIR=/run/neutronos-compositor
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=PIPEWIRE_RUNTIME_DIR=/run/user/999
+Environment=PULSE_SERVER=unix:/run/user/999/pulse/native
+Environment=QT_QUICK_CONTROLS_STYLE=Basic
+Environment=QML_DISABLE_DISK_CACHE=1
+Environment=LANG=C.UTF-8
+Environment=LC_ALL=C.UTF-8
+
+# Bound allocator arena growth for the fullscreen shell. Limit glibc
+# arena growth and return released modal/image allocations to the OS sooner.
+Environment=MALLOC_ARENA_MAX=2
+Environment=MALLOC_TRIM_THRESHOLD_=131072
+
+# Filesystem runtime.
+Environment=NEUTRONOS_ROOT=/opt/neutronos
+Environment=NEUTRONOS_STATE_DIR=/var/lib/neutronos
+Environment=NEUTRONOS_SECURITY_STATE_DIR=/var/lib/neutronos/security
+
+# PAM authentication uses its packaged helper; account/system mutations use
+# the audited privileged service boundary.
+UMask=0077
+NoNewPrivileges=no
+PrivateTmp=no
+ProtectSystem=false
+ProtectHome=false
+
+[Install]
+WantedBy=neutronos.target

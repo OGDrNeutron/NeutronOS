@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "protocol": "neutronos.ipc",
+  "transport": "AF_UNIX/SOCK_STREAM with a four-byte network-order frame length",
+  "limits": {
+    "requestBytes": 65536,
+    "responseBytes": 1048576,
+    "clockSkewSeconds": 30,
+    "nonceBytes": 32,
+    "replayCacheEntries": 4096,
+    "replayCacheSeconds": 60
+  },
+  "requestFields": [
+    "protocol",
+    "version",
+    "requestId",
+    "service",
+    "operation",
+    "arguments",
+    "nonce",
+    "timestamp",
+    "session",
+    "application"
+  ],
+  "identity": {
+    "peer": "Kernel-verified PID, UID and GID from SO_PEERCRED",
+    "session": "Claim verified against an active logind session and peer UID",
+    "application": "Context only for same-process QML; reserved for process-bound identity in future versions",
+    "authorization": "Server-side default-deny operation, permission, capability, argument and process checks from /etc/neutronos/security-authorization.json"
+  },
+  "securityStateSchema": 4,
+  "errors": [
+    "session_rejected", "process_unverified", "user_mismatch",
+    "invalid_request", "invalid_arguments", "unknown_operation",
+    "permission_denied", "capability_denied", "replay_rejected",
+    "service_unavailable", "internal_error"
+  ]
+}

@@ -1,0 +1,52 @@
+[Unit]
+Description=NeutronOS graphical one-shot Recovery
+Documentation=file:/opt/neutronos/docs/RECOVERY.md
+Conflicts=neutronos.service getty@tty2.service neutronos-recovery-console.service
+After=local-fs.target systemd-user-sessions.service neutronos-state-setup.service neutronos-compositor.service neutronos-wayland-ready.service
+Requires=local-fs.target neutronos-compositor.service neutronos-wayland-ready.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/neutronos/neutronos.conf
+WorkingDirectory=/opt/neutronos
+User=neutronos
+Group=neutronos
+SupplementaryGroups=audio video input render tty bluetooth neutronos-shell
+ExecStartPre=+/usr/local/sbin/neutronos-state-setup
+ExecStartPre=-+/usr/local/sbin/neutronos-shell-start-prep
+ExecStartPre=+/usr/local/sbin/neutronos-recovery-control begin /run/neutronos
+ExecStart=/opt/neutronos/build/NeutronShell --recovery
+Restart=on-failure
+RestartSec=2
+TimeoutStartSec=0
+TimeoutStopSec=15
+StandardInput=tty
+TTYPath=/dev/tty2
+TTYReset=no
+TTYVHangup=no
+TTYVTDisallocate=no
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neutronos-recovery
+Environment=QT_QPA_PLATFORM=wayland
+Environment=XDG_RUNTIME_DIR=/run/neutronos-compositor
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=PIPEWIRE_RUNTIME_DIR=/run/user/999
+Environment=PULSE_SERVER=unix:/run/user/999/pulse/native
+Environment=QT_QUICK_CONTROLS_STYLE=Basic
+Environment=QML_DISABLE_DISK_CACHE=1
+Environment=LANG=C.UTF-8
+Environment=LC_ALL=C.UTF-8
+Environment=MALLOC_ARENA_MAX=2
+Environment=MALLOC_TRIM_THRESHOLD_=131072
+Environment=NEUTRONOS_ROOT=/opt/neutronos
+Environment=NEUTRONOS_STATE_DIR=/var/lib/neutronos
+Environment=NEUTRONOS_SECURITY_STATE_DIR=/var/lib/neutronos/security
+UMask=0077
+NoNewPrivileges=no
+PrivateTmp=no
+ProtectSystem=false
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

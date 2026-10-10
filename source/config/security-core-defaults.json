@@ -1,0 +1,48 @@
+{
+  "schema": 5,
+  "learningMode": false,
+  "threatLevel": 5,
+  "maximumEvents": 500,
+  "scanIntervalSeconds": 15,
+  "notificationMinimumSeverity": 3,
+  "enforcementEnabled": true,
+  "automaticBanThreshold": 5,
+  "automaticBanWindowSeconds": 600,
+  "banDurationsMinutes": [
+    10,
+    60,
+    1440
+  ],
+  "trustedSources": [
+    "127.0.0.1",
+    "::1"
+  ],
+  "antivirusEnabled": true,
+  "backgroundScanEnabled": true,
+  "backgroundScanIntervalSeconds": 21600,
+  "autoCreateIntegrityBaseline": true,
+  "integrityMaxFiles": 12000,
+  "trustedPeripherals": [],
+  "blockedPeripherals": [],
+  "allowOncePeripherals": [],
+  "peripheralEnforcementEnabled": false,
+  "recovery": {
+    "configured": false,
+    "primaryMethod": "none",
+    "enrollmentPatch": "61E"
+  },
+  "responseEngineEnabled": true,
+  "automaticDefconFloor": 3,
+  "manualContainmentEnabled": true,
+  "defconCooldownSeconds": 900,
+  "activeHardeningProfile": "balanced",
+  "hardeningRollbackAvailable": false,
+  "hardeningProfiles": [
+    "balanced",
+    "strict",
+    "fortified"
+  ],
+  "recoveryFailedAttempts": 0,
+  "recoveryLockUntil": "",
+  "vaultUnlockSeconds": 300
+}

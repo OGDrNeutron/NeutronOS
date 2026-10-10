@@ -1,0 +1,70 @@
+#!/usr/sbin/nft -f
+# NeutronOS normal firewall policy v1.
+# This file changes only the NeutronOS-owned inet table. Never flush the global ruleset.
+flush table inet neutronos
+
+table inet neutronos {
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        iifname "lo" accept comment "neutronos-normal-loopback"
+        ct state established,related accept comment "neutronos-normal-established"
+        ct state invalid drop comment "neutronos-normal-invalid"
+
+        ip protocol icmp accept comment "neutronos-normal-icmp4"
+        ip6 nexthdr ipv6-icmp accept comment "neutronos-normal-icmp6"
+
+        # DHCP client/server traffic required by NetworkManager and NeutronOS hotspot modes.
+        udp sport 67 udp dport 68 accept comment "neutronos-normal-dhcp4-client"
+        udp sport 68 udp dport 67 accept comment "neutronos-normal-dhcp4-server"
+        udp sport 547 udp dport 546 accept comment "neutronos-normal-dhcp6-client"
+        udp sport 546 udp dport 547 accept comment "neutronos-normal-dhcp6-server"
+
+        # Tailscale transport must be reachable before the overlay itself exists.
+        udp dport 41641 accept comment "neutronos-normal-tailscale-wireguard"
+
+        # The authenticated Tailscale overlay is a trusted NeutronOS management zone.
+        # Tailscale ACL/policy remains an additional independent authorization layer.
+        iifname "tailscale0" accept comment "neutronos-normal-tailscale-overlay"
+
+        # Explicit services exposed to private LAN/hotspot clients. Nothing else on the
+        # host is reachable from a private network merely because it happens to listen.
+        ip saddr { 10.0.0.0/8, 100.64.0.0/10, 172.16.0.0/12, 192.168.0.0/16 } tcp dport { 22, 53, 139, 443, 445, 3001, 8080, 8091, 8095, 8096, 8787 } ct state new accept comment "neutronos-normal-private-tcp-services"
+        ip6 saddr { fc00::/7, fe80::/10 } tcp dport { 22, 53, 139, 443, 445, 3001, 8080, 8091, 8095, 8096, 8787 } ct state new accept comment "neutronos-normal-private6-tcp-services"
+
+        ip saddr { 10.0.0.0/8, 100.64.0.0/10, 172.16.0.0/12, 192.168.0.0/16 } udp dport { 53, 67, 137, 138, 1812, 1813, 1900, 5353, 7359 } accept comment "neutronos-normal-private-udp-services"
+        ip6 saddr { fc00::/7, fe80::/10 } udp dport { 53, 137, 138, 1812, 1813, 1900, 5353, 7359 } accept comment "neutronos-normal-private6-udp-services"
+
+        # qBittorrent peer ingress is intentionally public. Its Web UI (8080) is not.
+        tcp dport 6881 ct state new accept comment "neutronos-normal-qbittorrent-peer-tcp"
+        udp dport 6881 accept comment "neutronos-normal-qbittorrent-peer-udp"
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+
+        ct state established,related accept comment "neutronos-normal-forward-established"
+        ct state invalid drop comment "neutronos-normal-forward-invalid"
+
+        # Preserve Tailscale subnet/overlay forwarding behavior. Tailscale's own
+        # netfilter/ACL layer remains authoritative for which peers may route.
+        iifname "tailscale0" accept comment "neutronos-normal-tailscale-forward"
+
+        # Container egress for the existing Docker bridges observed on NeutronOS.
+        ip saddr { 172.17.0.0/16, 172.18.0.0/16 } accept comment "neutronos-normal-container-egress"
+
+        # NetworkManager hotspot subnet. Routing/NAT policy still determines whether
+        # a particular hotspot mode actually has upstream Internet access.
+        ip saddr 10.42.0.0/16 accept comment "neutronos-normal-hotspot-forward"
+
+        # qBittorrent Docker publication: peer traffic may reach the container,
+        # while its Web UI is limited to private/Tailscale sources.
+        ip daddr 172.16.0.0/12 tcp dport 6881 accept comment "neutronos-normal-qbittorrent-forward-tcp"
+        ip daddr 172.16.0.0/12 udp dport 6881 accept comment "neutronos-normal-qbittorrent-forward-udp"
+        ip saddr { 10.0.0.0/8, 100.64.0.0/10, 172.16.0.0/12, 192.168.0.0/16 } ip daddr 172.16.0.0/12 tcp dport 8080 accept comment "neutronos-normal-qbittorrent-web-forward"
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+    }
+}

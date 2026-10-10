@@ -1,0 +1,22 @@
+{
+  "sufficient": {
+    "diskBytes": 16000000000,
+    "availableBytes": 8498708480
+  },
+  "progressStages": [
+    "validating",
+    "partition",
+    "filesystem",
+    "mount",
+    "verify",
+    "complete"
+  ],
+  "repeatStages": [
+    "validating",
+    "complete"
+  ],
+  "repeatedProvisioning": true,
+  "uuidUnchanged": true,
+  "fstabEntries": 1,
+  "mountpoint": "/tmp/apollo-final-storage-state/mount"
+}

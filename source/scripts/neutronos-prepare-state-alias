@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ $# -eq 1 ]] || { echo "usage: neutronos-prepare-state-alias IMAGE_ROOT" >&2; exit 64; }
+
+ROOT="$(realpath -e -- "$1")"
+[[ "$ROOT" != / ]] || { echo "refusing filesystem root" >&2; exit 65; }
+
+PAYLOAD="$ROOT/opt/neutronos"
+STATE="$ROOT/var/lib/neutronos"
+ALIAS="$PAYLOAD/state"
+
+[[ -d "$PAYLOAD" && ! -L "$PAYLOAD" ]] \
+    || { echo "immutable NeutronOS payload directory is missing" >&2; exit 66; }
+[[ -d "$STATE" && ! -L "$STATE" ]] \
+    || { echo "canonical NeutronOS state directory is missing" >&2; exit 67; }
+
+# A relative on-disk target has two important properties:
+#   * inside the image it resolves to /var/lib/neutronos;
+#   * from the host staging tree, realpath remains below IMAGE_ROOT.
+# Do not embed the transient host staging prefix in the finished image.
+LINK_TARGET='../../../var/lib/neutronos'
+
+# rm removes a final symlink itself and, on repeated/in-place builds, removes
+# only the stale copied legacy directory at this exact payload path.
+rm -rf -- "$ALIAS"
+ln -s -- "$LINK_TARGET" "$ALIAS"
+
+EXPECTED="$(realpath -e -- "$STATE")"
+RESOLVED="$(realpath -e -- "$ALIAS")"
+[[ "$RESOLVED" == "$EXPECTED" ]] \
+    || { echo "legacy state alias escaped canonical image state" >&2; exit 68; }
+[[ "$RESOLVED" != "$PAYLOAD" && "$RESOLVED" != "$PAYLOAD/"* ]] \
+    || { echo "legacy state alias resolves inside immutable payload" >&2; exit 69; }
+[[ "$(realpath -m -- "/opt/neutronos/$LINK_TARGET")" == /var/lib/neutronos ]] \
+    || { echo "legacy state alias has incorrect image-internal semantics" >&2; exit 70; }
+

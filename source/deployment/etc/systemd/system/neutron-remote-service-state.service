@@ -1,0 +1,12 @@
+[Unit]
+Description=Prepare NeutronOS Remote Systems system-app state
+After=local-fs.target
+Before=neutron-remote-service.service neutronos.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/install -d -m 0755 /var/lib/neutronos/apps/neutronremotesystems
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

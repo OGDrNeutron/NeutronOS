@@ -1,0 +1,12 @@
+PRETTY_NAME="NeutronOS Gemini 0.5.5 candidate"
+NAME="NeutronOS"
+VERSION_ID="0.5.5"
+VERSION="0.5.5 candidate (Gemini)"
+VERSION_CODENAME=gemini
+ID=neutronos
+ID_LIKE=debian
+VARIANT="Gemini"
+VARIANT_ID=gemini
+NEUTRONOS_BASE_ID=debian
+NEUTRONOS_BASE_VERSION_ID=13
+NEUTRONOS_BASE_CODENAME=trixie

@@ -1,0 +1,28 @@
+[Unit]
+Description=NeutronOS Gemini fullscreen Wayland compositor
+After=systemd-user-sessions.service neutronos-state-setup.service
+Requires=neutronos-state-setup.service
+Before=neutronos.service neutronos-recovery-ui.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=neutronos
+Group=neutronos
+SupplementaryGroups=video render input tty
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+RuntimeDirectory=neutronos-compositor
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/neutronos-compositor
+# pam_systemd supplies /run/user/999; force the shared compositor socket directory after PAM.
+ExecStart=/usr/bin/env XDG_RUNTIME_DIR=/run/neutronos-compositor /usr/bin/weston --backend=drm-backend.so --shell=kiosk-shell.so --socket=wayland-0 --idle-time=0 --config=/etc/neutronos/weston.ini
+Restart=on-failure
+RestartSec=2
+TimeoutStartSec=180
+
+[Install]
+WantedBy=neutronos.target

@@ -1,0 +1,52 @@
+[Unit]
+Description=NeutronOS authoritative PNG XRGB8888 KMS boot presentation
+DefaultDependencies=no
+Wants=neutronos-boot-observer.service neutronos-recovery-entry.socket
+# Queue in the initial boot transaction, but never hold sysinit or Login.
+# Coldplug dispatches first; DrmWriter retries available vc4 outputs in-process.
+After=systemd-udevd.service systemd-udev-trigger.service systemd-remount-fs.service neutronos-boot-observer.service
+Before=shutdown.target
+Conflicts=shutdown.target
+ConditionPathExists=/usr/share/neutronos/boot/Boot Animation Reference .png
+ConditionPathExists=!/run/neutronos/shell-process-started
+
+[Service]
+Type=exec
+DynamicUser=yes
+User=neutronos-boot-renderer
+SupplementaryGroups=video input neutronos-shell
+ExecStart=/usr/local/libexec/neutronos/NeutronBootRenderer
+Restart=no
+TimeoutStartSec=3
+RuntimeMaxSec=180
+TimeoutStopSec=2
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+Environment=QT_QPA_PLATFORM=offscreen
+Environment=NEUTRONOS_BOOT_INSTALLATION_BOOT_ID=5f8b8273-27e8-42bc-98e1-e8b6a6370f83
+Environment=QT_QPA_EGLFS_HIDECURSOR=1
+UMask=0007
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=-/run/neutronos/boot
+InaccessiblePaths=-/var/lib/neutronos/recovery -/usr/local/sbin/neutronos-privileged-helper -/usr/local/libexec/neutronos-privileged-helper.real -/usr/local/lib/neutronos/neutronos-update-recovery -/run/systemd/private -/run/dbus/system_bus_socket -/run/neutronos/security
+# A private tmpfs preserves isolation without tmpfiles/local-mount ordering.
+PrivateTmp=disconnected
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX
+SystemCallFilter=~@reboot @mount @module @raw-io
+SystemCallErrorNumber=EPERM
+DevicePolicy=closed
+DeviceAllow=char-drm rw
+DeviceAllow=char-input r
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+status=/run/neutronos/plymouth-initramfs.status
+valid=/run/neutronos/plymouth-boot.valid
+state=/run/neutronos/boot-progress.json
+[ -r "$status" ] && [ -r "$valid" ] && [ -r "$state" ] || exit 0
+
+phase=$(/usr/bin/python3 -c 'import json; print(json.load(open("/run/neutronos/boot-progress.json")).get("phase", ""))' 2>/dev/null || true)
+[ "$phase" = FAST_COMPLETE ] || exit 1
+
+recorded_pid=$(sed -n 's/.* PID=\([0-9][0-9]*\) .*/\1/p' "$status")
+runtime_pid=$(cat /run/plymouth/pid 2>/dev/null || true)
+[ -n "$recorded_pid" ] || exit 1
+
+# The stable development handoff normally released DRM before EGLFS began.
+# Destination readiness still validates that no boot Plymouth daemon remains,
+# but an already-clean exit is success rather than a reason to kill the shell.
+[ -d "/proc/$recorded_pid" ] || exit 0
+[ "$(cat "/proc/$recorded_pid/comm" 2>/dev/null || true)" = plymouthd ] || exit 0
+[ "$recorded_pid" = "$runtime_pid" ] || exit 1
+
+# Called only after Main.qml's actual Login/Setup Wizard destination is ready
+# and the replacement progress cover has already presented on EGLFS.
+/usr/bin/timeout 2 /usr/bin/plymouth quit --retain-splash >/dev/null 2>&1 || exit 1
+for unused in 1 2 3 4 5 6 7 8 9 10; do
+    [ ! -d "/proc/$recorded_pid" ] && exit 0
+    /usr/bin/sleep 0.05
+done
+if [ "$(cat "/proc/$recorded_pid/comm" 2>/dev/null || true)" = plymouthd ]; then
+    exit 1
+fi

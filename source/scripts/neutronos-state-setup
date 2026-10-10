@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$(id -u)" -eq 0 ]] || { echo 'neutronos-state-setup must run as root.' >&2; exit 77; }
+OWNER="${NEUTRONOS_OWNER:-neutronos}"
+GROUP="${NEUTRONOS_GROUP:-neutronos}"
+SHELL_GROUP='neutronos-shell'
+ROOT='/opt/neutronos'
+STATE='/var/lib/neutronos'
+
+getent passwd "$OWNER" >/dev/null
+getent group "$GROUP" >/dev/null || GROUP="$(id -gn "$OWNER")"
+getent group "$SHELL_GROUP" >/dev/null || groupadd --system "$SHELL_GROUP"
+id -nG "$OWNER" | tr ' ' '\n' | grep -Fxq "$SHELL_GROUP" || usermod -a -G "$SHELL_GROUP" "$OWNER"
+
+[[ -d "$ROOT" && ! -L "$ROOT" ]]
+[[ ! -e "$STATE" || ( -d "$STATE" && ! -L "$STATE" ) ]]
+
+safe_dir() {
+    local owner=$1 group=$2 mode=$3 path=$4
+    [[ ! -L "$path" && ( ! -e "$path" || -d "$path" ) ]]
+    install -d -o "$owner" -g "$group" -m "$mode" -- "$path"
+}
+
+# Shared trust roots are root-owned and sticky: shell processes may create
+# their own named entries, but cannot replace root-owned service/App Store
+# state.  NeutronShell owns only the explicitly enumerated leaf directories.
+safe_dir root "$SHELL_GROUP" 3770 "$STATE"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/security"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/terminal"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/settings"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/apps"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/controller"
+safe_dir root "$SHELL_GROUP" 3770 "$STATE/app-store"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/app-store/downloads"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/app-store/staging"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/app-store/rollback"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/app-store/payload"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/app-store/packages"
+safe_dir root root 0700 "$STATE/app-store/root-rollback"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/setup"
+safe_dir root "$SHELL_GROUP" 3770 /run/neutronos
+safe_dir root "$SHELL_GROUP" 0770 /run/neutronos/controller
+safe_dir root root 0755 /run/neutronos/security
+safe_dir root root 0755 /run/neutronos/offline-network
+safe_dir root root 0700 /run/neutronos/app-store-rebuild-tickets
+safe_dir "$OWNER" "$SHELL_GROUP" 0750 /var/log/neutronos
+safe_dir root "$SHELL_GROUP" 0750 "$STATE/diagnostics"
+safe_dir root "$SHELL_GROUP" 0750 "$STATE/diagnostics/one-shot"
+safe_dir root root 0750 "$STATE/time"
+safe_dir root root 0750 "$STATE/security-core"
+safe_dir root "$SHELL_GROUP" 0750 "$STATE/remote"
+safe_dir "$OWNER" "$GROUP" 0700 "$STATE/remote/controller"
+
+# Repair shell-owned leaves created by the older root-run shell without ever
+# crossing into the root-owned App Store transaction namespace.
+for path in "$STATE/security" "$STATE/terminal" "$STATE/settings" "$STATE/apps" "$STATE/controller" "$STATE/setup" \
+            "$STATE/app-store/downloads" "$STATE/app-store/staging" \
+            "$STATE/app-store/rollback" "$STATE/app-store/payload" \
+            "$STATE/app-store/packages"; do
+    chown -hR "$OWNER:$GROUP" -- "$path"
+    find -P "$path" -xdev -type d -exec chmod 0700 {} +
+    find -P "$path" -xdev -type f -exec chmod 0600 {} +
+done
+
+# Rollback snapshots are same-process transaction state and are never resumed
+# after a boot. Clear them instead of blessing ownership inherited from an
+# older vulnerable release.
+find -P "$STATE/app-store/root-rollback" -xdev -depth -mindepth 1 -delete
+chown root:root "$STATE/app-store/root-rollback"
+chmod 0700 "$STATE/app-store/root-rollback"
+
+ROOT_REGISTRY="$STATE/app-store/root-installed.json"
+[[ ! -L "$ROOT_REGISTRY" ]]
+[[ ! -e "$ROOT_REGISTRY" || -f "$ROOT_REGISTRY" ]]
+if [[ -e "$ROOT_REGISTRY" ]]; then
+    ROOT_REGISTRY_MODE="$(stat -c %a -- "$ROOT_REGISTRY")"
+    if [[ "$(stat -c %u -- "$ROOT_REGISTRY")" -ne 0 ]] || (( (8#$ROOT_REGISTRY_MODE & 0022) != 0 )); then
+        rm -f -- "$ROOT_REGISTRY"
+    fi
+fi
+if [[ ! -e "$ROOT_REGISTRY" ]]; then
+    umask 0077
+    printf '{"schema":1,"packages":{}}\n' > "$ROOT_REGISTRY"
+fi
+chown root:root "$ROOT_REGISTRY"
+chmod 0640 "$ROOT_REGISTRY"
+
+RESUME_KEY="$STATE/app-store/resume.key"
+[[ ! -L "$RESUME_KEY" ]]
+[[ ! -e "$RESUME_KEY" || -f "$RESUME_KEY" ]]
+if [[ -e "$RESUME_KEY" ]]; then
+    RESUME_KEY_MODE="$(stat -c %a -- "$RESUME_KEY")"
+    if [[ "$(stat -c %u -- "$RESUME_KEY")" -ne 0 ]] || (( (8#$RESUME_KEY_MODE & 0022) != 0 )); then
+        rm -f -- "$RESUME_KEY"
+    fi
+fi
+if [[ ! -e "$RESUME_KEY" && "${NEUTRONOS_FACTORY_BUILD:-0}" != 1 ]]; then
+    umask 0077
+    python3 - <<'PY' > "$RESUME_KEY"
+import os
+os.write(1, os.urandom(32))
+PY
+fi
+if [[ -e "$RESUME_KEY" ]]; then chown root:root "$RESUME_KEY"; chmod 0600 "$RESUME_KEY"; fi
+
+for file in "$STATE/developer_mode.enabled" "$STATE/controller_settings.json" "$STATE/controller_identity_cache.json" "$STATE/power_mode.json"; do
+    [[ ! -L "$file" ]]
+    if [[ -f "$file" ]]; then chown "$OWNER:$GROUP" "$file"; chmod 0600 "$file"; fi
+done
+
+TOKEN="$STATE/remote/controller.token"
+[[ ! -L "$TOKEN" ]]
+[[ ! -e "$TOKEN" || -f "$TOKEN" ]]
+if [[ "${NEUTRONOS_FACTORY_BUILD:-0}" != 1 ]]; then
+    if [[ ! -s "$TOKEN" ]]; then
+        rm -f -- "$TOKEN"
+        umask 0077
+        python3 - <<'PY' > "$TOKEN"
+import secrets
+print(secrets.token_hex(32))
+PY
+    fi
+    chown root:"$SHELL_GROUP" "$TOKEN"
+    chmod 0640 "$TOKEN"
+fi
+
+rm -f /tmp/neutronos_controller.json /tmp/neutronos_controller.json.tmp
+exit 0

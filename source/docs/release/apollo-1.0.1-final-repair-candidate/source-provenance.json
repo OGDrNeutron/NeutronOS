@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "candidate": "final-repair",
+  "createdUtc": "2026-09-21T23:44:27.210071+00:00",
+  "authoritativeSource": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working",
+  "buildDirectory": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/apollo-1.0.1-build",
+  "cleanImageBaseline": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/output/NeutronOS-Apollo-1.0.1.img.xz",
+  "cleanImageBaselineSha256": "3d058c084287f8bac3e97bfb4fbfb0b418d9d8014f229206a0c818add62a4a07",
+  "baseRevision": "b0663374e0c627aa2438ec724c83990f484255e1",
+  "compiledBinarySha256": "a958c2349e6e9dc076473aa4de79886ef518007d3eae86334e46047a1ad789f8",
+  "buildInstructions": "docs/release/apollo-1.0.1-final-repair-candidate/BUILD.md",
+  "mesaProvenance": "docs/release/apollo-1.0.1-final-repair-candidate/mesa-provenance.json",
+  "notes": [
+    "The candidate is derived from the clean, preserved 1.0.1 image and matching working source.",
+    "No runtime state from the physically tested USB was imported.",
+    "The Git working tree intentionally contains the complete 1.0.1 release changes on top of the recorded base revision."
+  ]
+}

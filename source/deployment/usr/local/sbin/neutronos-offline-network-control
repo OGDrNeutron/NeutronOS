@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Authenticated Patch 71 client for the Offline Network controller."""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pwd
+import sys
+from pathlib import Path
+
+installed_library = Path("/usr/local/lib/neutronos")
+if installed_library.is_dir():
+    sys.path.insert(0, str(installed_library))
+
+from neutronos_ipc import IpcClient, ProtocolError
+
+SOCKET_PATH = Path("/run/neutronos/offline-network/control.sock")
+LEGACY_MODES = {
+    "wifi-enable": "wifi-hotspot", "wifi-disable": "normal-wifi",
+    "lan-enable": "lan-hotspot", "lan-disable": "normal-wifi",
+}
+
+
+def current_session() -> str:
+    explicit = os.environ.get("XDG_SESSION_ID", "").strip()
+    if explicit:
+        return explicit
+    try:
+        value = Path(f"/proc/{os.getpid()}/sessionid").read_text(encoding="ascii").strip()
+        if value and value != "4294967295":
+            return value
+    except OSError:
+        pass
+    raise RuntimeError("No authenticated logind session is associated with this request")
+
+
+def request(operation: str, arguments: dict, session: str | None,
+            timeout: float = 8.0) -> dict:
+    user = pwd.getpwuid(os.getuid()).pw_name
+    return IpcClient(SOCKET_PATH, timeout).request(
+        "network", operation, arguments,
+        session_id=session or current_session(), user=user,
+        application_id="neutronos.network-control",
+        application_instance=f"pid:{os.getpid()}")
+
+
+def operation_for(command: str, args: argparse.Namespace) -> tuple[str, dict]:
+    if command in {"status", "refresh"}:
+        return f"network.{command}", {}
+    if command == "set-mode":
+        return "network.set-mode", {"mode": args.mode}
+    if command in LEGACY_MODES:
+        return "network.set-mode", {"mode": LEGACY_MODES[command]}
+    if command in {"wifi-dnsmasq-enable", "wifi-dnsmasq-disable",
+                   "lan-dnsmasq-enable", "lan-dnsmasq-disable"}:
+        target = "wifi" if command.startswith("wifi-") else "lan"
+        return "network.set-dns", {
+            "target": target, "enabled": command.endswith("-enable"),
+            "wildcard": bool(args.wildcard)}
+    if command == "set-password":
+        first = sys.stdin.readline().rstrip("\n")
+        second = sys.stdin.readline().rstrip("\n")
+        return "network.set-wifi-credential", {
+            "password": first, "confirmation": second}
+    raise ValueError("Automatic hotspot fallback was removed by Patch 71")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Control NeutronOS offline networking through secure IPC")
+    parser.add_argument("command", choices=(
+        "status", "refresh", "set-mode", "set-password",
+        "wifi-enable", "wifi-disable", "wifi-dnsmasq-enable", "wifi-dnsmasq-disable",
+        "lan-enable", "lan-disable", "lan-dnsmasq-enable", "lan-dnsmasq-disable"))
+    parser.add_argument("--mode", choices=("normal-wifi", "ethernet", "wifi-hotspot", "lan-hotspot", "offline-roku"))
+    parser.add_argument("--wildcard", action="store_true")
+    parser.add_argument("--session")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    try:
+        operation, arguments = operation_for(args.command, args)
+        if args.command == "set-mode" and not args.mode:
+            raise ValueError("--mode is required")
+        response = request(operation, arguments, args.session)
+    except (OSError, RuntimeError, ProtocolError, ValueError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
+        return 1
+    result = response.get("result", {})
+    if args.json or args.command == "status":
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(result.get("message") or ("Request completed" if result.get("success") else "Request failed"))
+    return 0 if response.get("ok") and result.get("success", True) else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

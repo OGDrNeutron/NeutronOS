@@ -1,0 +1,108 @@
+{
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "candidate": "final-repair",
+  "partitionTable": {
+    "label": "dos",
+    "id": "0x041bba91",
+    "device": "/dev/loop1",
+    "unit": "sectors",
+    "sectorsize": 512,
+    "partitions": [
+      {
+        "node": "/dev/loop1p1",
+        "start": 16384,
+        "size": 1048576,
+        "type": "c"
+      },
+      {
+        "node": "/dev/loop1p2",
+        "start": 1064960,
+        "size": 13583477,
+        "type": "83"
+      }
+    ]
+  },
+  "sourceBackedFiles": [
+    {
+      "source": "qml/SetupWizard.qml",
+      "image": "home/echo/NeutronOS/qml/SetupWizard.qml",
+      "sha256": "621820afa2a8db7069e162fab6b50150f06bfc12a46843160466248fd28822f4"
+    },
+    {
+      "source": "qml/LoginScreen.qml",
+      "image": "home/echo/NeutronOS/qml/LoginScreen.qml",
+      "sha256": "c76abd7f927399e7d2656a7873884a2b13a2dabba310e6e4f7d21e1dda939acb"
+    },
+    {
+      "source": "qml/Console.qml",
+      "image": "home/echo/NeutronOS/qml/Console.qml",
+      "sha256": "d4e5b225c4022ff401ea6a9e77441e48fd926612aa401dead840796f43990586"
+    },
+    {
+      "source": "qml/modals/HelpModal.qml",
+      "image": "home/echo/NeutronOS/qml/modals/HelpModal.qml",
+      "sha256": "f9d44a6d6a07890cca0dfe6a5c0608de239b7ebac59a741bd34d4a6187ffc8f0"
+    },
+    {
+      "source": "qml/modals/LoginInstructionsModal.qml",
+      "image": "home/echo/NeutronOS/qml/modals/LoginInstructionsModal.qml",
+      "sha256": "592bd0372df3e4640b0b11be000bacc0bd8d450a69e1ad64635360388feecfb0"
+    },
+    {
+      "source": "qml/dashboard/v2/ModernDashboard.qml",
+      "image": "home/echo/NeutronOS/qml/dashboard/v2/ModernDashboard.qml",
+      "sha256": "3faad43040f9687c451f6708173fbb61d72ea273d53fc65f3dc23a8db4e5f5b9"
+    },
+    {
+      "source": "src/SetupWizardManager.h",
+      "image": "home/echo/NeutronOS/src/SetupWizardManager.h",
+      "sha256": "872ce83c855c33a2d0aac5083f81f23763f46d9c63b66f378a7f7a3a1a0b7a0f"
+    },
+    {
+      "source": "src/SetupWizardManager.cpp",
+      "image": "home/echo/NeutronOS/src/SetupWizardManager.cpp",
+      "sha256": "8702e4200c63c94be7838a1c87d5cd986453235c905ef0729bec0f2cb394a056"
+    },
+    {
+      "source": "deployment/usr/local/sbin/neutronos-privileged-helper",
+      "image": "usr/local/sbin/neutronos-privileged-helper",
+      "sha256": "cb8f8785df02bd6221806db7c73ce12c18a3aae9ac4b576aeaf256c11fc933b8"
+    },
+    {
+      "source": "deployment/usr/local/libexec/neutronos-privileged-helper.real",
+      "image": "usr/local/libexec/neutronos-privileged-helper.real",
+      "sha256": "35440c32e1a47da592a1d97c33c657d0a15bf09026e803ae84e9d6cdfbf3894f"
+    },
+    {
+      "source": "deployment/usr/local/libexec/neutronos-storage-setup.py",
+      "image": "usr/local/libexec/neutronos-storage-setup.py",
+      "sha256": "202fb26dc713bfc8926ca2858d476943c6f98724fb5be291a28d10c96ad47732"
+    }
+  ],
+  "neutronShellSha256": "a958c2349e6e9dc076473aa4de79886ef518007d3eae86334e46047a1ad789f8",
+  "mesaAndPlatformVersions": {
+    "libegl-mesa0": "25.0.7-2+rpt4",
+    "libgbm1": "25.0.7-2+rpt4",
+    "libgl1-mesa-dri": "25.0.7-2+rpt4",
+    "libglx-mesa0": "25.0.7-2+rpt4",
+    "mesa-libgallium": "25.0.7-2+rpt4",
+    "libdrm2": "2.4.134-3~bpo13+1+rpt1",
+    "linux-image-rpi-v8": "1:6.18.34-1+rpt1",
+    "raspi-firmware": "1:1.20260521-3"
+  },
+  "firstBootClean": {
+    "setupStateAbsent": true,
+    "sshHostKeysAbsent": true,
+    "wifiProfilesAbsent": true,
+    "controllerRegistrationAbsent": true,
+    "storageTransactionAbsent": true,
+    "userDataFstabAbsent": true,
+    "partition3Absent": true
+  },
+  "watchdogHashes": {
+    "var/lib/neutronos/security-core/privileged-helper.sha256": "cb8f8785df02bd6221806db7c73ce12c18a3aae9ac4b576aeaf256c11fc933b8",
+    "var/lib/neutronos/security-core/privileged-helper-real.sha256": "35440c32e1a47da592a1d97c33c657d0a15bf09026e803ae84e9d6cdfbf3894f"
+  },
+  "bootCmdlineSha256": "dc7fdffc24dc8859a17edbc10d17fff1e5ee658fab96a92703254c7ab6143d69",
+  "temporaryDiagnosticsAbsent": true
+}

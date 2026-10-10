@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""Local console/UI adapter for explicit Patch 78 pairing and revocation."""
+import argparse, json
+from pathlib import Path
+from neutronos_remote_security import AuditLog, PairingCodes, TokenStore
+
+parser=argparse.ArgumentParser(); parser.add_argument("action",choices=("create-code","revoke","rotate")); parser.add_argument("--token-id"); parser.add_argument("--device-id")
+args=parser.parse_args(); root=Path("/var/lib/neutronos/remote"); audit=AuditLog(root/"audit.jsonl")
+if args.action=="create-code":
+    code=PairingCodes(root/"pairing.json").create(); audit.write("pairing_requested",{}); print(json.dumps({"pairingCode":code,"expiresIn":300}))
+elif args.action=="revoke":
+    if not args.token_id or not TokenStore(root/"tokens.json").revoke(args.token_id): raise SystemExit("unknown token id")
+    audit.write("token_revoked",{"tokenId":args.token_id}); print('{"ok":true}')
+else:
+    if not args.token_id or not args.device_id: raise SystemExit("--token-id and --device-id are required")
+    token,record=TokenStore(root/"tokens.json").rotate(args.token_id,args.device_id); audit.write("token_rotated",{"tokenId":record["id"],"deviceId":args.device_id}); print(json.dumps({"token":token,"tokenId":record["id"],"expiresAt":record["expiresAt"]}))

@@ -1,0 +1,23 @@
+[Unit]
+Description=Apply a verified NeutronOS backup in one-shot Recovery
+Documentation=file:/opt/neutronos/docs/RECOVERY.md
+DefaultDependencies=no
+After=local-fs.target
+Before=neutronos-recovery-console.service
+ConditionPathExists=/var/lib/neutronos/update-recovery/backup-restore-transaction.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/neutronos/neutronos-update-recovery apply-staged-backup-restore
+ExecStartPost=/usr/bin/systemctl reboot --no-block
+TimeoutStartSec=10min
+StandardOutput=journal+console
+StandardError=journal+console
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/opt/neutronos /var/lib/neutronos/update-recovery
+RestrictAddressFamilies=AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes

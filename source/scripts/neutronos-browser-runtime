@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly SESSION_ID="${1:-}"
+readonly RUN_USER='neutronos'
+readonly HUMAN_USER="${2:-}"
+[[ "$HUMAN_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || exit 64
+readonly HUMAN_HOME="/NeutronOS/$HUMAN_USER"
+[[ "$(getent passwd "$HUMAN_USER" | cut -d: -f6)" == "$HUMAN_HOME" ]] || exit 77
+mountpoint -q /NeutronOS || exit 77
+readonly NEUTRON_ROOT='/opt/neutronos'
+readonly BROWSER_EXECUTABLE='/usr/local/bin/NeutronBrowser'
+readonly RUNTIME_ROOT="/var/lib/neutronos/apps/browser-runtime"
+readonly EXIT_CODE_PATH="$RUNTIME_ROOT/last-exit-code"
+readonly LOG_PATH="$RUNTIME_ROOT/last-runtime.log"
+readonly CONTROLLER_STATE="$HUMAN_HOME/apps/browser-controller"
+readonly BROWSER_STATE="$HUMAN_HOME/apps/browser"
+readonly BROWSER_PROFILE="$BROWSER_STATE/profile"
+readonly BROWSER_CACHE="$HUMAN_HOME/cache/browser"
+
+[[ "$SESSION_ID" =~ ^[0-9]{10,20}-[0-9]{1,10}$ ]] || exit 64
+[[ "$(id -u)" -eq 0 ]] || exit 77
+[[ -x "$BROWSER_EXECUTABLE" && -f "$BROWSER_EXECUTABLE" && ! -L "$BROWSER_EXECUTABLE" ]] || exit 69
+
+read -r EXEC_OWNER EXEC_MODE < <(stat -Lc '%U %a' -- "$BROWSER_EXECUTABLE")
+[[ "$EXEC_OWNER" == root ]] || exit 77
+(( (8#$EXEC_MODE & 8#022) == 0 )) || exit 77
+
+RUN_UID="$(id -u "$RUN_USER")"
+RUN_GID="$(id -g "$RUN_USER")"
+USER_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
+USER_HOME="$HUMAN_HOME"
+RUNTIME_DIR="/run/neutronos-compositor"
+
+# Root prepares only the fixed runtime directory. Browser profile, cache and
+# diagnostics are created and opened as echo.
+[[ -S "$RUNTIME_DIR/wayland-0" ]] || exit 69
+/usr/sbin/runuser -u "$RUN_USER" -- /bin/bash -s -- \
+    "$RUNTIME_ROOT" "$CONTROLLER_STATE" "$BROWSER_STATE" \
+    "$BROWSER_PROFILE" "$BROWSER_CACHE" "$USER_HOME/Downloads" \
+    "$LOG_PATH" "$SESSION_ID" "$BROWSER_EXECUTABLE" <<'USER_SETUP'
+set -euo pipefail
+runtime_root=$1
+controller_state=$2
+browser_state=$3
+browser_profile=$4
+browser_cache=$5
+downloads=$6
+log_path=$7
+session_id=$8
+browser_executable=$9
+umask 077
+mkdir -p -- "$runtime_root" "$controller_state" "$browser_state" \
+    "$browser_profile" "$browser_cache" "$downloads"
+: > "$log_path"
+printf 'Session: %s\n' "$session_id" >> "$log_path"
+printf 'Browser runtime user: %s (%s)\n' "$(id -un)" "$(id -u)" >> "$log_path"
+printf 'Browser executable: %s\n' "$browser_executable" >> "$log_path"
+printf 'Browser profile: %s\n' "$browser_profile" >> "$log_path"
+printf 'Browser cache: %s\n' "$browser_cache" >> "$log_path"
+printf 'Resolver configuration:\n' >> "$log_path"
+/bin/grep -Ev '^[[:space:]]*(#|$)' /etc/resolv.conf >> "$log_path" 2>&1 || true
+
+# Do not fail the launch when Wi-Fi is still settling. Prefer libc resolution
+# over Chromium's private asynchronous resolver and record the actual result.
+resolved=0
+for attempt in 1 2 3 4 5 6 7 8; do
+    if /usr/bin/getent ahostsv4 www.google.com >> "$log_path" 2>&1; then
+        resolved=1
+        break
+    fi
+    printf 'DNS preflight attempt %s did not resolve www.google.com\n' "$attempt" >> "$log_path"
+    /bin/sleep 0.5
+done
+if [[ "$resolved" -eq 0 ]]; then
+    printf 'DNS preflight did not resolve yet; Browser will remain open and retry normally.\n' >> "$log_path"
+fi
+USER_SETUP
+
+set +e
+/usr/sbin/runuser -u "$RUN_USER" -- /bin/bash -c '
+    set -e
+    log_path=$1
+    shift
+    exec env -i "$@" >> "$log_path" 2>&1
+' browser-runtime "$LOG_PATH" \
+    HOME="$USER_HOME" \
+    USER="$RUN_USER" \
+    LOGNAME="$RUN_USER" \
+    LANG='C.UTF-8' \
+    LC_ALL='C.UTF-8' \
+    PATH='/usr/local/bin:/usr/bin:/bin' \
+    XDG_RUNTIME_DIR="$RUNTIME_DIR" \
+    PIPEWIRE_RUNTIME_DIR="/run/user/$RUN_UID" \
+    PULSE_SERVER="unix:/run/user/$RUN_UID/pulse/native" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$RUN_UID/bus" \
+    XDG_SESSION_TYPE=wayland \
+    WAYLAND_DISPLAY=wayland-0 \
+    XDG_DATA_DIRS='/usr/local/share:/usr/share' \
+    XDG_CONFIG_DIRS='/etc/xdg' \
+    DBUS_SYSTEM_BUS_ADDRESS='unix:path=/run/dbus/system_bus_socket' \
+    SSL_CERT_FILE='/etc/ssl/certs/ca-certificates.crt' \
+    SSL_CERT_DIR='/etc/ssl/certs' \
+    FONTCONFIG_PATH='/etc/fonts' \
+    QT_QPA_PLATFORM=wayland \
+    QT_QUICK_CONTROLS_STYLE=Basic \
+    'QT_LOGGING_RULES=qt.scenegraph.time.*=false;qt.qml.binding.removal.info=false' \
+    NEUTRONOS_ROOT="$NEUTRON_ROOT" \
+    NEUTRONOS_HUMAN_USER="$HUMAN_USER" \
+    NEUTRONOS_STATE_DIR="$CONTROLLER_STATE" \
+    NEUTRONOS_BROWSER_SESSION_ID="$SESSION_ID" \
+    'QTWEBENGINE_CHROMIUM_FLAGS=--process-per-site --disable-quic --disable-features=AsyncDns,DnsOverHttpsUpgrade,UseDnsHttpsSvcbAlpn,Translate,AutofillServerCommunication' \
+    "$BROWSER_EXECUTABLE"
+CODE=$?
+set -e
+
+/usr/sbin/runuser -u "$RUN_USER" -- /bin/bash -c '
+    set -euo pipefail
+    umask 077
+    printf "%s\n" "$1" > "$2"
+' browser-exit "$CODE" "$EXIT_CODE_PATH"
+exit "$CODE"

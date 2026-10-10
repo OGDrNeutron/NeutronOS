@@ -1,0 +1,5 @@
+Defaults!/usr/local/lib/neutronos/neutronos-update-recovery env_reset,secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+neutronos ALL=(root) NOPASSWD: /usr/local/lib/neutronos/neutronos-update-recovery stage-update *
+neutronos ALL=(root) NOPASSWD: /usr/local/lib/neutronos/neutronos-update-recovery create-recovery *
+%sudo ALL=(root) /usr/local/lib/neutronos/neutronos-update-recovery restore-recovery-point *
+%sudo ALL=(root) /usr/local/sbin/neutronos-recovery-menu

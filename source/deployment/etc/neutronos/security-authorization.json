@@ -1,0 +1,754 @@
+{
+  "_neutronosTrustedShellUidFix": "NEUTRONOS_TRUSTED_SHELL_UID_V1",
+  "applicationIdentity": "asserted-context",
+  "defaultDeny": true,
+  "disabledOperations": {
+    "acknowledge_event": "Pending authenticated Security consumer migration in Patch 76",
+    "allow_peripheral_once": "Pending authenticated Security consumer migration in Patch 76",
+    "apply_hardening": "Pending authenticated Security consumer migration in Patch 76",
+    "block_peripheral": "Pending authenticated Security consumer migration in Patch 76",
+    "block_source": "Pending authenticated Security consumer migration in Patch 76",
+    "clear_recovery": "Pending authenticated Security consumer migration in Patch 76",
+    "create_integrity_baseline": "Pending authenticated Security consumer migration in Patch 76; never a launch gate",
+    "deescalate_normal": "Pending authenticated Security consumer migration in Patch 76",
+    "delete_vault_entry": "Pending authenticated Security consumer migration in Patch 76",
+    "enroll_recovery_code": "Pending authenticated Security consumer migration in Patch 76",
+    "enroll_usb_recovery": "Pending authenticated Security consumer migration in Patch 76",
+    "lock_vault": "Pending authenticated Security consumer migration in Patch 76",
+    "preview_hardening": "Pending authenticated Security consumer migration in Patch 76",
+    "quarantine_finding": "Pending authenticated Security consumer migration in Patch 76",
+    "restore_quarantined": "Pending authenticated Security consumer migration in Patch 76",
+    "reveal_vault_entry": "Pending authenticated Security consumer migration in Patch 76",
+    "rollback_hardening": "Pending authenticated Security consumer migration in Patch 76",
+    "save_vault_entry": "Pending authenticated Security consumer migration in Patch 76",
+    "scan_downloads": "Pending authenticated Security consumer migration in Patch 76",
+    "scan_neutronos": "Pending authenticated Security consumer migration in Patch 76",
+    "scan_path": "Pending authenticated Security consumer migration in Patch 76",
+    "set_enforcement_enabled": "Pending authenticated Security consumer migration in Patch 76",
+    "set_learning_mode": "Pending authenticated Security consumer migration in Patch 76",
+    "set_manual_defcon": "Pending authenticated Security consumer migration in Patch 76",
+    "set_response_engine_enabled": "Pending authenticated Security consumer migration in Patch 76",
+    "snapshot": "Use the authorized security.request-snapshot operation",
+    "trust_peripheral": "Pending authenticated Security consumer migration in Patch 76",
+    "trust_source": "Pending authenticated Security consumer migration in Patch 76",
+    "unblock_source": "Pending authenticated Security consumer migration in Patch 76",
+    "unlock_vault": "Pending authenticated Security consumer migration in Patch 76",
+    "untrust_source": "Pending authenticated Security consumer migration in Patch 76",
+    "update_definitions": "Pending authenticated Security consumer migration in Patch 76",
+    "verify_integrity": "Pending authenticated Security consumer migration in Patch 76; never a launch gate",
+    "verify_recovery_code": "Pending authenticated Security consumer migration in Patch 76",
+    "verify_usb_recovery": "Pending authenticated Security consumer migration in Patch 76"
+  },
+  "operations": {
+    "protocol.info": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "ipc.negotiate",
+      "enabled": true,
+      "permission": "ipc.negotiate"
+    },
+    "security.acknowledge-all-events": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.event.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.acknowledge-event": {
+      "arguments": {
+        "properties": {
+          "eventId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "capability": "security.event.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.allow-peripheral-once": {
+      "arguments": {
+        "properties": {
+          "deviceId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceId"
+        ]
+      },
+      "capability": "security.peripheral.write",
+      "enabled": true,
+      "permission": "security.peripheral"
+    },
+    "security.apply-hardening": {
+      "arguments": {
+        "properties": {
+          "profile": {
+            "enum": [
+              "balanced",
+              "strict",
+              "fortified"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "capability": "security.hardening.apply",
+      "enabled": true,
+      "permission": "security.hardening"
+    },
+    "security.block-peripheral": {
+      "arguments": {
+        "properties": {
+          "deviceId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceId"
+        ]
+      },
+      "capability": "security.peripheral.write",
+      "enabled": true,
+      "permission": "security.peripheral"
+    },
+    "security.block-source": {
+      "arguments": {
+        "properties": {
+          "address": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "durationMinutes": {
+            "maximum": 5256000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "address",
+          "durationMinutes"
+        ]
+      },
+      "capability": "security.firewall.write",
+      "enabled": true,
+      "permission": "security.network-control"
+    },
+    "security.cancel-scan": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.scan.execute",
+      "enabled": true,
+      "permission": "security.malware"
+    },
+    "security.create-integrity-baseline": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.integrity.baseline",
+      "enabled": true,
+      "permission": "security.integrity"
+    },
+    "security.deescalate-normal": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.defcon.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.delete-vault-entry": {
+      "arguments": {
+        "properties": {
+          "entryId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "entryId"
+        ]
+      },
+      "capability": "security.vault.write",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.enroll-recovery-code": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.recovery.enroll",
+      "enabled": true,
+      "permission": "security.recovery"
+    },
+    "security.enroll-usb-recovery": {
+      "arguments": {
+        "properties": {
+          "device": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "device"
+        ]
+      },
+      "capability": "security.recovery.enroll",
+      "enabled": true,
+      "permission": "security.recovery"
+    },
+    "security.health": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.read",
+      "enabled": true,
+      "permission": "security.read"
+    },
+    "security.lock-vault": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.vault.lock",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.neutralize-event": {
+      "arguments": {
+        "properties": {
+          "eventId": {
+            "maxLength": 160,
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "capability": "security.defcon.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.preview-hardening": {
+      "arguments": {
+        "properties": {
+          "profile": {
+            "enum": [
+              "balanced",
+              "strict",
+              "fortified"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "capability": "security.hardening.preview",
+      "enabled": true,
+      "permission": "security.hardening"
+    },
+    "security.quarantine-finding": {
+      "arguments": {
+        "properties": {
+          "findingId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "findingId"
+        ]
+      },
+      "capability": "security.quarantine.write",
+      "enabled": true,
+      "permission": "security.malware"
+    },
+    "security.request-snapshot": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.refresh",
+      "enabled": true,
+      "permission": "security.refresh"
+    },
+    "security.reveal-vault-entry": {
+      "arguments": {
+        "properties": {
+          "entryId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "entryId"
+        ]
+      },
+      "capability": "security.vault.reveal",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.rollback-hardening": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.hardening.rollback",
+      "enabled": true,
+      "permission": "security.hardening"
+    },
+    "security.save-vault-entry": {
+      "arguments": {
+        "properties": {
+          "entryId": {
+            "maxLength": 160,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 512,
+            "type": "string"
+          }
+        },
+        "required": [
+          "entryId",
+          "name",
+          "username",
+          "password"
+        ]
+      },
+      "capability": "security.vault.write",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.scan-downloads": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.scan.execute",
+      "enabled": true,
+      "permission": "security.malware"
+    },
+    "security.scan-neutronos": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.scan.execute",
+      "enabled": true,
+      "permission": "security.malware"
+    },
+    "security.set-enforcement-enabled": {
+      "arguments": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "capability": "security.mode.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.set-event-flagged": {
+      "arguments": {
+        "properties": {
+          "eventId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "flagged": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "eventId",
+          "flagged"
+        ]
+      },
+      "capability": "security.event.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.set-learning-mode": {
+      "arguments": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "capability": "security.mode.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.set-manual-defcon": {
+      "arguments": {
+        "properties": {
+          "level": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "level"
+        ]
+      },
+      "capability": "security.defcon.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.set-response-engine-enabled": {
+      "arguments": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "capability": "security.mode.write",
+      "enabled": true,
+      "permission": "security.control"
+    },
+    "security.set-ssh-enabled": {
+      "arguments": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "capability": "security.firewall.write",
+      "enabled": true,
+      "permission": "security.network-control"
+    },
+    "security.set-tailscale-enabled": {
+      "arguments": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "capability": "security.firewall.write",
+      "enabled": true,
+      "permission": "security.network-control"
+    },
+    "security.set-vault-combo": {
+      "arguments": {
+        "properties": {
+          "combo": {
+            "maxLength": 256,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "combo"
+        ]
+      },
+      "capability": "security.vault.write",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.set-vault-combo-mode": {
+      "arguments": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "login",
+              "unset"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "capability": "security.vault.write",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.snapshot": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.read",
+      "enabled": true,
+      "permission": "security.read"
+    },
+    "security.trust-peripheral": {
+      "arguments": {
+        "properties": {
+          "deviceId": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceId"
+        ]
+      },
+      "capability": "security.peripheral.write",
+      "enabled": true,
+      "permission": "security.peripheral"
+    },
+    "security.unblock-source": {
+      "arguments": {
+        "properties": {
+          "address": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "capability": "security.firewall.write",
+      "enabled": true,
+      "permission": "security.network-control"
+    },
+    "security.unlock-vault": {
+      "arguments": {
+        "properties": {
+          "password": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "capability": "security.vault.unlock",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.unlock-vault-controller": {
+      "arguments": {
+        "properties": {
+          "combo": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 32,
+            "type": "string"
+          }
+        },
+        "required": [
+          "combo"
+        ]
+      },
+      "capability": "security.vault.unlock",
+      "enabled": true,
+      "permission": "security.vault"
+    },
+    "security.verify-integrity": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.integrity.verify",
+      "enabled": true,
+      "permission": "security.integrity"
+    },
+    "security.verify-recovery-code": {
+      "arguments": {
+        "properties": {
+          "code": {
+            "maxLength": 256,
+            "minLength": 20,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "capability": "security.recovery.verify",
+      "enabled": true,
+      "permission": "security.recovery"
+    },
+    "security.verify-usb-recovery": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "security.recovery.verify",
+      "enabled": true,
+      "permission": "security.recovery"
+    },
+    "security.verify-vault-combo": {
+      "arguments": {
+        "properties": {
+          "combo": {
+            "maxLength": 256,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "combo"
+        ]
+      },
+      "capability": "security.vault.unlock",
+      "enabled": false,
+      "permission": "security.vault"
+    }
+  },
+  "roles": {
+    "authenticated-local-security-session": {
+      "capabilities": [
+        "ipc.negotiate",
+        "security.read",
+        "security.refresh",
+        "security.mode.write",
+        "security.defcon.write",
+        "security.event.write",
+        "security.hardening.preview",
+        "security.hardening.apply",
+        "security.hardening.rollback",
+        "security.firewall.write",
+        "security.peripheral.write",
+        "security.scan.execute",
+        "security.quarantine.write",
+        "security.integrity.verify",
+        "security.integrity.baseline",
+        "security.recovery.enroll",
+        "security.recovery.verify",
+        "security.vault.unlock",
+        "security.vault.lock",
+        "security.vault.write",
+        "security.vault.reveal"
+      ],
+      "groups": [
+        "neutronos-shell"
+      ],
+      "permissions": [
+        "ipc.negotiate",
+        "security.read",
+        "security.refresh",
+        "security.control",
+        "security.network-control",
+        "security.hardening",
+        "security.malware",
+        "security.integrity",
+        "security.peripheral",
+        "security.recovery",
+        "security.vault"
+      ]
+    },
+    "neutronos-system-shell": {
+      "capabilities": [
+        "ipc.negotiate",
+        "security.read",
+        "security.refresh",
+        "security.mode.write",
+        "security.defcon.write",
+        "security.event.write",
+        "security.hardening.preview",
+        "security.hardening.apply",
+        "security.hardening.rollback",
+        "security.firewall.write",
+        "security.peripheral.write",
+        "security.scan.execute",
+        "security.quarantine.write",
+        "security.integrity.verify",
+        "security.integrity.baseline",
+        "security.recovery.enroll",
+        "security.recovery.verify",
+        "security.vault.unlock",
+        "security.vault.lock",
+        "security.vault.write",
+        "security.vault.reveal"
+      ],
+      "controlGroups": [
+        "/system.slice/neutronos.service"
+      ],
+      "executables": [
+        "/opt/neutronos/build/NeutronShell"
+      ],
+      "groups": [],
+      "peerUid": 999,
+      "permissions": [
+        "ipc.negotiate",
+        "security.read",
+        "security.refresh",
+        "security.control",
+        "security.network-control",
+        "security.hardening",
+        "security.malware",
+        "security.integrity",
+        "security.peripheral",
+        "security.recovery",
+        "security.vault"
+      ]
+    }
+  },
+  "schema": 1
+}

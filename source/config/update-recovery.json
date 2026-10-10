@@ -1,0 +1,10 @@
+{
+    "channel": "mainline",
+    "manifestUrl": "file:///var/lib/neutronos/update-mainline/repository/mainline.json",
+    "mainlineSyncCommand": "/usr/local/libexec/neutronos-mainline-sync",
+    "repository": "OGDrNeutron/NeutronOS-Mainline",
+    "repositoryAccess": "installation-scoped read-only SSH deploy key",
+    "stateModel": ["CURRENT", "CANDIDATE", "PREVIOUS_KNOWN_GOOD"],
+    "atomicBackend": "recovery-atomic-file-overlay-v1",
+    "developmentLiveInstallAllowed": false
+}

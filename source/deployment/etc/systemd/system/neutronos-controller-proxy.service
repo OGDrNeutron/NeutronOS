@@ -1,0 +1,26 @@
+[Unit]
+Description=NeutronOS authenticated application controller ownership
+After=neutronos-controller-transport.service
+ConditionPathExists=/dev/uinput
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/neutronos-controller-proxy.py
+Restart=on-failure
+RuntimeDirectory=neutronos-controller-proxy
+RuntimeDirectoryMode=0750
+UMask=0007
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=CAP_CHOWN
+ReadWritePaths=/run/neutronos-controller-proxy
+DevicePolicy=closed
+DeviceAllow=char-input r
+DeviceAllow=/dev/uinput rw
+[Install]
+WantedBy=neutronos.target

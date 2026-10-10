@@ -1,0 +1,954 @@
+#!/usr/bin/env python3
+"""Root trust boundary and Recovery applier for signed Mainline updates."""
+
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import os
+import platform
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tarfile
+import tempfile
+import zipfile
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+NEUTRON_ROOT = Path("/opt/neutronos")
+STATE_ROOT = Path("/var/lib/neutronos/update-recovery")
+RECOVERY_ROOT = Path("/var/lib/neutronos/recovery")
+PUBLIC_KEY = Path("/etc/neutronos/keys/neutronos-release.gpg")
+ALLOWED_ROOTS = (NEUTRON_ROOT,)
+MAX_METADATA = 1024 * 1024
+MAX_FILES = 256
+MAX_EXPANDED = 256 * 1024 * 1024
+RECOVERY_POINT_COMPONENTS = ("CMakeLists.txt", "src", "qml", "config", "scripts", "systemd", "themes", "services", "build/NeutronShell")
+RECOVERY_POINT_EXCLUDES = ("qml/apps/games/roms/", "qml/apps/games/cards/", "themes/Default/users/", "state/", "backups/")
+
+BACKUP_ROOT = NEUTRON_ROOT / "backups/system"
+BACKUP_RESTORE_ALLOWLIST = (
+    "themes/Default/users/", "state/settings/", "state/screensaver/",
+    "config/apps/", "state/apps/", "state/user/",
+    "qml/apps/games/cards/", "qml/apps/games/roms/",
+)
+
+
+class Denied(RuntimeError):
+    pass
+
+
+def public_key_path() -> Path:
+    if os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT"):
+        override = os.environ.get("NEUTRONOS_UPDATE_TEST_PUBLIC_KEY", "").strip()
+        if override:
+            return Path(override).resolve()
+    return PUBLIC_KEY
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def atomic_bytes(path: Path, data: bytes, mode: int = 0o600) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, mode)
+        os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def atomic_json(path: Path, value: dict, mode: int = 0o600) -> None:
+    atomic_bytes(path, (json.dumps(value, indent=2, sort_keys=True) + "\n").encode(), mode)
+
+
+def preserved_user_path(relative: str) -> bool:
+    normalized = relative.strip("/") + ("/" if relative.endswith("/") else "")
+    return any(normalized == prefix.rstrip("/") or normalized.startswith(prefix) for prefix in RECOVERY_POINT_EXCLUDES)
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def safe_version(value: str) -> str:
+    if not re.fullmatch(r"\d+\.\d+\.\d+", value):
+        raise Denied("The requested update version is not semantic x.y.z.")
+    return value
+
+
+def version_tuple(value: str) -> tuple[int, int, int]:
+    safe_version(value)
+    return tuple(map(int, value.split(".")))
+
+
+def verify_transition(metadata: dict, current: str) -> None:
+    target = version_tuple(str(metadata.get("version", "")))
+    current_tuple = version_tuple(current)
+    minimum = version_tuple(str(metadata.get("minimumSupportedVersion", "")))
+    maximum_text = str(metadata.get("maximumSupportedVersion", ""))
+    maximum = version_tuple(maximum_text) if maximum_text else None
+    baseline = version_tuple(str(metadata.get("requiredBaseline", "")))
+    update_class = str(metadata.get("updateClass", "")).lower()
+    supersedes = metadata.get("supersedes")
+    if update_class not in ("patch", "baseline", "major") or not isinstance(supersedes, list):
+        raise Denied("Authenticated update compatibility metadata is incomplete.")
+    for version in supersedes:
+        version_tuple(str(version))
+    if target <= current_tuple or current_tuple < minimum or (maximum and current_tuple > maximum):
+        raise Denied(f"This signed release does not permit an update from {current}.")
+    if update_class == "patch":
+        if target[2] == 0 or baseline != (target[0], target[1], 0) or current_tuple[:2] != baseline[:2] or current_tuple < baseline:
+            raise Denied("Authenticated patch does not match the installed baseline series.")
+    elif update_class == "baseline":
+        if target[1] == 0 or target[2] != 0 or baseline[2] != 0 or target[0] != baseline[0] or baseline[1] >= target[1] or current_tuple[:2] != baseline[:2] or current_tuple < baseline:
+            raise Denied("Authenticated cumulative baseline does not permit this sequential baseline transition.")
+    elif target[1:] != (0, 0) or baseline[1:] != (0, 0) or baseline[0] >= target[0] or current_tuple[0] != baseline[0] or current_tuple < baseline:
+        raise Denied("Authenticated major release does not permit this baseline transition.")
+
+
+def load_envelope(path: Path) -> tuple[bytes, bytes, dict]:
+    raw = path.read_bytes()
+    if len(raw) > MAX_METADATA:
+        raise Denied("Authenticated metadata envelope exceeds 1 MiB.")
+    try:
+        envelope = json.loads(raw)
+        if envelope.get("format") != "neutronos.mainline-metadata.v1":
+            raise Denied("Unsupported authenticated metadata envelope.")
+        metadata = base64.b64decode(envelope["metadata"], validate=True)
+        signature = base64.b64decode(envelope["signature"], validate=True)
+        parsed = json.loads(metadata)
+    except (KeyError, ValueError, TypeError, json.JSONDecodeError) as error:
+        raise Denied(f"Authenticated metadata envelope is malformed: {error}") from error
+    if len(metadata) > MAX_METADATA or not signature or len(signature) > 16384 or not isinstance(parsed, dict):
+        raise Denied("Authenticated metadata or signature has an invalid size.")
+    return metadata, signature, parsed
+
+
+def verify_signature(metadata: bytes, signature: bytes) -> None:
+    # Production Update and Recovery share one verifier and pinned fingerprint.
+    # Legacy override exists only in the existing isolated test-root seam.
+    if not (os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT") and os.environ.get("NEUTRONOS_UPDATE_TEST_PUBLIC_KEY")):
+        with tempfile.TemporaryDirectory(prefix="neutronos-release-boundary-") as folder:
+            meta = Path(folder, "manifest"); sig = Path(folder, "signature")
+            meta.write_bytes(metadata); sig.write_bytes(signature)
+            result = subprocess.run(["/usr/local/libexec/neutronos-release-verify", "verify", str(meta), str(sig)], capture_output=True, text=True, timeout=35)
+        if result.returncode:
+            raise Denied(result.stderr.strip()[:600] or "NeutronOS release signature is not trusted.")
+        return
+    key = public_key_path()
+    if not key.is_file():
+        raise Denied("The pinned NeutronOS OS verification key is unavailable.")
+    with tempfile.TemporaryDirectory(prefix="neutronos-mainline-verify-") as temporary:
+        meta = Path(temporary, "metadata.json")
+        sig = Path(temporary, "metadata.sig")
+        meta.write_bytes(metadata)
+        sig.write_bytes(signature)
+        result = subprocess.run(
+            ["/usr/bin/openssl", "pkeyutl", "-verify", "-pubin", "-inkey", str(key),
+             "-rawin", "-in", str(meta), "-sigfile", str(sig)],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            check=False, timeout=30,
+        )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", "replace").strip()
+        raise Denied(f"Mainline metadata signature verification failed: {detail or 'OpenSSL rejected it'}")
+
+
+def verify_release(package: Path, envelope: Path, expected_version: str, current_version: str) -> dict:
+    if not package.is_file() or not envelope.is_file():
+        raise Denied("The update package or its authenticated metadata is missing.")
+    metadata_raw, signature, metadata = load_envelope(envelope)
+    verify_signature(metadata_raw, signature)
+    if metadata.get("schema") != 1 or metadata.get("algorithm") not in ("OpenPGP", "Ed25519") or metadata.get("channel") != "mainline":
+        raise Denied("Authenticated metadata is not a supported Mainline release.")
+    version = safe_version(str(metadata.get("version", "")))
+    if version != safe_version(expected_version):
+        raise Denied("Authenticated and requested versions disagree.")
+    if metadata.get("name") != package.name:
+        raise Denied("Authenticated package name does not match the downloaded artifact.")
+    expected_sha = str(metadata.get("sha256", "")).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha) or sha256(package) != expected_sha:
+        raise Denied("Package SHA-256 does not match authenticated metadata.")
+    try:
+        expected_size = int(metadata.get("bytes"))
+    except (TypeError, ValueError) as error:
+        raise Denied("Authenticated package size is invalid.") from error
+    if expected_size != package.stat().st_size:
+        raise Denied("Package byte size does not match authenticated metadata.")
+    verify_transition(metadata, current_version)
+    return metadata
+
+
+def recovery_point_root(neutron_root: Path) -> Path:
+    return neutron_root / "backups/recovery"
+
+
+def create_recovery_point(label: str) -> Path:
+    neutron_root, _, _ = production_paths()
+    version_data = json.loads((neutron_root / "config/version.json").read_text())
+    version = safe_version(str(version_data.get("version", "")))
+    clean_label = re.sub(r"[^A-Za-z0-9._-]+", "_", label or "manual")[:48]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    identity = f"{stamp}-{version}-{clean_label}"
+    destination = recovery_point_root(neutron_root)
+    destination.mkdir(parents=True, exist_ok=True)
+    archive_path = destination / f"{identity}.recovery.tar.gz"
+    if archive_path.exists():
+        raise Denied("Recovery-point identity already exists.")
+    with tempfile.TemporaryDirectory(prefix="neutronos-recovery-point-") as temporary:
+        stage = Path(temporary)
+        payload = stage / "payload"
+        hashes: list[str] = []
+        for component in RECOVERY_POINT_COMPONENTS:
+            source = neutron_root / component
+            if not source.exists() or source.is_symlink():
+                continue
+            paths = [source] if source.is_file() else sorted(source.rglob("*"))
+            for item in paths:
+                if not item.is_file() or item.is_symlink():
+                    continue
+                relative = item.relative_to(neutron_root).as_posix()
+                if preserved_user_path(relative):
+                    continue
+                target = payload / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, target)
+                hashes.append(f"{sha256(target)}  payload/{relative}")
+        if not hashes or not (payload / "config/version.json").is_file():
+            raise Denied("The installed OS tree is incomplete; no recovery point was created.")
+        manifest = {
+            "schemaVersion": 1, "format": "NeutronOS Recovery Point v1", "product": "NeutronOS",
+            "codename": "Gemini", "version": version, "releaseId": version_data.get("releaseId", ""),
+            "identity": identity, "createdUtc": now(), "userFilesPreserved": True,
+            "preservedPaths": ["/home/<human-user>", "/srv/neutronos/user-data", "/var/lib/neutronos",
+                               "qml/apps/games/roms", "qml/apps/games/cards", "themes/Default/users"],
+            "payloadFiles": len(hashes), "integrityManifest": "payload.sha256",
+        }
+        (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        (stage / "payload.sha256").write_text("\n".join(hashes) + "\n")
+        temporary_archive = stage / archive_path.name
+        with tarfile.open(temporary_archive, "w:gz", format=tarfile.PAX_FORMAT) as archive:
+            for name in ("manifest.json", "payload.sha256", "payload"):
+                archive.add(stage / name, arcname=name, recursive=True)
+        atomic_bytes(archive_path, temporary_archive.read_bytes(), 0o600)
+        atomic_bytes(Path(str(archive_path) + ".sha256"), f"{sha256(archive_path)}  {archive_path.name}\n".encode(), 0o600)
+    print(archive_path)
+    return archive_path
+
+
+def validate_recovery_point(path: Path, extract_to: Path | None = None) -> dict:
+    sidecar = Path(str(path) + ".sha256")
+    if not path.is_file() or not sidecar.is_file():
+        raise Denied("Recovery point or checksum sidecar is missing.")
+    expected = sidecar.read_text().split()[0].lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected) or sha256(path) != expected:
+        raise Denied("Recovery-point archive checksum verification failed.")
+    target = extract_to or Path(tempfile.mkdtemp(prefix="neutronos-recovery-validate-"))
+    remove_target = extract_to is None
+    try:
+        with tarfile.open(path, "r:gz") as archive:
+            members = archive.getmembers()
+            for member in members:
+                if not safe_member(member.name) or member.issym() or member.islnk() or member.isdev():
+                    raise Denied(f"Unsafe recovery-point entry: {member.name}")
+            archive.extractall(target, filter="data")
+        manifest = json.loads((target / "manifest.json").read_text())
+        if manifest.get("format") != "NeutronOS Recovery Point v1" or manifest.get("product") != "NeutronOS" or manifest.get("codename") != "Gemini" or manifest.get("userFilesPreserved") is not True:
+            raise Denied("Recovery-point manifest is invalid.")
+        for line in (target / "payload.sha256").read_text().splitlines():
+            digest, relative = line.split(None, 1)
+            relative = relative.strip().lstrip("*")
+            if not safe_member(relative) or not relative.startswith("payload/") or sha256(target / relative) != digest:
+                raise Denied(f"Recovery-point payload verification failed: {relative}")
+        return manifest
+    finally:
+        if remove_target:
+            shutil.rmtree(target, ignore_errors=True)
+
+
+def list_recovery_points() -> list[dict]:
+    neutron_root, _, _ = production_paths(require_root=False)
+    result: list[dict] = []
+    for archive in sorted(recovery_point_root(neutron_root).glob("*.recovery.tar.gz"), reverse=True):
+        try:
+            manifest = validate_recovery_point(archive)
+            result.append({"path": str(archive), "valid": True, **manifest})
+        except (Denied, OSError, ValueError, KeyError, json.JSONDecodeError) as error:
+            result.append({"path": str(archive), "valid": False, "error": str(error)})
+    return result
+
+
+def authenticated_recovery_releases() -> dict:
+    neutron_root, _, _ = production_paths(require_root=False)
+    current = safe_version(str(json.loads((neutron_root / "config/version.json").read_text())["version"]))
+    repository = Path("/var/lib/neutronos/update-mainline/repository")
+    override = os.environ.get("NEUTRONOS_UPDATE_TEST_REPOSITORY", "").strip()
+    if os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT") and override:
+        repository = Path(override).resolve()
+    current_choice = None
+    update_choice = None
+    try:
+        index = json.loads((repository / "mainline.json").read_text())
+    except (OSError, ValueError, json.JSONDecodeError):
+        return {"currentVersion": current, "reinstallCurrent": None, "recoverAndUpdate": None}
+    for release in index.get("releases", []):
+        if not isinstance(release, dict) or release.get("live") is not True:
+            continue
+        try:
+            metadata_path = repository / str(release["metadata"])
+            signature_path = repository / str(release["signature"])
+            package = repository / str(release["artifact"])
+            for candidate in (metadata_path, signature_path, package):
+                if repository.resolve() not in candidate.resolve().parents:
+                    raise Denied("Mainline release path escaped the repository.")
+            raw = metadata_path.read_bytes()
+            signature = base64.b64decode(signature_path.read_bytes().strip(), validate=True)
+            metadata = json.loads(raw)
+            verify_signature(raw, signature)
+            if (metadata.get("name") != package.name or metadata.get("channel") != "mainline" or
+                    metadata.get("algorithm") not in ("OpenPGP", "Ed25519") or sha256(package) != metadata.get("sha256") or
+                    package.stat().st_size != int(metadata.get("bytes", -1)) or
+                    metadata.get("recoveryCapable") is not True or metadata.get("packageScope") != "full-system"):
+                continue
+            version = safe_version(str(metadata.get("version", "")))
+            choice = {"version": version, "package": str(package), "metadata": str(metadata_path),
+                      "signature": str(signature_path), "userFilesPreserved": True,
+                      "updateClass": metadata.get("updateClass", "")}
+            if version == current:
+                current_choice = choice
+            else:
+                verify_transition(metadata, current)
+                if update_choice is None or version_tuple(version) > version_tuple(update_choice["version"]):
+                    update_choice = choice
+        except (Denied, OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+            continue
+    return {"currentVersion": current, "reinstallCurrent": current_choice,
+            "recoverAndUpdate": update_choice}
+
+
+def restore_recovery_point(path: Path) -> None:
+    neutron_root, state_root, _ = production_paths()
+    resolved = path.resolve()
+    if recovery_point_root(neutron_root).resolve() not in resolved.parents:
+        raise Denied("Recovery point is outside the managed recovery directory.")
+    with tempfile.TemporaryDirectory(prefix="neutronos-recovery-restore-") as temporary:
+        stage = Path(temporary)
+        manifest = validate_recovery_point(resolved, stage)
+        for source in sorted((stage / "payload").rglob("*")):
+            if not source.is_file():
+                continue
+            relative = source.relative_to(stage / "payload").as_posix()
+            if preserved_user_path(relative):
+                raise Denied(f"Recovery point attempted to replace preserved user data: {relative}")
+            atomic_install(source, neutron_root / relative, stat.S_IMODE(source.stat().st_mode))
+        result = {"schemaVersion": 1, "status": "RECOVERY_POINT_RESTORED", "restoredUtc": now(), **manifest}
+        atomic_json(state_root / "last-result.json", result)
+    print(f"Recovery point {manifest['identity']} restored; user files were preserved.")
+
+
+def safe_member(name: str) -> bool:
+    path = Path(name)
+    return bool(name) and not path.is_absolute() and ".." not in path.parts
+
+
+def validate_package(package: Path, version: str, destination: Path) -> tuple[dict, list[dict]]:
+    if zipfile.is_zipfile(package):
+        return validate_zip_package(package, destination)
+    total = 0
+    with tarfile.open(package, "r:*") as archive:
+        members = archive.getmembers()
+        if len(members) > MAX_FILES * 2 + 8:
+            raise Denied("Update package contains too many archive entries.")
+        for member in members:
+            if not safe_member(member.name) or member.issym() or member.islnk() or member.isdev():
+                raise Denied(f"Unsafe update archive entry: {member.name}")
+            total += max(0, member.size)
+        if total > MAX_EXPANDED:
+            raise Denied("Update package expands beyond the safety limit.")
+        manifest_member = archive.getmember("manifest.json")
+        manifest_stream = archive.extractfile(manifest_member)
+        if manifest_stream is None:
+            raise Denied("Update manifest is unreadable.")
+        manifest = json.load(manifest_stream)
+        files = manifest.get("files")
+        if (manifest.get("schemaVersion") != 1 or manifest.get("product") != "NeutronOS" or
+                manifest.get("codename") != "Gemini" or manifest.get("updateFormatVersion") != 3 or
+                manifest.get("version") != version or not isinstance(files, list) or not files or
+                len(files) > MAX_FILES):
+            raise Denied("The update package manifest is invalid for NeutronOS Gemini.")
+        arch = platform.machine().lower()
+        arch = "amd64" if arch == "x86_64" else arch
+        declared_arch = str(manifest.get("architecture", "")).lower()
+        # Isolated tests may explicitly opt out; production must be amd64.
+        if not os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT") and declared_arch != arch:
+            raise Denied(f"Update architecture {declared_arch!r} does not match {arch!r}.")
+        normalized: list[dict] = []
+        expected_members = {"manifest.json"}
+        for item in files:
+            if not isinstance(item, dict):
+                raise Denied("Update file declaration is invalid.")
+            relative = str(item.get("path", ""))
+            expected_hash = str(item.get("sha256", "")).lower()
+            try:
+                mode = int(str(item.get("mode", "0644")), 8)
+            except ValueError as error:
+                raise Denied(f"Invalid mode for {relative}.") from error
+            if not safe_member(relative) or not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
+                raise Denied(f"Unsafe or incomplete file declaration: {relative}")
+            if mode & ~0o755:
+                raise Denied(f"Unsafe file mode for {relative}.")
+            payload_name = f"payload/{relative}"
+            try:
+                member = archive.getmember(payload_name)
+            except KeyError as error:
+                raise Denied(f"Declared payload is missing: {relative}") from error
+            if not member.isfile():
+                raise Denied(f"Declared payload is not a regular file: {relative}")
+            source = destination / payload_name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            stream = archive.extractfile(member)
+            if stream is None:
+                raise Denied(f"Could not read payload: {relative}")
+            atomic_bytes(source, stream.read(), mode)
+            if sha256(source) != expected_hash:
+                raise Denied(f"Payload SHA-256 mismatch: {relative}")
+            normalized.append({"path": relative, "sha256": expected_hash, "mode": mode})
+            expected_members.add(payload_name)
+        unexpected = [m.name for m in members if m.isfile() and m.name not in expected_members]
+        if unexpected:
+            raise Denied(f"Update package has undeclared payload: {unexpected[0]}")
+    return manifest, normalized
+
+
+def validate_zip_package(package: Path, destination: Path) -> tuple[dict, list[dict]]:
+    """Validate the shipped Gemini ZIP bundle without executing its installer."""
+    with zipfile.ZipFile(package) as archive:
+        entries = [entry for entry in archive.infolist() if not entry.is_dir()]
+        if not entries or len(entries) > MAX_FILES * 2 + 8:
+            raise Denied("Update ZIP contains an invalid number of entries.")
+        if sum(max(0, entry.file_size) for entry in entries) > MAX_EXPANDED:
+            raise Denied("Update ZIP expands beyond the safety limit.")
+        for entry in entries:
+            if not safe_member(entry.filename):
+                raise Denied(f"Unsafe update ZIP entry: {entry.filename}")
+            unix_mode = (entry.external_attr >> 16) & 0xFFFF
+            if unix_mode and stat.S_ISLNK(unix_mode):
+                raise Denied(f"Symbolic links are not permitted in update ZIPs: {entry.filename}")
+
+        manifests = [entry for entry in entries if entry.filename.endswith("/package-manifest.json")]
+        checksums = [entry for entry in entries if entry.filename.endswith("/SHA256SUMS")]
+        if len(manifests) != 1 or len(checksums) != 1:
+            raise Denied("Update ZIP must contain one package manifest and one checksum manifest.")
+        prefix = manifests[0].filename.removesuffix("package-manifest.json")
+        if checksums[0].filename != prefix + "SHA256SUMS":
+            raise Denied("Update ZIP manifests do not share one package root.")
+        manifest = json.loads(archive.read(manifests[0]))
+        declared = manifest.get("files")
+        if (manifest.get("schema") != 1 or not isinstance(declared, list) or not declared or
+                len(declared) > MAX_FILES or any(not isinstance(item, str) for item in declared)):
+            raise Denied("The Gemini ZIP package manifest is invalid.")
+
+        expected: dict[str, str] = {}
+        for raw_line in archive.read(checksums[0]).decode("utf-8", "strict").splitlines():
+            parts = raw_line.split(None, 1)
+            if len(parts) != 2:
+                raise Denied("The update ZIP checksum manifest is malformed.")
+            digest, relative = parts[0].lower(), parts[1].strip().lstrip("*")
+            if (not re.fullmatch(r"[0-9a-f]{64}", digest) or not relative.startswith("payload/") or
+                    not safe_member(relative) or relative in expected):
+                raise Denied("The update ZIP checksum manifest contains an unsafe entry.")
+            expected[relative] = digest
+
+        normalized: list[dict] = []
+        declared_payloads = {f"payload/{item}" for item in declared}
+        if declared_payloads != set(expected):
+            raise Denied("The package manifest and checksum manifest disagree.")
+        names = {entry.filename: entry for entry in entries}
+        for relative in declared:
+            if not safe_member(relative):
+                raise Denied(f"Unsafe ZIP payload declaration: {relative}")
+            archive_name = prefix + "payload/" + relative
+            entry = names.get(archive_name)
+            if entry is None:
+                raise Denied(f"Declared ZIP payload is missing: {relative}")
+            data = archive.read(entry)
+            digest = hashlib.sha256(data).hexdigest()
+            if digest != expected[f"payload/{relative}"]:
+                raise Denied(f"ZIP payload SHA-256 mismatch: {relative}")
+            unix_mode = stat.S_IMODE((entry.external_attr >> 16) & 0xFFFF) or 0o644
+            if unix_mode & ~0o755:
+                raise Denied(f"Unsafe ZIP file mode for {relative}.")
+            target = destination / "payload" / relative
+            atomic_bytes(target, data, unix_mode)
+            normalized.append({"path": relative, "sha256": digest, "mode": unix_mode})
+        manifest = dict(manifest)
+        manifest["packageFormat"] = "apollo-zip-v1"
+        return manifest, normalized
+
+
+def production_paths(require_root: bool = True) -> tuple[Path, Path, Path]:
+    override = os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT", "").strip()
+    if override:
+        root = Path(override).resolve()
+        return root / "NeutronOS", root / "state", root / "recovery"
+    if require_root and os.geteuid() != 0:
+        raise Denied("Root is required at the privileged update boundary.")
+    return NEUTRON_ROOT, STATE_ROOT, RECOVERY_ROOT
+
+
+def stage_update(package: Path, envelope: Path, version: str) -> None:
+    neutron_root, state_root, recovery_root = production_paths()
+    try:
+        current_version = str(json.loads((neutron_root / "config/version.json").read_text())["version"])
+    except (OSError, KeyError, ValueError, TypeError, json.JSONDecodeError) as error:
+        raise Denied(f"Installed NeutronOS version is unavailable: {error}") from error
+    metadata = verify_release(package, envelope, version, current_version)
+    transaction_id = f"{version}-{metadata['sha256'][:16]}"
+    transactions = state_root / "transactions"
+    final = transactions / transaction_id
+    if (state_root / "active-transaction.json").exists():
+        raise Denied("Another Mainline update transaction is already active.")
+    transactions.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix=f".{transaction_id}.", dir=transactions))
+    try:
+        shutil.copy2(package, temporary / package.name)
+        shutil.copy2(envelope, temporary / "metadata-envelope.json")
+        package_manifest, files = validate_package(temporary / package.name, version, temporary / "expanded")
+        for field in ("updateClass", "minimumSupportedVersion", "maximumSupportedVersion", "requiredBaseline", "supersedes", "packageScope", "recoveryCapable"):
+            if field in package_manifest and package_manifest.get(field) != metadata.get(field):
+                raise Denied(f"Package and authenticated compatibility metadata disagree: {field}")
+        transaction = {
+            "schemaVersion": 1, "status": "STAGED", "createdUtc": now(),
+            "id": transaction_id, "version": version, "package": package.name,
+            "packageSha256": metadata["sha256"], "files": files,
+        }
+        atomic_json(temporary / "transaction.json", transaction)
+        if final.exists():
+            existing = json.loads((final / "transaction.json").read_text())
+            if existing.get("packageSha256") != metadata["sha256"]:
+                raise Denied("A conflicting transaction already exists.")
+            shutil.rmtree(temporary)
+        else:
+            os.replace(temporary, final)
+        atomic_json(state_root / "active-transaction.json", {"schemaVersion": 1, "id": transaction_id})
+        recovery_root.mkdir(parents=True, exist_ok=True)
+        atomic_json(recovery_root / "next-boot.json", {
+            "schemaVersion": 1, "mode": "UPDATE", "oneShot": True,
+            "reason": f"Apply authenticated NeutronOS Mainline {version}",
+            "transaction": transaction_id, "createdUtc": now(),
+        })
+        atomic_json(state_root / "last-stage.json", transaction)
+    finally:
+        if temporary.exists():
+            shutil.rmtree(temporary)
+    if not os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT"):
+        subprocess.run(["/usr/bin/systemctl", "reboot", "--no-block"], check=True, timeout=20)
+    print(f"Authenticated Mainline {version} staged for one-shot Recovery application.")
+
+
+def backup_restore_paths() -> tuple[Path, Path, Path, Path, Path]:
+    neutron_root, state_root, recovery_root = production_paths()
+    if os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT"):
+        backup_root = neutron_root / "backups/system"
+        runtime_marker = recovery_root / "recovery-active.json"
+    else:
+        backup_root = BACKUP_ROOT
+        runtime_marker = Path("/run/neutronos/recovery-active.json")
+    return neutron_root, state_root, recovery_root, backup_root, runtime_marker
+
+
+def validate_backup_restore_archive(archive: Path) -> tuple[str, dict]:
+    _, _, _, backup_root, _ = backup_restore_paths()
+    archive = archive.resolve(strict=True)
+    if backup_root.resolve() not in archive.parents or archive.is_symlink() or not archive.is_file():
+        raise Denied("Restore archive is outside the protected backup catalog.")
+    info = archive.stat()
+    if not os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT") and (info.st_uid != 0 or info.st_mode & 0o077):
+        raise Denied("Restore archive ownership or permissions are unsafe.")
+    sidecar = Path(str(archive) + ".sha256")
+    line = sidecar.read_text(encoding="ascii").strip()
+    match = re.fullmatch(r"([0-9a-fA-F]{64})\s+\*?([^/]+)", line)
+    digest = sha256(archive)
+    if not match or match.group(2) != archive.name or match.group(1).lower() != digest:
+        raise Denied("Restore archive checksum validation failed.")
+    command = ["/usr/bin/tar", "--to-stdout", "-xf", str(archive), "manifest.json"]
+    completed = subprocess.run(command, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               timeout=120)
+    if completed.returncode:
+        raise Denied("Restore archive manifest could not be read.")
+    listing = subprocess.run(
+        ["/usr/bin/tar", "--list", "--verbose", "--file", str(archive)],
+        check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120,
+    )
+    if listing.returncode:
+        raise Denied("Restore archive member list could not be validated.")
+    if any(line[:1] in (b"l", b"h") for line in listing.stdout.splitlines() if line):
+        raise Denied("Restore archive contains an unsafe path or link.")
+    manifest = json.loads(completed.stdout)
+    if manifest.get("format") != "NeutronOS Backup v2" or manifest.get("product") != "NeutronOS" or manifest.get("codename") != "Gemini":
+        raise Denied("Restore archive identity is invalid.")
+    return digest, manifest
+
+
+def recovery_catalog() -> list[dict]:
+    _, _, _, backup_root, _ = backup_restore_paths()
+    points: list[dict] = []
+    if not backup_root.is_dir():
+        return points
+    for archive in sorted(backup_root.glob("*-backup.tar.*"), reverse=True):
+        try:
+            digest, manifest = validate_backup_restore_archive(archive)
+            info = archive.stat()
+        except (Denied, OSError, ValueError, json.JSONDecodeError, subprocess.SubprocessError):
+            continue
+        points.append({
+            "path": str(archive.resolve()), "name": archive.name,
+            "profile": str(manifest.get("profile", "unknown")).upper(),
+            "modified": datetime.fromtimestamp(info.st_mtime, timezone.utc).isoformat().replace("+00:00", "Z"),
+            "createdUtc": str(manifest.get("created", "")), "sha256": digest,
+            "size": info.st_size, "verified": True,
+        })
+    return points
+
+
+def stage_backup_restore(archive: Path) -> None:
+    _, state_root, recovery_root, _, _ = backup_restore_paths()
+    digest, manifest = validate_backup_restore_archive(archive)
+    archive = archive.resolve(strict=True)
+    transaction = {
+        "schemaVersion": 1, "status": "STAGED", "createdUtc": now(),
+        "archive": str(archive), "archiveName": archive.name, "archiveSha256": digest,
+        "profile": str(manifest.get("profile", "unknown")),
+    }
+    atomic_json(state_root / "backup-restore-transaction.json", transaction)
+    recovery_root.mkdir(parents=True, exist_ok=True)
+    atomic_json(recovery_root / "next-boot.json", {
+        "schemaVersion": 1, "mode": "BACKUP_RESTORE", "oneShot": True,
+        "reason": f"Restore verified backup {archive.name}",
+        "archiveSha256": digest, "createdUtc": now(),
+    })
+    print(f"Restore point {archive.name} verified and staged for one-shot Recovery.")
+
+
+def _allowed_backup_relative(relative: str) -> bool:
+    normalized = relative.strip("/")
+    return any(normalized == prefix.rstrip("/") or normalized.startswith(prefix)
+               for prefix in BACKUP_RESTORE_ALLOWLIST)
+
+
+def _set_backup_transaction_status(transaction_path: Path, transaction: dict,
+                                   status: str, **values: object) -> dict:
+    updated = dict(transaction)
+    updated.update({"status": status, "updatedUtc": now(), **values})
+    atomic_json(transaction_path, updated)
+    return updated
+
+
+def ensure_state_relationship(neutron_root: Path) -> None:
+    test_target = os.environ.get("NEUTRONOS_UPDATE_TEST_STATE_ROOT", "").strip()
+    if os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT") and not test_target:
+        return
+    expected = Path(test_target).resolve() if test_target else Path("/var/lib/neutronos")
+    expected.mkdir(parents=True, exist_ok=True)
+    state_path = neutron_root / "state"
+    if state_path.is_symlink():
+        if state_path.resolve(strict=False) != expected:
+            raise Denied("NeutronOS state link does not match the trusted system configuration.")
+        return
+    if state_path.exists():
+        raise Denied("NeutronOS state path is not the trusted system link.")
+    temporary = state_path.with_name(f".{state_path.name}.recovery-{os.getpid()}")
+    temporary.symlink_to(expected)
+    os.replace(temporary, state_path)
+
+
+def authorize_backup_restore(archive: Path) -> dict:
+    _, state_root, recovery_root, _, runtime_marker = backup_restore_paths()
+    active = json.loads(runtime_marker.read_text(encoding="utf-8"))
+    if active.get("active") is not True or active.get("mode") != "BACKUP_RESTORE":
+        raise Denied("Backup restore may run only inside its one-shot Recovery boot.")
+    digest, manifest = validate_backup_restore_archive(archive)
+    archive = archive.resolve(strict=True)
+    transaction_path = state_root / "backup-restore-transaction.json"
+    transaction = {
+        "schemaVersion": 1, "status": "RECOVERY_STARTED", "createdUtc": now(),
+        "archive": str(archive), "archiveName": archive.name, "archiveSha256": digest,
+        "profile": str(manifest.get("profile", "unknown")), "recoveryStartedUtc": now(),
+    }
+    atomic_json(transaction_path, transaction)
+    request = {
+        "schemaVersion": 1, "mode": "BACKUP_RESTORE", "oneShot": True,
+        "reason": f"Restore verified backup {archive.name}", "archiveSha256": digest,
+        "createdUtc": active.get("createdUtc", now()),
+    }
+    atomic_json(recovery_root / "next-boot.json", request)
+    atomic_json(runtime_marker, {**request, "active": True,
+                                "recoveryStartedUtc": active.get("recoveryStartedUtc", now())})
+    return transaction
+
+
+def apply_staged_backup_restore(selected_archive: Path | None = None) -> None:
+    neutron_root, state_root, recovery_root, _, runtime_marker = backup_restore_paths()
+    transaction_path = state_root / "backup-restore-transaction.json"
+    if selected_archive is not None:
+        transaction = authorize_backup_restore(selected_archive)
+    else:
+        transaction = json.loads(transaction_path.read_text(encoding="utf-8"))
+    active = json.loads(runtime_marker.read_text(encoding="utf-8"))
+    archive = Path(str(transaction.get("archive", "")))
+    try:
+        print("PROGRESS:8:Verifying backup…", flush=True)
+        transaction = _set_backup_transaction_status(transaction_path, transaction, "VERIFYING")
+        digest, manifest = validate_backup_restore_archive(archive)
+        if (digest != transaction.get("archiveSha256") or
+                digest != active.get("archiveSha256") or
+                str(manifest.get("profile", "unknown")) != transaction.get("profile")):
+            raise Denied("Staged restore identity changed after confirmation.")
+        print("PROGRESS:28:Preparing restore…", flush=True)
+        transaction = _set_backup_transaction_status(transaction_path, transaction, "RESTORING")
+        with tempfile.TemporaryDirectory(prefix="neutronos-backup-restore-") as temporary:
+            stage = Path(temporary)
+            completed = subprocess.run(["/usr/bin/tar", "-xf", str(archive), "-C", str(stage)],
+                                       check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+            if completed.returncode:
+                raise Denied("Restore archive extraction failed.")
+            for extracted in stage.rglob("*"):
+                relative_stage = extracted.relative_to(stage).as_posix()
+                if (extracted.is_symlink() or not safe_member(relative_stage)):
+                    raise Denied("Restore archive contains an unsafe path or link.")
+            verified = subprocess.run(["/usr/bin/sha256sum", "-c", "payload.sha256"], cwd=stage,
+                                      check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+            if verified.returncode:
+                raise Denied("Restore payload integrity verification failed.")
+            ensure_state_relationship(neutron_root)
+            print("PROGRESS:55:Restoring user configuration…", flush=True)
+            payload = stage / "payload/root"
+            candidates = [path for path in payload.rglob("*") if path.is_file() and not path.is_symlink()]
+            total = max(1, len(candidates))
+            for index, source in enumerate(candidates):
+                relative = source.relative_to(payload).as_posix()
+                if not safe_member(relative) or not _allowed_backup_relative(relative):
+                    continue
+                destination = neutron_root / relative
+                atomic_install(source, destination, stat.S_IMODE(source.stat().st_mode) or 0o600)
+                if index % 25 == 0:
+                    print(f"PROGRESS:{55 + min(35, (index * 35) // total)}:Restoring user data…", flush=True)
+        print("PROGRESS:94:Finalizing…", flush=True)
+        result = _set_backup_transaction_status(
+            transaction_path, transaction, "COMPLETE", completedUtc=now(),
+            scope="user-and-application-configuration")
+        atomic_json(state_root / "last-backup-restore.json", result)
+        (recovery_root / "next-boot.json").unlink(missing_ok=True)
+        print("PROGRESS:100:Recovery point restored successfully.", flush=True)
+        print(f"Restore point {archive.name} applied in Recovery; OS-owned code was preserved.")
+    except Exception as error:
+        _set_backup_transaction_status(transaction_path, transaction, "FAILED",
+                                       failedUtc=now(), error=str(error)[:360])
+        raise
+
+
+def recovery_status() -> dict:
+    _, state_root, recovery_root, _, runtime_marker = backup_restore_paths()
+    active = json.loads(runtime_marker.read_text(encoding="utf-8"))
+    if active.get("active") is not True:
+        raise Denied("Recovery has not started from an authenticated next-boot request.")
+    result: dict[str, object] = {
+        "success": True, "active": True, "mode": active.get("mode"),
+        "reason": active.get("reason", ""), "recoveryPoints": recovery_catalog(),
+    }
+    if active.get("mode") == "BACKUP_RESTORE":
+        transaction_path = state_root / "backup-restore-transaction.json"
+        transaction = json.loads(transaction_path.read_text(encoding="utf-8"))
+        if transaction.get("status") == "STAGED":
+            transaction = _set_backup_transaction_status(
+                transaction_path, transaction, "RECOVERY_STARTED", recoveryStartedUtc=now())
+        result["transaction"] = transaction
+        result["authorizedArchive"] = str(transaction.get("archive", ""))
+    elif active.get("mode") == "UPDATE":
+        pointer = json.loads((state_root / "active-transaction.json").read_text(encoding="utf-8"))
+        transaction = json.loads((state_root / "transactions" / str(pointer.get("id", "")) /
+                                  "transaction.json").read_text(encoding="utf-8"))
+        result["update"] = {
+            "name": f"NeutronOS {transaction.get('version', '')}",
+            "version": transaction.get("version", ""), "sha256": transaction.get("sha256", ""),
+            "createdUtc": transaction.get("stagedUtc", ""), "verified": True,
+        }
+    else:
+        raise Denied("This graphical Recovery build does not support the staged request mode.")
+    return result
+
+
+def cancel_recovery() -> None:
+    _, state_root, recovery_root, _, runtime_marker = backup_restore_paths()
+    active = json.loads(runtime_marker.read_text(encoding="utf-8"))
+    if active.get("active") is not True:
+        raise Denied("No active Recovery request can be cancelled.")
+    if active.get("mode") == "BACKUP_RESTORE":
+        path = state_root / "backup-restore-transaction.json"
+        transaction = json.loads(path.read_text(encoding="utf-8"))
+        _set_backup_transaction_status(path, transaction, "CANCELLED", cancelledUtc=now())
+    (recovery_root / "next-boot.json").unlink(missing_ok=True)
+    print("Recovery request cancelled. The verified backup was preserved.")
+
+
+def atomic_install(source: Path, destination: Path, mode: int) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=destination.parent)
+    try:
+        with source.open("rb") as src, os.fdopen(fd, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+            dst.flush()
+            os.fsync(dst.fileno())
+        os.chmod(temporary, mode)
+        owner_path = destination if destination.exists() else destination.parent
+        while not owner_path.exists() and owner_path != owner_path.parent:
+            owner_path = owner_path.parent
+        owner = owner_path.stat()
+        os.chown(temporary, owner.st_uid, owner.st_gid)
+        os.replace(temporary, destination)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def apply_update() -> None:
+    neutron_root, state_root, _ = production_paths()
+    active = json.loads((state_root / "active-transaction.json").read_text())
+    transaction_id = str(active.get("id", ""))
+    if not re.fullmatch(r"\d+\.\d+\.\d+-[0-9a-f]{16}", transaction_id):
+        raise Denied("Active update transaction identity is invalid.")
+    transaction_root = state_root / "transactions" / transaction_id
+    transaction = json.loads((transaction_root / "transaction.json").read_text())
+    version = safe_version(str(transaction.get("version", "")))
+    package = transaction_root / str(transaction.get("package", ""))
+    envelope = transaction_root / "metadata-envelope.json"
+    try:
+        current_version = str(json.loads((neutron_root / "config/version.json").read_text())["version"])
+    except (OSError, KeyError, ValueError, TypeError, json.JSONDecodeError) as error:
+        raise Denied(f"Installed NeutronOS version is unavailable: {error}") from error
+    metadata = verify_release(package, envelope, version, current_version)
+    with tempfile.TemporaryDirectory(prefix="neutronos-mainline-apply-") as temporary:
+        package_manifest, files = validate_package(package, version, Path(temporary))
+        for field in ("updateClass", "minimumSupportedVersion", "maximumSupportedVersion", "requiredBaseline", "supersedes", "packageScope", "recoveryCapable"):
+            if field in package_manifest and package_manifest.get(field) != metadata.get(field):
+                raise Denied(f"Package and authenticated compatibility metadata disagree: {field}")
+        rollback = transaction_root / "rollback"
+        rollback.mkdir(mode=0o700, exist_ok=True)
+        applied: list[str] = []
+        try:
+            for item in files:
+                relative = Path(item["path"])
+                destination = neutron_root / relative
+                resolved_parent = destination.parent.resolve()
+                if neutron_root.resolve() not in (resolved_parent, *resolved_parent.parents):
+                    raise Denied(f"Payload leaves the NeutronOS root: {relative}")
+                source = Path(temporary) / "payload" / relative
+                snapshot = rollback / relative
+                if destination.exists():
+                    snapshot.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(destination, snapshot)
+                else:
+                    atomic_bytes(rollback / f"{relative}.absent", b"", 0o600)
+                atomic_install(source, destination, int(item["mode"]))
+                if sha256(destination) != item["sha256"]:
+                    raise Denied(f"Installed payload verification failed: {relative}")
+                applied.append(str(relative))
+        except Exception:
+            for name in reversed(applied):
+                destination = neutron_root / name
+                snapshot = rollback / name
+                if snapshot.exists():
+                    atomic_install(snapshot, destination, stat.S_IMODE(snapshot.stat().st_mode))
+                else:
+                    destination.unlink(missing_ok=True)
+            raise
+    result = dict(transaction)
+    result.update({"status": "APPLIED", "appliedUtc": now(), "metadataSha256": sha256(envelope)})
+    atomic_json(transaction_root / "transaction.json", result)
+    atomic_json(state_root / "last-result.json", result)
+    (state_root / "active-transaction.json").unlink()
+    print(f"Authenticated Mainline {version} applied and verified ({metadata['sha256']}).")
+
+
+def apply_recovery_update() -> None:
+    _, _, recovery_root = production_paths()
+    _, _, _, _, runtime_marker = backup_restore_paths()
+    active = json.loads(runtime_marker.read_text(encoding="utf-8"))
+    if active.get("active") is not True or active.get("mode") != "UPDATE":
+        raise Denied("Update application may run only inside its one-shot Recovery boot.")
+    print("PROGRESS:8:Verifying authenticated update…", flush=True)
+    apply_update()
+    print("PROGRESS:94:Finalizing NeutronOS update…", flush=True)
+    (recovery_root / "next-boot.json").unlink(missing_ok=True)
+    print("PROGRESS:100:Authenticated update applied successfully.", flush=True)
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        raise Denied("usage: neutronos-update-recovery {stage-update|apply-staged-update} ...")
+    action = sys.argv[1]
+    if action == "stage-update" and len(sys.argv) == 5:
+        stage_update(Path(sys.argv[2]).resolve(), Path(sys.argv[3]).resolve(), sys.argv[4])
+    elif action == "apply-staged-update" and len(sys.argv) == 2:
+        apply_update()
+    elif action == "stage-backup-restore" and len(sys.argv) == 3:
+        stage_backup_restore(Path(sys.argv[2]))
+    elif action == "apply-staged-backup-restore" and len(sys.argv) == 2:
+        apply_staged_backup_restore()
+    elif action == "recovery-status" and len(sys.argv) == 2:
+        print(json.dumps(recovery_status(), sort_keys=True))
+    elif action == "recovery-apply-backup" and len(sys.argv) == 3:
+        apply_staged_backup_restore(Path(sys.argv[2]))
+    elif action == "recovery-apply-update" and len(sys.argv) == 2:
+        apply_recovery_update()
+    elif action == "recovery-cancel" and len(sys.argv) == 2:
+        cancel_recovery()
+    elif action == "create-recovery" and len(sys.argv) in (2, 3):
+        create_recovery_point(sys.argv[2] if len(sys.argv) == 3 else "manual")
+    elif action == "list-recovery-points" and len(sys.argv) == 2:
+        print(json.dumps({"schemaVersion": 1, "recoveryPoints": list_recovery_points()}, sort_keys=True))
+    elif action == "recovery-catalog" and len(sys.argv) == 2:
+        print(json.dumps({"schemaVersion": 1, "recoveryPoints": list_recovery_points(),
+                          **authenticated_recovery_releases()}, sort_keys=True))
+    elif action == "restore-recovery-point" and len(sys.argv) == 3:
+        restore_recovery_point(Path(sys.argv[2]))
+    else:
+        raise Denied("Unsupported update operation (default deny).")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (Denied, OSError, ValueError, KeyError, json.JSONDecodeError, subprocess.SubprocessError) as error:
+        action = sys.argv[1] if len(sys.argv) > 1 else ""
+        prefix = "Recovery operation denied" if action.startswith("recovery-") or "backup" in action else "Mainline update denied"
+        print(f"{prefix}: {error}", file=sys.stderr)
+        raise SystemExit(1)

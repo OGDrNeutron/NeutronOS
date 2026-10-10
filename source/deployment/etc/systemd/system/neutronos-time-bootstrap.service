@@ -1,0 +1,21 @@
+[Unit]
+Description=NeutronOS restore last-known-good clock
+DefaultDependencies=no
+After=local-fs.target
+Before=systemd-timesyncd.service sysinit.target neutronos.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/neutronos-time-keeper.py restore
+User=root
+Group=root
+StateDirectory=neutronos/time
+StateDirectoryMode=0750
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+ProtectClock=no
+ReadWritePaths=/var/lib/systemd/timesync
+
+[Install]
+WantedBy=sysinit.target

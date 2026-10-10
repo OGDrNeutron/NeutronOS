@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUN=/run/neutronos
+BOOT=$RUN/boot
+SEEN=$RUN/shell-process-started
+PLYMOUTH_STATE=$RUN/boot-progress.json
+PLYMOUTH_VALID=$RUN/plymouth-boot.valid
+
+install -d -o root -g neutronos-shell -m 2770 "$RUN" "$BOOT"
+
+if [[ -e "$SEEN" ]]; then
+    # This is another NeutronShell process in the same kernel boot. Cold-boot
+    # progress belongs to the OS boot, not to process restarts. Mark the
+    # handoff complete so the replacement shell goes directly to Login.
+    tmp="$BOOT/.completed.shell-restart.$$"
+    printf 'shell-restart\n' > "$tmp"
+    chown root:neutronos-shell "$tmp"
+    chmod 0660 "$tmp"
+    mv -f -- "$tmp" "$BOOT/completed"
+else
+    # Mirror only a validated, real Plymouth milestone into the current shell
+    # handoff state. Manual service starts and failed graphical boots remain
+    # fail-soft and go directly to the destination UI.
+    if [[ -r "$PLYMOUTH_VALID" && -r "$PLYMOUTH_STATE" ]]; then
+        read -r phase percent < <(/usr/bin/python3 - "$PLYMOUTH_STATE" <<'PY'
+import json
+import sys
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        state = json.load(handle)
+    phase = str(state.get("phase", ""))
+    percent = int(state.get("percent", -1))
+except (OSError, ValueError, TypeError):
+    raise SystemExit(1)
+if not phase.startswith("PROGRESS_") or percent < 60 or percent > 95 or percent % 5:
+    raise SystemExit(1)
+print(phase, percent)
+PY
+        ) || { echo "invalid Plymouth handoff state" >&2; exit 1; }
+        printf 'active\n' > "$BOOT/active"
+        printf '%s\n' "$percent" > "$BOOT/progress"
+        printf 'plymouth-%s\n' "$phase" > "$BOOT/milestone"
+        chown root:neutronos-shell "$BOOT/active" "$BOOT/progress" "$BOOT/milestone"
+        chmod 0660 "$BOOT/active" "$BOOT/progress" "$BOOT/milestone"
+    fi
+    tmp="$RUN/.shell-process-started.$$"
+    printf 'seen\n' > "$tmp"
+    chown root:neutronos-shell "$tmp"
+    chmod 0660 "$tmp"
+    mv -f -- "$tmp" "$SEEN"
+fi

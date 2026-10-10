@@ -1,0 +1,21 @@
+// NeutronOS controller-first shell NetworkManager policy.
+// The appliance shell runs as the locked-down `echo` account and is permitted
+// only the NetworkManager actions required by the NeutronOS Wi-Fi UI.
+polkit.addRule(function(action, subject) {
+    if (subject.user != "neutronos" || !subject.isInGroup("neutronos-shell"))
+        return polkit.Result.NOT_HANDLED;
+
+    var allowed = [
+        "org.freedesktop.NetworkManager.enable-disable-wifi",
+        "org.freedesktop.NetworkManager.enable-disable-network",
+        "org.freedesktop.NetworkManager.wifi.scan",
+        "org.freedesktop.NetworkManager.network-control",
+        "org.freedesktop.NetworkManager.settings.modify.system",
+        "org.freedesktop.NetworkManager.settings.modify.own"
+    ];
+
+    if (allowed.indexOf(action.id) >= 0)
+        return polkit.Result.YES;
+
+    return polkit.Result.NOT_HANDLED;
+});

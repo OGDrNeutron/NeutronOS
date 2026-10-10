@@ -1,0 +1,26 @@
+[Unit]
+Description=NeutronOS Security Self-Protection Watchdog
+After=neutronos-firewall-guard.service neutron-securityd.service
+Wants=neutronos-firewall-guard.service neutron-securityd.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/neutron-security-watchdog.py
+Restart=always
+RestartSec=2
+UMask=0027
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadWritePaths=/var/lib/neutronos/security-core
+
+[Install]
+WantedBy=multi-user.target

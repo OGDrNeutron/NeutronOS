@@ -1,0 +1,37 @@
+[Unit]
+Description=Existing NeutronOS Recovery helper entry-only broker
+DefaultDependencies=no
+After=systemd-remount-fs.service
+Conflicts=shutdown.target
+
+[Service]
+Type=exec
+Sockets=neutronos-recovery-entry.socket
+User=root
+SupplementaryGroups=neutronos-shell
+ExecStartPre=+/usr/local/sbin/neutronos-recovery-control boot-entry-runtime
+ExecStart=/usr/local/sbin/neutronos-recovery-control serve-boot-entry
+Environment=NEUTRONOS_BOOT_INSTALLATION_BOOT_ID=5f8b8273-27e8-42bc-98e1-e8b6a6370f83
+Restart=no
+TimeoutStartSec=3
+RuntimeMaxSec=180
+TimeoutStopSec=5
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SYS_PTRACE
+AmbientCapabilities=CAP_SYS_PTRACE
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/neutronos/recovery /run/neutronos/boot-status
+RestrictAddressFamilies=AF_UNIX
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+SystemCallFilter=~@reboot @mount @module @raw-io
+SystemCallFilter=~ptrace process_vm_readv process_vm_writev
+SystemCallErrorNumber=EPERM
+PrivateTmp=disconnected
+UMask=0077
+StandardOutput=journal
+StandardError=journal

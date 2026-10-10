@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die()
+{
+    printf 'neutronos-configure-boot-root: %s\n' "$*" >&2
+    exit 70
+}
+
+if [[ $# -ne 5 ]]; then
+    echo "usage: $0 ROOT BOOT PROJECT IMAGE_WORK BUILD_DIR" >&2
+    exit 64
+fi
+
+ROOT_ARG=$1
+BOOT_ARG=$2
+PROJECT_ARG=$3
+IMAGE_WORK_ARG=$4
+BUILD_DIR_ARG=$5
+[[ "$ROOT_ARG" = /* && "$BOOT_ARG" = /* && "$PROJECT_ARG" = /* && \
+   "$IMAGE_WORK_ARG" = /* && "$BUILD_DIR_ARG" = /* ]] || exit 64
+[[ "$ROOT_ARG" != / ]] || die "refusing the live root filesystem"
+ROOT=$(readlink -f -- "$ROOT_ARG") || die "target root does not exist"
+BOOT=$(readlink -f -- "$BOOT_ARG") || die "target boot path does not exist"
+PROJECT=$(readlink -f -- "$PROJECT_ARG") || die "project path does not exist"
+IMAGE_WORK=$(readlink -f -- "$IMAGE_WORK_ARG") || \
+    die "image work path does not exist"
+BUILD_DIR=$(readlink -f -- "$BUILD_DIR_ARG") || \
+    die "build directory does not exist"
+[[ "$ROOT" != / ]] || die "refusing the live root filesystem"
+[[ "$BOOT" != /boot && "$BOOT" != /boot/firmware ]] || \
+    die "refusing the live boot filesystem"
+case "$ROOT" in "$IMAGE_WORK/"*) ;; *)
+    die "target root is outside the release-image work tree" ;;
+esac
+case "$BOOT" in "$IMAGE_WORK/"*) ;; *)
+    die "target boot is outside the release-image work tree" ;;
+esac
+mountpoint -q "$ROOT" || die "target root is not a mounted image filesystem"
+mountpoint -q "$BOOT" || die "target boot is not a mounted image filesystem"
+ROOT_SOURCE=$(findmnt -n -o SOURCE --target "$ROOT" | head -1)
+BOOT_SOURCE=$(findmnt -n -o SOURCE --target "$BOOT" | head -1)
+[[ "$ROOT_SOURCE" == /dev/loop*p2 ]] || die "target root is not loop partition 2"
+[[ "$BOOT_SOURCE" == /dev/loop*p1 ]] || die "target boot is not loop partition 1"
+[[ "${ROOT_SOURCE%p2}" == "${BOOT_SOURCE%p1}" ]] || \
+    die "root and boot are not partitions of the same image loop"
+[[ -f "$ROOT/etc/debian_version" ]] || die "target root lacks Debian image identity"
+[[ -f "$BOOT/config.txt" ]] || die "target boot lacks Raspberry Pi image identity"
+[[ -f "$PROJECT/systemd/neutronos.service" ]] || exit 66
+[[ -f "$PROJECT/systemd/neutronos-boot-renderer.service" ]] || exit 66
+[[ -x "$BUILD_DIR/NeutronBootRenderer" ]] || \
+    die "validated NeutronBootRenderer is missing"
+[[ -f "$PROJECT/design-reference/Boot.zip" ]] || die "approved Boot.zip is missing"
+[[ "$(sha256sum "$PROJECT/design-reference/Boot.zip" | awk '{print $1}')" == \
+   53185c65cd9792a91acba1bc22ffacf2cd42f43aeb5a6b2773bf9ef30350264f ]] || \
+    die "approved Boot.zip hash mismatch"
+[[ -f "$BOOT/cmdline.txt" ]] || die "target boot cmdline is missing"
+for required in \
+    boot/firmware-config.patch85 \
+    boot/initramfs/init-premount-plymouth \
+    boot/initramfs/neutronos-early-plymouth.conf \
+    boot/initramfs/neutronos-plymouth.conf \
+    boot/initramfs/zz-neutronos-plymouth-label \
+    boot/neutronos-boot-milestones.json \
+    boot/plymouth/neutronos.plymouth \
+    boot/plymouth/neutronos.script \
+    boot/plymouth/plymouthd.conf \
+    scripts/neutronos-boot-progress \
+    scripts/neutronos-boot-generator \
+    scripts/neutronos-boot-failure \
+    scripts/neutronos-plymouth-adopt \
+    scripts/neutronos-plymouth-finalize \
+    scripts/neutronos-plymouth-release \
+    scripts/neutronos-shell-start-prep \
+    systemd/neutronos-boot-failure.service; do
+    [[ -f "$PROJECT/$required" ]] || die "required Plymouth source missing: $required"
+done
+
+install -d "$ROOT/etc/systemd/system" "$ROOT/usr/local/sbin" \
+    "$ROOT/usr/lib/systemd/system-generators" \
+    "$ROOT/usr/share/neutronos/boot" \
+    "$ROOT/etc/initramfs-tools/scripts/init-premount" \
+    "$ROOT/etc/initramfs-tools/conf.d" "$ROOT/etc/initramfs-tools/hooks" \
+    "$ROOT/etc/plymouth" "$ROOT/usr/share/plymouth/themes/neutronos/assets" \
+    "$ROOT/home/echo/NeutronOS/build" \
+    "$ROOT/home/echo/NeutronOS/design-reference"
+
+install -m 0644 "$PROJECT/systemd/neutronos.service" \
+    "$PROJECT/systemd/neutronos.target" \
+    "$PROJECT/systemd/neutronos-boot-failure.service" \
+    "$PROJECT/systemd/neutronos-shell-failure.service" \
+    "$PROJECT/systemd/neutronos-shell-stability.path" \
+    "$PROJECT/systemd/neutronos-shell-stability.service" \
+    "$ROOT/etc/systemd/system/"
+install -m 0755 "$PROJECT/scripts/neutronos-shell-failure" \
+    "$PROJECT/scripts/neutronos-shell-mark-stable" \
+    "$PROJECT/scripts/neutronos-shell-start-prep" \
+    "$PROJECT/scripts/neutronos-boot-progress" \
+    "$PROJECT/scripts/neutronos-boot-failure" \
+    "$PROJECT/scripts/neutronos-plymouth-adopt" \
+    "$PROJECT/scripts/neutronos-plymouth-finalize" \
+    "$PROJECT/scripts/neutronos-plymouth-release" \
+    "$ROOT/usr/local/sbin/"
+install -m 0755 "$PROJECT/scripts/neutronos-boot-generator" \
+    "$ROOT/usr/lib/systemd/system-generators/neutronos-boot-generator"
+install -m 0644 "$PROJECT/boot/neutronos-boot-milestones.json" \
+    "$ROOT/usr/share/neutronos/boot/neutronos-boot-milestones.json"
+install -m 0755 "$PROJECT/boot/initramfs/init-premount-plymouth" \
+    "$ROOT/etc/initramfs-tools/scripts/init-premount/neutronos-plymouth"
+install -m 0644 "$PROJECT/boot/initramfs/neutronos-early-plymouth.conf" \
+    "$ROOT/etc/initramfs-tools/conf.d/neutronos-early-plymouth"
+install -m 0644 "$PROJECT/boot/initramfs/neutronos-plymouth.conf" \
+    "$ROOT/etc/initramfs-tools/conf.d/neutronos-plymouth"
+install -m 0755 "$PROJECT/boot/initramfs/zz-neutronos-plymouth-label" \
+    "$ROOT/etc/initramfs-tools/hooks/zz-neutronos-plymouth-label"
+install -m 0644 "$PROJECT/boot/plymouth/neutronos.plymouth" \
+    "$PROJECT/boot/plymouth/neutronos.script" \
+    "$ROOT/usr/share/plymouth/themes/neutronos/"
+install -m 0644 "$PROJECT/boot/plymouth/plymouthd.conf" \
+    "$ROOT/etc/plymouth/plymouthd.conf"
+for dropin in start reboot poweroff halt; do
+    install -d "$ROOT/etc/systemd/system/plymouth-$dropin.service.d"
+    install -m 0644 \
+        "$PROJECT/systemd/plymouth-$dropin.service.d/85-neutronos.conf" \
+        "$ROOT/etc/systemd/system/plymouth-$dropin.service.d/85-neutronos.conf"
+done
+install -m 0755 "$BUILD_DIR/NeutronBootRenderer" \
+    "$ROOT/home/echo/NeutronOS/build/NeutronBootRenderer"
+install -m 0644 "$PROJECT/design-reference/Boot.zip" \
+    "$ROOT/home/echo/NeutronOS/design-reference/Boot.zip"
+
+# Boot.zip is the verified, single production artwork source. Extract only its
+# 25 expected PNG frames; do not copy a mutable live theme tree.
+ASSET_STAGE=$(mktemp -d "$IMAGE_WORK/plymouth-assets.XXXXXX") || \
+    die "cannot create isolated Plymouth asset staging directory"
+case "$ASSET_STAGE" in "$IMAGE_WORK/"*) ;; *)
+    die "Plymouth asset staging escaped image work tree" ;;
+esac
+unzip -q "$PROJECT/design-reference/Boot.zip" 'AbootNew_fixed/*.png' -d "$ASSET_STAGE"
+mapfile -t PLYMOUTH_ASSETS < <(find "$ASSET_STAGE/AbootNew_fixed" \
+    -maxdepth 1 -type f -name '*.png' -print | sort)
+[[ ${#PLYMOUTH_ASSETS[@]} -eq 25 ]] || \
+    die "approved Boot.zip must contain exactly 25 Plymouth frames"
+install -m 0644 "${PLYMOUTH_ASSETS[@]}" \
+    "$ROOT/usr/share/plymouth/themes/neutronos/assets/"
+rm -rf -- "$ASSET_STAGE"
+
+# tty1 is reserved for explicit authenticated recovery. The validated Plymouth
+# scanout remains visible until the EGLFS cover presents its first frame.
+for unit in getty@tty1.service plymouth-quit.service \
+            plymouth-quit-wait.service userconfig.service; do
+    ln -sfn /dev/null "$ROOT/etc/systemd/system/$unit"
+done
+install -d "$ROOT/etc/systemd/system/sysinit.target.wants" \
+    "$ROOT/etc/systemd/system/multi-user.target.wants"
+rm -f "$ROOT/etc/systemd/system/sysinit.target.wants/neutronos-boot-renderer.service"
+ln -sfn ../neutronos.target \
+    "$ROOT/etc/systemd/system/multi-user.target.wants/neutronos.target"
+
+touch "$BOOT/config.txt"
+sed -i '/^# NeutronOS Patch 85 production firmware display contract\.$/,+3d' \
+    "$BOOT/config.txt"
+sed -i '/^[[:space:]]*disable_splash[[:space:]]*=/d' "$BOOT/config.txt"
+printf '\n' >> "$BOOT/config.txt"
+cat "$PROJECT/boot/firmware-config.patch85" >> "$BOOT/config.txt"
+
+# The stager proves that every unrelated token, including root=PARTUUID, is
+# byte-for-byte preserved. The final rename is within the boot filesystem.
+STAGED_CMDLINE=$(mktemp "$BOOT/.cmdline.txt.neutronos.XXXXXX")
+trap 'rm -f -- "$STAGED_CMDLINE"' EXIT
+"$PROJECT/scripts/neutronos-stage-cmdline" \
+    "$BOOT/cmdline.txt" "$STAGED_CMDLINE"
+[[ "$(wc -l < "$STAGED_CMDLINE")" == 1 ]] || die "staged cmdline is not one line"
+mv -f -- "$STAGED_CMDLINE" "$BOOT/cmdline.txt"
+trap - EXIT

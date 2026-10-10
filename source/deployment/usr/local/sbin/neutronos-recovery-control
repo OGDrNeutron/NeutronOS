@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""Default-deny state helper for one-shot Recovery and shell crash safety."""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import tempfile
+import socket
+import struct
+import pwd
+import stat
+import subprocess
+import signal
+import re
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+PRODUCTION_ROOT = Path("/var/lib/neutronos/recovery")
+THRESHOLD = 3
+STABILITY_SECONDS = 90
+
+
+def state_root() -> Path:
+    override = os.environ.get("NEUTRONOS_RECOVERY_TEST_ROOT", "").strip()
+    if override:
+        return Path(override).resolve()
+    if os.geteuid() != 0:
+        raise PermissionError("root is required outside the isolated test backend")
+    return PRODUCTION_ROOT
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def atomic_json(path: Path, value: dict, *, exclusive: bool = False, mode: int = 0o600) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fchmod(handle.fileno(), mode)
+            os.fsync(handle.fileno())
+        if exclusive:
+            # Never overwrite another existing one-shot job, even in a race.
+            os.link(temporary, path)
+        else:
+            os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_DIRECTORY | os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def read_json(path: Path, fallback: dict) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else dict(fallback)
+    except (OSError, ValueError):
+        return dict(fallback)
+
+
+def prepare(root: Path, reason: str) -> dict:
+    marker = root / "next-boot.json"
+    if marker.exists():
+        raise RuntimeError("a recovery boot is already prepared")
+    value = {
+        "schemaVersion": 1,
+        "mode": "RECOVERY",
+        "oneShot": True,
+        "reason": reason[:240] or "Developer requested Recovery Mode",
+        "createdUtc": now(),
+    }
+    atomic_json(marker, value, exclusive=True)
+    return value
+
+
+def prepare_update(root: Path, transaction: str) -> dict:
+    if not __import__("re").fullmatch(r"\d+\.\d+\.\d+-[0-9a-f]{16}", transaction):
+        raise ValueError("invalid update transaction identity")
+    marker = root / "next-boot.json"
+    if marker.exists():
+        raise RuntimeError("a recovery boot is already prepared")
+    value = {
+        "schemaVersion": 1,
+        "mode": "UPDATE",
+        "oneShot": True,
+        "reason": f"Apply authenticated Mainline transaction {transaction}",
+        "transaction": transaction,
+        "createdUtc": now(),
+    }
+    atomic_json(marker, value)
+    return value
+
+
+def begin(root: Path, runtime: Path) -> dict:
+    marker = root / "next-boot.json"
+    safe = root / "safe-mode-next-boot.json"
+    selected = marker if marker.exists() else safe
+    if not selected.exists():
+        return {"active": False}
+    value = read_json(selected, {})
+    if value.get("schemaVersion") != 1 or value.get("oneShot") is not True or \
+            value.get("mode") not in ("UPDATE", "BACKUP_RESTORE", "RECOVERY", "SAFE"):
+        raise ValueError("invalid staged Recovery request")
+    value.update({"active": True, "recoveryStartedUtc": now()})
+    atomic_json(runtime / "recovery-active.json", value)
+    return value
+
+
+def record_failure(root: Path, result: str) -> dict:
+    path = root / "crash-state.json"
+    state = read_json(path, {"consecutiveFailures": 0})
+    count = max(0, int(state.get("consecutiveFailures", 0))) + 1
+    state.update({
+        "schemaVersion": 1,
+        "consecutiveFailures": count,
+        "lastFailureUtc": now(),
+        "lastResult": result[:160] or "unknown",
+        "stabilityWindowSeconds": STABILITY_SECONDS,
+    })
+    if count >= THRESHOLD:
+        state["safeModeTriggered"] = True
+        atomic_json(root / "safe-mode-next-boot.json", {
+            "schemaVersion": 1,
+            "mode": "SAFE",
+            "oneShot": True,
+            "reason": "NeutronShell failed 3 consecutive starts.",
+            "createdUtc": now(),
+        })
+    atomic_json(path, state)
+    return state
+
+
+def mark_stable(root: Path) -> dict:
+    value = {
+        "schemaVersion": 1,
+        "consecutiveFailures": 0,
+        "safeModeTriggered": False,
+        "stableUtc": now(),
+        "stabilityWindowSeconds": STABILITY_SECONDS,
+    }
+    atomic_json(root / "crash-state.json", value)
+    try:
+        (root / "safe-mode-next-boot.json").unlink()
+    except FileNotFoundError:
+        pass
+    return value
+
+
+def cancel(root: Path, *, owned_entry: dict | None = None) -> dict:
+    removed = []
+    names = ("next-boot.json",) if owned_entry is not None else ("next-boot.json", "safe-mode-next-boot.json")
+    for name in names:
+        path = root / name
+        if owned_entry is not None and read_json(path, {}) != owned_entry:
+            continue
+        if path.exists():
+            path.unlink()
+            removed.append(name)
+    return {"cancelled": removed}
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: neutronos-recovery-control {prepare|prepare-update|begin|consume|record-failure|mark-stable|cancel|status}")
+    root = state_root()
+    root.mkdir(parents=True, exist_ok=True)
+    os.chmod(root, 0o700)
+    action = sys.argv[1]
+    if action == "prepare":
+        value = prepare(root, " ".join(sys.argv[2:]))
+    elif action == "prepare-update":
+        value = prepare_update(root, sys.argv[2] if len(sys.argv) == 3 else "")
+    elif action in ("begin", "consume"):
+        runtime = Path(sys.argv[2] if len(sys.argv) > 2 else "/run/neutronos").resolve()
+        value = begin(root, runtime)
+    elif action == "record-failure":
+        value = record_failure(root, " ".join(sys.argv[2:]))
+    elif action == "mark-stable":
+        value = mark_stable(root)
+    elif action == "cancel":
+        value = cancel(root)
+    elif action == "status":
+        value = {
+            "nextBoot": read_json(root / "next-boot.json", {}),
+            "safeBoot": read_json(root / "safe-mode-next-boot.json", {}),
+            "crash": read_json(root / "crash-state.json", {"consecutiveFailures": 0}),
+        }
+    else:
+        raise SystemExit("unknown recovery operation (default deny)")
+    print(json.dumps(value, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (OSError, RuntimeError, PermissionError, ValueError) as error:
+        print(f"recovery operation denied: {error}", file=sys.stderr)
+        raise SystemExit(1)

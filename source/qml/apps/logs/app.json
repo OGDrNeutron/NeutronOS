@@ -1,0 +1,17 @@
+{
+  "id": "logs",
+  "name": "Logs",
+  "subtitle": "Live System Logs",
+  "description": "View live and historical journal, Docker, file, and NeutronOS script logs.",
+  "category": "System",
+  "type": "qml",
+  "qmlSource": "logs/Main.qml",
+  "entry": "Main.qml",
+  "icon": "logs",
+  "poster": "logs",
+  "version": "2.0.0",
+  "favorite": true,
+  "controllerOnly": true,
+  "fullscreen": true,
+  "permissions": ["logs", "systemd", "docker", "filesystem"]
+}

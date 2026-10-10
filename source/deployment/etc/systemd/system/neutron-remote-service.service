@@ -1,0 +1,33 @@
+[Unit]
+Description=NeutronOS Remote Service Gatekeeper
+After=local-fs.target neutron-remote-service-state.service
+Requires=neutron-remote-service-state.service
+Before=neutronos.service
+
+[Service]
+Type=simple
+WorkingDirectory=/
+ExecStartPre=/usr/bin/install -d -m 3770 -o root -g neutronos-shell /run/neutronos
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/neutron-remote-service.py
+Restart=on-failure
+RestartSec=2
+Environment=NEUTRONOS_REMOTE_ADMIN_SOCKET=/run/neutronos/remote-service-admin.sock
+Environment=NEUTRONOS_REMOTE_PROVIDER_SOCKET=/run/neutronos/remote-service-provider.sock
+Environment=NEUTRONOS_REMOTE_SOCKET_GROUP=neutronos-shell
+Environment=NEUTRONOS_OWNER=neutronos
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/neutronos /run/neutronos
+UMask=0077
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

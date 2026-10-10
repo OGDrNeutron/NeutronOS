@@ -1,0 +1,5 @@
+VARYING vec2 energyUv;
+void MAIN() {
+    energyUv=UV0;
+    POSITION=MODELVIEWPROJECTION_MATRIX*vec4(VERTEX,1.0);
+}

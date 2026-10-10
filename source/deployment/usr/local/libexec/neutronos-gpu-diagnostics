@@ -1,0 +1,36 @@
+#!/usr/bin/python3
+"""Read-only Gemini GPU evidence. No fan, clock, or power controls are written."""
+import datetime,json,os
+from pathlib import Path
+
+def read(path):
+    try:return path.read_text().strip()
+    except (OSError,UnicodeError):return None
+
+gpus=[]
+for card in sorted(Path('/sys/class/drm').glob('card[0-9]*')):
+    if '-' in card.name or not (card/'device').exists():continue
+    device=card/'device';vendor=read(device/'vendor')
+    if vendor is None:continue
+    row={'card':card.name,'pciDevice':device.resolve().name,'vendor':vendor,'device':read(device/'device'),'driver':(device/'driver').resolve().name if (device/'driver').exists() else None}
+    row['driverReadings']={name:read(device/name) for name in ['gpu_busy_percent','mem_busy_percent','mem_info_vram_total','mem_info_vram_used','power_dpm_force_performance_level','power_dpm_state','pp_dpm_sclk','pp_dpm_mclk']}
+    row['hwmon']=[]
+    for hw in sorted((device/'hwmon').glob('hwmon*')):
+        readings={p.name:read(p) for pattern in ['temp*_input','temp*_label','fan*_input','pwm[0-9]','pwm*_enable','power*_average','power*_input','freq*_input'] for p in hw.glob(pattern)}
+        row['hwmon'].append({'name':read(hw/'name'),'rawReadings':readings,'units':{'temperature':'millidegrees Celsius','fan':'RPM','pwm':'raw driver scale','power':'microwatts','frequency':'Hz'}})
+    gpus.append(row)
+holders=[]
+unreadable_processes=0
+for proc in Path('/proc').iterdir():
+    if not proc.name.isdecimal():continue
+    nodes=[]
+    try:
+        for fd in (proc/'fd').iterdir():
+            try:target=os.readlink(fd)
+            except OSError:continue
+            if target.startswith('/dev/dri/'):nodes.append(target)
+    except OSError:
+        unreadable_processes+=1
+        continue
+    if nodes:holders.append({'pid':int(proc.name),'comm':read(proc/'comm'),'nodes':sorted(set(nodes))})
+print(json.dumps({'timestampUTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'readOnly':True,'gpus':gpus,'driHolders':holders,'processInventory':{'effectiveUid':os.geteuid(),'unreadableFdDirectories':unreadable_processes,'completeRequiresReadableProcessFdDirectories':True}},indent=2))

@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Authoritative Patch 85 boot-display lifecycle controller.
+
+All userspace writers enter through this process.  A locked, default-deny
+transition table prevents progress, failure and power-state clients from
+overwriting one another on the physical display.
+"""
+from __future__ import annotations
+
+import json
+import fcntl
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+STATE = Path(os.environ.get(
+    "NEUTRONOS_BOOT_PROGRESS_STATE",
+    "/run/neutronos/boot-progress.json"))
+MESSAGES = {
+    0: "Starting NeutronOS", 5: "Mounting System Volume",
+    10: "Preparing Runtime", 15: "Loading Defense Foundation",
+    20: "Defense Foundation Ready", 25: "Starting Security Core",
+    30: "Validating System State", 35: "Preparing Core Services",
+    40: "Core Services Ready", 45: "Detecting Hardware",
+    50: "Initializing Controllers", 55: "Preparing Storage",
+    60: "Storage Ready", 65: "Loading Application Runtime",
+    70: "Starting Network Services", 75: "Preparing Connectivity",
+    80: "Network Services Ready", 85: "Starting Proactive Security Beast",
+    90: "Starting NeutronShell", 95: "Initializing Dashboard",
+    100: "NeutronOS Ready",
+}
+
+PROGRESS = tuple(range(0, 101, 5))
+SPECIAL = {"error": "ERROR", "reboot": "REBOOT", "shutdown": "SHUTDOWN",
+           "recovery": "RECOVERY"}
+
+def snapshot() -> dict:
+    try:
+        value = json.loads(STATE.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return {}
+
+def current() -> int:
+    try: return int(snapshot().get("percent", -1))
+    except (ValueError, TypeError): return -1
+
+def persist(value: dict) -> None:
+    STATE.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix="boot-progress.", dir=STATE.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, 0o644)
+        os.replace(temporary, STATE)
+    finally:
+        try: os.unlink(temporary)
+        except FileNotFoundError: pass
+
+def send(message: str) -> bool:
+    if os.environ.get("NEUTRONOS_BOOT_NO_PLYMOUTH") == "1":
+        return True
+    result = subprocess.run(
+        ["/usr/bin/plymouth", "message", f"--text={message}"],
+        check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return result.returncode == 0
+
+def transition(command: str) -> tuple[bool, dict, str | None]:
+    old = snapshot()
+    phase = str(old.get("phase", "NEW"))
+    percent = int(old.get("percent", -1))
+
+    # Terminal visual modes are sticky and ordinary boot milestone calls can
+    # never escape them.
+    if phase in {"ERROR", "SHUTDOWN", "REBOOT", "RECOVERY"}:
+        return False, old, None
+
+    if command in SPECIAL:
+        target = SPECIAL[command]
+        if command == "error" and phase in {
+                "FAST_COMPLETE", "PROGRESS_100", "READY_PRESENTED",
+                "DESTINATION_READY"}:
+            return False, old, None
+        value = {"version": 2, "phase": target, "percent": percent,
+                 "message": target.title(), "visual": target}
+        return True, value, f"N85:{target}"
+
+    if command == "handoff":
+        if not phase.startswith("PROGRESS_") or percent < 0 or percent > 95:
+            return False, old, None
+        value = {"version": 2, "phase": "SHELL_HANDOFF", "percent": percent,
+                 "message": MESSAGES.get(percent, "Starting NeutronShell"),
+                 "visual": f"PROGRESS_{percent:03d}"}
+        return True, value, None
+    if command == "destination-ready":
+        if phase != "SHELL_HANDOFF": return False, old, None
+        value = {"version": 2, "phase": "FAST_COMPLETE", "percent": percent,
+                 "message": MESSAGES.get(percent, "Starting NeutronShell"),
+                 "visual": f"PROGRESS_{percent:03d}"}
+        return True, value, None
+    if command == "fast-step":
+        if phase != "FAST_COMPLETE" or percent >= 100:
+            return False, old, None
+        requested = min(100, percent + 15)
+        value = {"version": 2, "phase": "FAST_COMPLETE", "percent": requested,
+                 "message": MESSAGES.get(requested, "Completing startup"),
+                 "visual": f"PROGRESS_{requested:03d}"}
+        return True, value, None
+    if command == "ready-presented":
+        if phase != "FAST_COMPLETE" or percent != 100:
+            return False, old, None
+        # The physical 100% frame is proven by one presentation edge.  The UI
+        # performs only a short render-settle interval before handoff.
+        value = {"version": 2, "phase": "READY_PRESENTED", "percent": 100,
+                 "message": MESSAGES[100], "visual": "PROGRESS_100",
+                 "presented": True}
+        return True, value, None
+    if command == "destination-presented":
+        if phase != "READY_PRESENTED": return False, old, None
+        value = {"version": 2, "phase": "DESTINATION_READY", "percent": 100,
+                 "message": "Graphical destination ready",
+                 "visual": "DESTINATION_READY"}
+        return True, value, None
+
+    try: requested = int(command)
+    except ValueError: return False, old, None
+    if requested not in PROGRESS: return False, old, None
+    if requested == 100:
+        if phase != "FAST_COMPLETE": return False, old, None
+    elif requested == 0:
+        if phase != "NEW": return False, old, None
+    else:
+        expected = percent + 5
+        if phase != f"PROGRESS_{percent:03d}" or requested != expected:
+            # A service restart after a completed boot is an inert success,
+            # not permission to replay old artwork.
+            return False, old, None
+    message = MESSAGES[requested]
+    value = {"version": 2, "phase": f"PROGRESS_{requested:03d}",
+             "percent": requested, "message": message,
+             "visual": f"PROGRESS_{requested:03d}"}
+    return True, value, f"N85:{requested:03d}:{message}"
+
+def main() -> int:
+    if len(sys.argv) != 2:
+        return 64
+    STATE.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    lock_path = STATE.with_suffix(STATE.suffix + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        changed, value, message = transition(sys.argv[1])
+        if changed:
+            # A milestone is not authoritative if the sole display owner did
+            # not accept its request.  Do not let later units advance a JSON
+            # state whose corresponding visual was never delivered.
+            if message and not send(message):
+                return 1
+            persist(value)
+        # Rejected transitions are safe no-ops for restart compatibility.
+        # Callers requiring proof compare the resulting phase explicitly.
+        return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

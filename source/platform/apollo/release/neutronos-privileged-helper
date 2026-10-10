@@ -1,0 +1,942 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import base64, ctypes, ctypes.util, hashlib, hmac, json, os, pwd, grp, re, secrets, shutil, stat, subprocess, sys, tempfile, time, urllib.request, zipfile
+from pathlib import Path
+
+SETUP_DIR=Path('/var/lib/neutronos/setup')
+SECURITY_DIR=Path('/var/lib/neutronos/security-core')
+REMOTE_DIR=Path('/var/lib/neutronos/remote')
+CONF_DIR=Path('/etc/neutronos')
+APPSTORE_STATE=Path('/var/lib/neutronos/app-store')
+APPSTORE_ROOT_REGISTRY=APPSTORE_STATE/'root-installed.json'
+APPSTORE_NORMAL_REGISTRY=APPSTORE_STATE/'installed.json'
+APPSTORE_INTEGRITY_AUTH=Path('/run/neutronos/appstore-integrity-uninstall.json')
+NEUTRON_ROOT=Path('/opt/neutronos')
+APPSTORE_ROOT_ROLLBACK=APPSTORE_STATE/'root-rollback'
+APPSTORE_TRUST=Path('/etc/neutronos/app-store-trusted-keys.json')
+APPSTORE_REBUILD_TICKETS=Path('/run/neutronos/app-store-rebuild-tickets')
+APPSTORE_RESUME=Path('/run/neutronos/app-store-resume.json')
+APPSTORE_RESUME_KEY=APPSTORE_STATE/'resume.key'
+APPSTORE_GUARD_STAGE=Path('/run/neutronos-appstore-guard')
+APP_ID_RE=re.compile(r'^[a-z0-9][a-z0-9._-]{0,95}$')
+DEBIAN_RE=re.compile(r'^[a-z0-9][a-z0-9+.-]*(?::[a-z0-9][a-z0-9-]*)?$')
+SYSTEM_DEST_PREFIXES=('/etc/systemd/system/','/usr/local/lib/neutronos/')
+
+def run(cmd, *, input_text=None, check=True):
+    return subprocess.run(cmd, input=input_text, text=True, check=check)
+
+def valid_timezone(v):
+    p=(Path('/usr/share/zoneinfo')/v).resolve()
+    return bool(v) and p.is_file() and str(p).startswith('/usr/share/zoneinfo/')
+
+def setup_region(args):
+    if len(args)!=3 or not valid_timezone(args[0]): raise SystemExit('invalid region request')
+    timezone, locale, keyboard=args
+    run(['timedatectl','set-timezone',timezone])
+    if locale:
+        if not re.fullmatch(r'[A-Za-z_]+(?:\.[A-Za-z0-9-]+)?',locale): raise SystemExit('invalid locale')
+        run(['localectl','set-locale',f'LANG={locale}'])
+    if keyboard:
+        if not re.fullmatch(r'[A-Za-z0-9_-]{1,32}',keyboard): raise SystemExit('invalid keyboard layout')
+        run(['localectl','set-keymap',keyboard])
+
+def setup_identity(args):
+    if len(args)!=3: raise SystemExit('invalid identity request')
+    host,user,display=args
+    if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?',host): raise SystemExit('invalid hostname')
+    if not re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}',user): raise SystemExit('invalid username')
+    password=sys.stdin.readline().rstrip('\n')
+    if len(password)<8: raise SystemExit('password must contain at least 8 characters')
+    try: pwd.getpwnam(user)
+    except KeyError:
+        cmd=['useradd','-m','-s','/bin/bash']
+        if display: cmd += ['-c',display[:64]]
+        cmd += [user]
+        run(cmd)
+    groups=[g for g in ('sudo','audio','video','input','render','plugdev','netdev','bluetooth','neutronos-shell') if any(x.gr_name==g for x in grp.getgrall())]
+    if groups: run(['usermod','-aG',','.join(groups),user])
+    run(['chpasswd'],input_text=f'{user}:{password}\n')
+    run(['hostnamectl','set-hostname',host])
+
+def atomic_json(path,data,mode=0o640):
+    path.parent.mkdir(parents=True,exist_ok=True)
+    tmp=path.with_suffix(path.suffix+'.tmp')
+    tmp.write_text(json.dumps(data,indent=2)+'\n')
+    os.chmod(tmp,mode); os.replace(tmp,path)
+
+def apply_power(pref):
+    mode='eco' if str(pref).lower()=='eco' else 'normal'
+    cap=1200000 if mode=='eco' else 1500000
+    for policy in Path('/sys/devices/system/cpu/cpufreq').glob('policy*'):
+        governors=(policy/'scaling_available_governors').read_text().split() if (policy/'scaling_available_governors').exists() else []
+        governor='powersave' if mode=='eco' and 'powersave' in governors else ('schedutil' if 'schedutil' in governors else ('ondemand' if 'ondemand' in governors else ''))
+        if governor:
+            try: (policy/'scaling_governor').write_text(governor)
+            except OSError: pass
+        try:
+            hw=int((policy/'cpuinfo_max_freq').read_text().strip())
+            (policy/'scaling_max_freq').write_text(str(min(hw,cap)))
+        except OSError: pass
+    power_state=Path('/var/lib/neutronos/power_mode.json')
+    atomic_json(power_state,{'mode':mode,'source':'setup-wizard'},0o640)
+    try: os.chown(power_state,pwd.getpwnam('neutronos').pw_uid,grp.getgrnam('neutronos-shell').gr_gid)
+    except KeyError: pass
+
+def configure_ssh(enable):
+    if enable:
+        run(['ssh-keygen','-A'])
+        run(['systemctl','enable','--now','ssh.service'])
+    else:
+        run(['systemctl','disable','--now','ssh.service'],check=False)
+        run(['systemctl','disable','--now','ssh.socket'],check=False)
+
+def reload_firewall():
+    run(['nft','-c','-f','/etc/nftables.conf'])
+    run(['systemctl','reload-or-restart','nftables.service'])
+
+def configure_remote(enable):
+    REMOTE_DIR.mkdir(parents=True,exist_ok=True)
+    token_path=REMOTE_DIR/'controller.token'
+    env_path=CONF_DIR/'remote-controller.conf'
+    rule_dir=Path('/etc/nftables.d'); rule_dir.mkdir(parents=True,exist_ok=True)
+    rule_path=rule_dir/'neutronos-remote.nft'
+    if enable:
+        try:
+            token=token_path.read_text().strip()
+        except OSError:
+            token=''
+        if len(token) < 32:
+            token=secrets.token_urlsafe(36)
+            token_path.write_text(token+'\n')
+        os.chmod(token_path,0o640)
+        try:
+            uid=pwd.getpwnam('neutronos').pw_uid; gid=grp.getgrnam('neutronos-shell').gr_gid
+            os.chown(token_path,uid,gid)
+        except KeyError: pass
+        env_path.write_text('NEUTRONOS_REMOTE_HOST=0.0.0.0\nNEUTRONOS_REMOTE_PORT=8091\n')
+        os.chmod(env_path,0o640)
+        rule_path.write_text('add rule inet neutronos_filter input ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 } tcp dport 8091 ct state new limit rate 30/second accept comment "Authenticated NeutronOS Remote Controller IPv4"\nadd rule inet neutronos_filter input ip6 saddr { fc00::/7, fe80::/10 } tcp dport 8091 ct state new limit rate 30/second accept comment "Authenticated NeutronOS Remote Controller IPv6"\n')
+        reload_firewall()
+        run(['systemctl','enable','--now','neutronos-remote-controller.service'])
+        SETUP_DIR.mkdir(parents=True,exist_ok=True)
+        out=SETUP_DIR/'remote-token.txt'; out.write_text(token+'\n'); os.chmod(out,0o600)
+        try: os.chown(out,pwd.getpwnam('neutronos').pw_uid,pwd.getpwnam('neutronos').pw_gid)
+        except KeyError: pass
+    else:
+        run(['systemctl','disable','--now','neutronos-remote-controller.service'],check=False)
+        for p in (token_path,env_path,rule_path,SETUP_DIR/'remote-token.txt'):
+            try: p.unlink()
+            except FileNotFoundError: pass
+        reload_firewall()
+
+def apply_security(level):
+    level=str(level).lower(); profile={'low':'balanced','medium':'strict','high':'fortified'}.get(level,'strict')
+    SECURITY_DIR.mkdir(parents=True,exist_ok=True)
+    config_path=SECURITY_DIR/'config.json'
+    try: cfg=json.loads(config_path.read_text())
+    except Exception: cfg={}
+    cfg.update({'learningMode':False,'enforcementEnabled':True,'responseEngineEnabled':True,'activeHardeningProfile':profile,'setupStrictness':level,'automaticBanThreshold':8 if level=='low' else (5 if level=='medium' else 3),'notificationMinimumSeverity':4 if level=='low' else (3 if level=='medium' else 2),'backgroundScanEnabled':level!='low'})
+    atomic_json(config_path,cfg)
+    state_path=SECURITY_DIR/'hardening-state.json'
+    try: state=json.loads(state_path.read_text())
+    except Exception: state={}
+    state.update({'activeProfile':profile,'lastResult':f'{profile.title()} release profile selected during setup.'})
+    atomic_json(state_path,state)
+    try:
+        uid=pwd.getpwnam('neutronos').pw_uid; gid=grp.getgrnam('neutronos-shell').gr_gid
+        os.chown(config_path,uid,gid); os.chown(state_path,uid,gid)
+    except KeyError: pass
+
+def write_cpufreq(args):
+    if len(args)!=2: raise SystemExit('invalid cpufreq request')
+    path=Path(args[0]).resolve(); value=args[1]
+    if not re.fullmatch(r'/sys/devices/system/cpu/cpufreq/policy[0-9]+/(scaling_governor|scaling_max_freq|min_perf_pct|max_perf_pct)',str(path)):
+        raise SystemExit('cpufreq path denied')
+    if path.name=='scaling_governor':
+        if not re.fullmatch(r'[a-z0-9_-]{1,32}',value): raise SystemExit('invalid governor')
+    elif not re.fullmatch(r'[0-9]{1,10}',value):
+        raise SystemExit('invalid frequency value')
+    path.write_text(value)
+
+def apply_preferences(args):
+    if len(args)!=1: raise SystemExit('invalid preferences request')
+    path=Path(args[0]).resolve()
+    if path != (SETUP_DIR/'preferences.json').resolve(): raise SystemExit('invalid preferences path')
+    data=json.loads(path.read_text())
+    apply_security(data.get('securityStrictness','medium'))
+    apply_power(data.get('performancePreference','Normal'))
+    configure_ssh(bool(data.get('sshEnabled',False)))
+    configure_remote(bool(data.get('remoteControllerEnabled',False)))
+    run(['systemctl','restart','neutron-securityd.service'],check=False)
+
+
+def load_json_file(path, default):
+    try:
+        value=json.loads(Path(path).read_text())
+        return value
+    except Exception:
+        return default
+
+def emit_progress(progress,stage,detail='',items=None):
+    payload={'event':'progress','progress':max(0.0,min(1.0,float(progress))),'stage':str(stage or '').strip(),'detail':str(detail or '').strip(),'items':[str(v) for v in (items or []) if str(v).strip()]}
+    print(json.dumps(payload,separators=(',',':'),sort_keys=True),flush=True)
+
+def clear_integrity_uninstall_authorization():
+    try: APPSTORE_INTEGRITY_AUTH.unlink()
+    except FileNotFoundError: pass
+
+def arm_integrity_uninstall_authorization(package_id, owned_files):
+    # Security may only suppress removals that the App Store uninstall really
+    # performs inside integrity-monitored locations. Normal package payload
+    # lives under /var/lib/neutronos/app-store/payload and is not part of the
+    # integrity baseline, so it is intentionally NOT translated into source
+    # paths here. There are no directory wildcards.
+    normal=load_json_file(APPSTORE_NORMAL_REGISTRY,{'packages':{}})
+    record=normal.get('packages',{}).get(package_id,{}) if isinstance(normal,dict) else {}
+    build_files=[str(v) for v in record.get('buildFiles',[]) if isinstance(v,str)] if isinstance(record,dict) else []
+    exact=[]
+    expected_prefix=f'src/package_apps/{package_id}/'
+    owned_source_root=(NEUTRON_ROOT/'src'/'package_apps'/package_id).resolve()
+    for relative in build_files:
+        candidate=str(relative).strip()
+        if not candidate.startswith(expected_prefix) or '..' in Path(candidate).parts:
+            raise SystemExit('invalid package build-file authorization path')
+        target=(NEUTRON_ROOT/candidate).resolve()
+        if owned_source_root not in target.parents:
+            raise SystemExit('package build-file authorization escaped owned source root')
+        absolute=str(target)
+        if absolute not in exact: exact.append(absolute)
+    for raw in owned_files:
+        absolute=str(valid_system_destination(raw).resolve())
+        if absolute not in exact: exact.append(absolute)
+    now=time.time()
+    atomic_json(APPSTORE_INTEGRITY_AUTH,{'schema':1,'packageId':package_id,'operation':'uninstall','paths':sorted(exact),'createdAtEpoch':now,'expiresAtEpoch':now+300.0},0o600)
+
+
+def b64decode_exact(text, length, label):
+    try: value=base64.b64decode(str(text),validate=True)
+    except Exception as exc: raise SystemExit(f'invalid {label}') from exc
+    if len(value)!=length: raise SystemExit(f'invalid {label} length')
+    return value
+
+def trusted_release_key(key_id, package_id):
+    root=load_json_file(APPSTORE_TRUST,{})
+    for item in root.get('keys',[]):
+        if not isinstance(item,dict) or str(item.get('id',''))!=key_id: continue
+        if not bool(item.get('enabled',True)): raise SystemExit('package signing key is disabled')
+        if str(item.get('algorithm','')).lower()!='ed25519': raise SystemExit('unsupported package signing algorithm')
+        ids=[str(v).strip().lower() for v in item.get('packageIds',[]) if str(v).strip()]
+        if ids and package_id not in ids: raise SystemExit('package signing key is not authorized for this package')
+        return item
+    raise SystemExit('package signing key is not trusted by the privileged installer')
+
+def appstore_package_path_allowed(package):
+    package=Path(package).resolve()
+    if not package.is_file():
+        return False
+
+    # Ordinary App Store storage remains accepted for compatibility with older
+    # callers. The hardened Security guard, however, deliberately copies the
+    # exact verified bytes into /run before privileged execution so an
+    # unprivileged process cannot swap the package after verification.
+    normal_roots=[(APPSTORE_STATE/'downloads').resolve(),(APPSTORE_STATE/'packages').resolve()]
+    if any(root==package.parent or root in package.parents for root in normal_roots):
+        return True
+
+    # The guard staging area is trusted only when its ownership/permissions
+    # prove that the package has crossed the privileged immutable boundary.
+    try:
+        guard=APPSTORE_GUARD_STAGE.resolve()
+        if package.parent != guard:
+            return False
+        guard_stat=guard.stat()
+        package_stat=package.stat()
+    except OSError:
+        return False
+    if guard_stat.st_uid != 0 or not stat.S_ISDIR(guard_stat.st_mode):
+        return False
+    if guard_stat.st_mode & 0o077:
+        return False
+    if package_stat.st_uid != 0 or not stat.S_ISREG(package_stat.st_mode):
+        return False
+    if package_stat.st_mode & 0o077:
+        return False
+    if package_stat.st_nlink != 1:
+        return False
+    return True
+
+def verify_signed_napp(package_path, expected_sha, signature_b64, key_id, expected_id):
+    package=Path(package_path).resolve()
+    if not appstore_package_path_allowed(package):
+        raise SystemExit(f'package path is outside App Store managed storage: {package}')
+    if not APP_ID_RE.fullmatch(expected_id): raise SystemExit('invalid expected package id')
+    data=package.read_bytes(); actual=hashlib.sha256(data).hexdigest()
+    if actual.lower()!=str(expected_sha).strip().lower(): raise SystemExit('privileged package checksum verification failed')
+    key=trusted_release_key(str(key_id).strip(),expected_id)
+    signature=b64decode_exact(signature_b64,64,'signature')
+    public_key=b64decode_exact(key.get('publicKey',''),32,'public key')
+    libname=ctypes.util.find_library('sodium') or 'libsodium.so.23'
+    sodium=ctypes.CDLL(libname); sodium.sodium_init()
+    verify=sodium.crypto_sign_verify_detached
+    verify.argtypes=[ctypes.c_char_p,ctypes.c_char_p,ctypes.c_ulonglong,ctypes.c_char_p]
+    verify.restype=ctypes.c_int
+    if verify(signature,data,len(data),public_key)!=0: raise SystemExit('privileged package signature verification failed')
+    try:
+        with zipfile.ZipFile(package,'r') as archive:
+            manifest=json.loads(archive.read('manifest.json').decode('utf-8'))
+    except Exception as exc: raise SystemExit(f'invalid signed package: {exc}') from exc
+    if not isinstance(manifest,dict) or str(manifest.get('id','')).strip().lower()!=expected_id:
+        raise SystemExit('signed package id mismatch')
+    return package,manifest
+
+def appstore_registry():
+    data=load_json_file(APPSTORE_ROOT_REGISTRY,{'schema':1,'packages':{}})
+    if not isinstance(data,dict): data={'schema':1,'packages':{}}
+    if not isinstance(data.get('packages'),dict): data['packages']={}
+    data['schema']=1
+    return data
+
+def atomic_bytes(path,data,mode):
+    path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
+    fd,tmp=tempfile.mkstemp(prefix=path.name+'.appstore-',dir=path.parent)
+    try:
+        with os.fdopen(fd,'wb') as handle:
+            handle.write(data); handle.flush(); os.fsync(handle.fileno())
+        os.chmod(tmp,mode); os.chown(tmp,0,0); os.replace(tmp,path)
+    finally:
+        try: os.unlink(tmp)
+        except FileNotFoundError: pass
+
+def valid_system_destination(raw):
+    path=Path(str(raw))
+    if not path.is_absolute() or '..' in path.parts: raise SystemExit('unsafe system destination')
+    text=str(path)
+    if not text.startswith(SYSTEM_DEST_PREFIXES): raise SystemExit(f'system destination denied: {text}')
+    return path
+
+def required_binary(name):
+    path=shutil.which(name)
+    if not path or not Path(path).is_file(): raise SystemExit(f'required executable is missing: {name}')
+    return path
+
+def package_installed(name):
+    dpkg_query=required_binary('dpkg-query')
+    result=subprocess.run([dpkg_query,'-W','-f=${Status}',name],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,check=False)
+    return result.returncode==0 and result.stdout.strip()=='install ok installed'
+
+def systemctl(*args,check=True):
+    return run([required_binary('systemctl'),*args],check=check)
+
+def capture_service_state(unit):
+    binary=required_binary('systemctl')
+    enabled=subprocess.run([binary,'is-enabled',unit],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False).returncode==0
+    active=subprocess.run([binary,'is-active','--quiet',unit],check=False).returncode==0
+    return {'unit':unit,'enabled':enabled,'active':active}
+
+def create_root_snapshot(package_id,operation,files,services,registry_before):
+    token=secrets.token_hex(20); root=APPSTORE_ROOT_ROLLBACK/token; root.mkdir(parents=True,exist_ok=False)
+    states=[]
+    for dest in files:
+        path=Path(dest); existed=path.exists() or path.is_symlink()
+        entry={'destination':str(path),'existed':existed}
+        if existed:
+            if path.is_symlink() or not path.is_file(): raise SystemExit(f'unsupported existing system path: {path}')
+            rel=str(path).lstrip('/'); backup=root/'files'/rel; backup.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(path,backup)
+            entry['mode']=oct(path.stat().st_mode & 0o777)
+        states.append(entry)
+    service_states=[capture_service_state(unit) for unit in services]
+    atomic_json(root/'snapshot.json',{'schema':1,'token':token,'packageId':package_id,'operation':operation,'files':states,'services':service_states,'registryBefore':registry_before},0o600)
+    return token,root
+
+def restore_root_snapshot(token):
+    if not re.fullmatch(r'[0-9a-f]{40}',str(token)): raise SystemExit('invalid rollback token')
+    root=APPSTORE_ROOT_ROLLBACK/str(token); meta=load_json_file(root/'snapshot.json',None)
+    if not isinstance(meta,dict): raise SystemExit('root rollback snapshot is missing')
+    for state in reversed(meta.get('files',[])):
+        path=valid_system_destination(state.get('destination',''))
+        if state.get('existed'):
+            backup=root/'files'/str(path).lstrip('/')
+            if not backup.is_file(): raise SystemExit(f'rollback backup missing for {path}')
+            atomic_bytes(path,backup.read_bytes(),int(str(state.get('mode','0o644')),8))
+        else:
+            try: path.unlink()
+            except FileNotFoundError: pass
+    systemctl('daemon-reload',check=False)
+    for service in meta.get('services',[]):
+        unit=str(service.get('unit',''))
+        if not unit: continue
+        if service.get('enabled'): systemctl('enable',unit,check=False)
+        else: systemctl('disable',unit,check=False)
+        if service.get('active'): systemctl('restart',unit,check=False)
+        else: systemctl('stop',unit,check=False)
+    atomic_json(APPSTORE_ROOT_REGISTRY,meta.get('registryBefore',{'schema':1,'packages':{}}),0o640)
+    print(json.dumps({'success':True,'message':'Privileged App Store state rolled back','rollbackToken':token},separators=(',',':')))
+
+def require_direct_neutron_shell_caller():
+    """Require helper -> sudo -> NeutronShell ancestry for resume actions.
+
+    This intentionally rejects calls routed through Terminal/bash or a package
+    helper even when those processes ultimately descend from NeutronShell.
+    """
+    pid=os.getppid()
+    try:
+        sudo_parent=int((Path(f'/proc/{pid}/stat').read_text().split())[3])
+        exe=Path(f'/proc/{sudo_parent}/exe').resolve()
+    except Exception:
+        raise SystemExit('unable to validate NeutronShell caller ancestry')
+    if exe.name!='NeutronShell' or not str(exe).endswith('/NeutronOS/build/NeutronShell'):
+        raise SystemExit('App Store resume action must be invoked directly by NeutronShell')
+    return exe
+
+
+def validate_rebuild_manifest(manifest,package_id):
+    required=bool(manifest.get('rebuildRequired',False))
+    rows=manifest.get('buildFiles',[])
+    if not isinstance(rows,list): raise SystemExit('buildFiles must be an array')
+    if required and not rows: raise SystemExit('rebuildRequired package has no buildFiles')
+    if rows and not required: raise SystemExit('buildFiles require rebuildRequired')
+    prefix=f'src/package_apps/{package_id}/'
+    seen=set()
+    for row in rows:
+        if not isinstance(row,dict): raise SystemExit('invalid buildFiles entry')
+        source=str(row.get('source','')).strip(); dest=str(row.get('destination','')).strip()
+        if not source.startswith('build/owned/') or not dest.startswith(prefix) or '..' in Path(dest).parts:
+            raise SystemExit('rebuild package source ownership is invalid')
+        if dest in seen: raise SystemExit('duplicate rebuild destination')
+        seen.add(dest)
+    return required
+
+
+def ensure_resume_key():
+    APPSTORE_STATE.mkdir(parents=True,exist_ok=True)
+    if not APPSTORE_RESUME_KEY.exists():
+        tmp=APPSTORE_RESUME_KEY.with_suffix('.new')
+        tmp.write_bytes(secrets.token_bytes(32)); os.chmod(tmp,0o600); os.replace(tmp,APPSTORE_RESUME_KEY)
+    key=APPSTORE_RESUME_KEY.read_bytes()
+    if len(key)!=32: raise SystemExit('App Store resume key is invalid')
+    return key
+
+
+def issue_rebuild_ticket(package_id,version,family,package_sha):
+    token=secrets.token_hex(24)
+    APPSTORE_REBUILD_TICKETS.mkdir(parents=True,exist_ok=True)
+    os.chmod(APPSTORE_REBUILD_TICKETS,0o700)
+    payload={'schema':1,'packageId':package_id,'version':str(version or ''),'family':family,
+             'packageSha256':str(package_sha or ''),'issuedAt':int(time.time()),'expiresAt':int(time.time())+1200,
+             'tokenHash':hashlib.sha256(token.encode()).hexdigest()}
+    atomic_json(APPSTORE_REBUILD_TICKETS/(token+'.json'),payload,0o600)
+    return token
+
+
+def read_rebuild_ticket(token):
+    if not re.fullmatch(r'[0-9a-f]{48}',str(token)): raise SystemExit('invalid rebuild ticket')
+    path=APPSTORE_REBUILD_TICKETS/(str(token)+'.json')
+    data=load_json_file(path,{})
+    if not isinstance(data,dict) or data.get('tokenHash')!=hashlib.sha256(str(token).encode()).hexdigest():
+        raise SystemExit('rebuild ticket is invalid')
+    if int(data.get('expiresAt') or 0)<int(time.time()):
+        try: path.unlink()
+        except FileNotFoundError: pass
+        raise SystemExit('rebuild ticket expired')
+    return path,data
+
+
+def invalidate_rebuild_tickets(package_id):
+    if not APPSTORE_REBUILD_TICKETS.is_dir(): return
+    for candidate in APPSTORE_REBUILD_TICKETS.glob('*.json'):
+        try:
+            data=load_json_file(candidate,{})
+            if isinstance(data,dict) and str(data.get('packageId') or '')==package_id:
+                candidate.unlink()
+        except (OSError,ValueError,TypeError):
+            pass
+
+
+def active_login_session(user,session_id):
+    if not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}',str(session_id or '')): return False
+    try:
+        name=subprocess.run(['loginctl','show-session',session_id,'-p','Name','--value'],capture_output=True,text=True,timeout=4,check=False)
+        active=subprocess.run(['loginctl','show-session',session_id,'-p','Active','--value'],capture_output=True,text=True,timeout=4,check=False)
+    except Exception:
+        return False
+    return name.returncode==0 and active.returncode==0 and name.stdout.strip()==user and active.stdout.strip().lower()=='yes'
+
+
+def valid_shell_binary(user,binary_path,binary_sha):
+    try: expected=Path('/home')/user/'NeutronOS'/'build'/'NeutronShell'; actual=Path(binary_path).resolve()
+    except Exception: raise SystemExit('invalid NeutronShell binary path')
+    if actual!=expected.resolve() or not actual.is_file() or not os.access(actual,os.X_OK):
+        raise SystemExit('validated NeutronShell binary is missing')
+    digest=hashlib.sha256(actual.read_bytes()).hexdigest()
+    if digest!=str(binary_sha).lower(): raise SystemExit('NeutronShell hash changed before restart')
+    return digest
+
+
+def sign_resume_payload(payload):
+    key=ensure_resume_key()
+    raw=json.dumps(payload,separators=(',',':'),sort_keys=True).encode()
+    return hmac.new(key,raw,hashlib.sha256).hexdigest()
+
+
+def appstore_arm_resume_and_restart(args):
+    require_direct_neutron_shell_caller()
+    if len(args)!=8: raise SystemExit('invalid App Store rebuild resume request')
+    ticket,package_id,operation,version,user,session_id,binary_path,binary_sha=args
+    package_id=str(package_id).strip().lower(); operation=str(operation).strip().lower(); user=str(user).strip()
+    if not APP_ID_RE.fullmatch(package_id) or operation not in {'install','update','uninstall'}:
+        raise SystemExit('invalid App Store rebuild resume identity')
+    try: pwd.getpwnam(user)
+    except KeyError: raise SystemExit('resume user does not exist')
+    path,meta=read_rebuild_ticket(ticket)
+    if meta.get('packageId')!=package_id or str(meta.get('version') or '')!=str(version or ''):
+        raise SystemExit('rebuild ticket package/version mismatch')
+    family=str(meta.get('family') or '')
+    if (family=='install-update' and operation not in {'install','update'}) or (family=='uninstall' and operation!='uninstall'):
+        raise SystemExit('rebuild ticket operation mismatch')
+    digest=valid_shell_binary(user,binary_path,binary_sha)
+    now=int(time.time())
+    payload={'schema':1,'pending':True,'packageId':package_id,'operation':operation,'version':str(version or ''),
+             'userName':user,'sessionId':session_id,'binarySha256':digest,'issuedAt':now,'expiresAt':now+150,
+             'nonce':secrets.token_hex(16)}
+    envelope={'payload':payload,'mac':sign_resume_payload(payload)}
+    APPSTORE_RESUME.parent.mkdir(parents=True,exist_ok=True)
+    atomic_json(APPSTORE_RESUME,envelope,0o600)
+    try:
+        # Queue the restart without waiting for the service cgroup to terminate
+        # this helper. If systemd rejects the request, remove the resume token.
+        systemctl('--no-block','restart','neutronos.service')
+    except BaseException:
+        try: APPSTORE_RESUME.unlink()
+        except FileNotFoundError: pass
+        raise
+    try: path.unlink()
+    except FileNotFoundError: pass
+    print(json.dumps({'success':True,'message':'Validated App Store restart armed','packageId':package_id,'operation':operation},separators=(',',':')),flush=True)
+
+
+def appstore_consume_resume(args):
+    shell=require_direct_neutron_shell_caller()
+    if args: raise SystemExit('invalid App Store resume consume request')
+    if not APPSTORE_RESUME.exists():
+        print(json.dumps({'success':True,'message':'No App Store resume is pending','pending':False},separators=(',',':'))); return
+    envelope=load_json_file(APPSTORE_RESUME,{})
+    # Always consume once, even when invalid, so corrupt state cannot create a login bypass loop.
+    try: APPSTORE_RESUME.unlink()
+    except FileNotFoundError: pass
+    if not isinstance(envelope,dict) or not isinstance(envelope.get('payload'),dict):
+        raise SystemExit('App Store resume record is invalid')
+    payload=envelope['payload']; supplied=str(envelope.get('mac') or '')
+    expected=sign_resume_payload(payload)
+    if not hmac.compare_digest(supplied,expected): raise SystemExit('App Store resume authentication failed')
+    now=int(time.time())
+    if payload.get('pending') is not True or int(payload.get('expiresAt') or 0)<now or int(payload.get('issuedAt') or 0)>now+5:
+        raise SystemExit('App Store resume record expired')
+    user=str(payload.get('userName') or ''); session_id=str(payload.get('sessionId') or '')
+    try: pwd.getpwnam(user)
+    except KeyError: raise SystemExit('App Store resume user no longer exists')
+    digest=hashlib.sha256(shell.read_bytes()).hexdigest()
+    if digest!=str(payload.get('binarySha256') or ''): raise SystemExit('running NeutronShell does not match validated rebuild')
+    package_id=str(payload.get('packageId') or ''); operation=str(payload.get('operation') or '')
+    if not APP_ID_RE.fullmatch(package_id) or operation not in {'install','update','uninstall'}:
+        raise SystemExit('App Store resume operation is invalid')
+    print(json.dumps({'success':True,'message':'Validated App Store resume consumed',**payload},separators=(',',':')))
+
+
+def normalized_system_entries(manifest):
+    raw=manifest.get('systemFiles',[])
+    if not isinstance(raw,list): raise SystemExit('systemFiles must be an array')
+    entries=[]; seen=set()
+    for item in raw:
+        if not isinstance(item,dict): raise SystemExit('systemFiles entry is invalid')
+        source=str(item.get('source','')).strip(); ownership=str(item.get('ownership','')).strip().lower(); destination=valid_system_destination(item.get('destination',''))
+        prefix='system/owned/' if ownership=='package' else ('system/shared/' if ownership=='shared' else '')
+        if not prefix or not source.startswith(prefix) or '..' in Path(source).parts: raise SystemExit('systemFiles source/ownership mismatch')
+        mode_text=str(item.get('mode','0644')).strip()
+        if mode_text not in ('0644','0755'): raise SystemExit('unsupported system file mode')
+        if str(destination) in seen: raise SystemExit('duplicate system destination')
+        seen.add(str(destination))
+        enable_now=bool(item.get('enableNow',False))
+        if enable_now and not str(destination).startswith('/etc/systemd/system/'): raise SystemExit('enableNow requires a systemd unit destination')
+        entries.append({'source':source,'ownership':ownership,'destination':destination,'mode':int(mode_text,8),'enableNow':enable_now})
+    return entries
+
+
+def normalized_runtime_requirements(manifest, package_id):
+    raw=manifest.get('runtimeRequirements',[])
+    if not isinstance(raw,list): raise SystemExit('runtimeRequirements must be an array')
+    if len(raw)>1: raise SystemExit('only one runtime requirement is currently supported')
+    result=[]
+    for item in raw:
+        if not isinstance(item,dict): raise SystemExit('runtime requirement is invalid')
+        if str(item.get('type','')).strip().lower()!='jellyfin-server' or package_id!='jellyfin':
+            raise SystemExit('unsupported runtime requirement')
+        expected={
+            'systemUnit':'jellyfin.service',
+            'containerName':'jellyfin',
+            'dockerUnit':'docker.service',
+            'image':'jellyfin/jellyfin:10.11.11',
+            'imageDigest':'sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db',
+            'networkMode':'host',
+            'restartPolicy':'unless-stopped',
+            'configVolume':'neutron-jellyfin-config',
+            'cacheVolume':'neutron-jellyfin-cache',
+        }
+        docker_packages=item.get('dockerPackages',['docker.io','docker-cli'])
+        if docker_packages!=['docker.io','docker-cli']: raise SystemExit('unsupported jellyfin-server dockerPackages')
+        normalized={'type':'jellyfin-server','dockerPackages':['docker.io','docker-cli']}
+        for key,value in expected.items():
+            actual=str(item.get(key,value)).strip()
+            if actual!=value: raise SystemExit(f'unsupported jellyfin-server {key}')
+            normalized[key]=value
+        roots=item.get('mediaRoots',['/media','/mnt','/srv'])
+        if not isinstance(roots,list): raise SystemExit('jellyfin-server mediaRoots must be an array')
+        allowed=('/media','/mnt','/srv'); normalized_roots=[]
+        for root in roots:
+            value=str(root).strip()
+            if value not in allowed: raise SystemExit(f'unsupported Jellyfin media root: {value}')
+            if value not in normalized_roots: normalized_roots.append(value)
+        normalized['mediaRoots']=normalized_roots
+        normalized['autoDeviceDri']=bool(item.get('autoDeviceDri',True))
+        result.append(normalized)
+    return result
+
+def command_result(cmd, timeout=120):
+    return subprocess.run(cmd,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=timeout,check=False,env={'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'})
+
+def unit_exists(unit):
+    result=command_result([required_binary('systemctl'),'show','-p','LoadState','--value',unit],20)
+    return result.returncode==0 and result.stdout.strip() not in ('','not-found')
+
+def unit_active(unit):
+    result=command_result([required_binary('systemctl'),'is-active',unit],20)
+    return result.returncode==0 and result.stdout.strip()=='active'
+
+def wait_jellyfin_http(timeout=120):
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        try:
+            req=urllib.request.Request('http://127.0.0.1:8096/System/Info/Public',headers={'User-Agent':'NeutronOS-AppStore/1.0'})
+            with urllib.request.urlopen(req,timeout=3) as response:
+                if 200 <= int(getattr(response,'status',200)) < 300:
+                    return True
+        except Exception:
+            pass
+        time.sleep(2)
+    return False
+
+def docker_cmd():
+    return shutil.which('docker')
+
+def ensure_docker(requirement):
+    installed_now=[]
+    docker=docker_cmd()
+    if not docker:
+        packages=list(requirement['dockerPackages'])
+        missing=[package for package in packages if not package_installed(package)]
+        if missing:
+            apt_get=required_binary('apt-get')
+            env=dict(os.environ); env['DEBIAN_FRONTEND']='noninteractive'
+            result=subprocess.run([apt_get,'install','-y','--no-install-recommends',*missing],env=env,check=False)
+            if result.returncode!=0: raise SystemExit('failed to install Docker runtime dependencies: '+', '.join(missing))
+            still_missing=[package for package in missing if not package_installed(package)]
+            if still_missing: raise SystemExit('Docker package verification failed after apt install: '+', '.join(still_missing))
+            installed_now.extend(missing)
+        docker=docker_cmd()
+        if not docker: raise SystemExit('Docker package is installed but docker command is unavailable')
+    if unit_exists(requirement['dockerUnit']):
+        systemctl('enable','--now',requirement['dockerUnit'])
+        deadline=time.monotonic()+60
+        while time.monotonic()<deadline and not unit_active(requirement['dockerUnit']): time.sleep(1)
+    info=command_result([docker,'info'],60)
+    if info.returncode!=0:
+        raise SystemExit('Docker daemon is unavailable: '+(info.stderr.strip() or info.stdout.strip())[:1200])
+    return docker,installed_now
+
+def docker_container_exists(docker, name):
+    return command_result([docker,'inspect','--type','container',name],30).returncode==0
+
+def docker_container_running(docker, name):
+    result=command_result([docker,'inspect','--type','container','--format','{{.State.Running}}',name],30)
+    return result.returncode==0 and result.stdout.strip().lower()=='true'
+
+def docker_label(docker,name,label):
+    result=command_result([docker,'inspect','--type','container','--format',f'{{{{ index .Config.Labels "{label}" }}}}',name],30)
+    return result.stdout.strip() if result.returncode==0 else ''
+
+def ensure_volume(docker,name):
+    if command_result([docker,'volume','inspect',name],30).returncode==0: return False
+    result=command_result([docker,'volume','create','--label','com.neutronos.preserve=true','--label','com.neutronos.package=jellyfin',name],60)
+    if result.returncode!=0: raise SystemExit('failed to create persistent Jellyfin volume '+name+': '+result.stderr.strip()[:1000])
+    return True
+
+def provision_jellyfin(requirement, previous_runtime):
+    system_unit=requirement['systemUnit']; container=requirement['containerName']
+    system_present=unit_exists(system_unit)
+    if system_present:
+        if not unit_active(system_unit): systemctl('start',system_unit,check=False)
+        if wait_jellyfin_http(90):
+            return {'type':'jellyfin-server','mode':'system','systemUnit':system_unit,'createdByPackage':False,'serverUrl':'http://127.0.0.1:8096'},[]
+
+    docker=docker_cmd()
+    if docker and docker_container_exists(docker,container):
+        docker,installed=ensure_docker(requirement)
+        if not docker_container_running(docker,container):
+            result=command_result([docker,'start',container],90)
+            if result.returncode!=0: raise SystemExit('existing Jellyfin container failed to start: '+result.stderr.strip()[:1200])
+        if not wait_jellyfin_http(120): raise SystemExit('existing Jellyfin Docker container started but did not answer on port 8096')
+        previously_owned=isinstance(previous_runtime,dict) and previous_runtime.get('mode')=='docker' and bool(previous_runtime.get('createdByPackage'))
+        return {'type':'jellyfin-server','mode':'docker','containerName':container,'createdByPackage':previously_owned,'serverUrl':'http://127.0.0.1:8096'},installed
+
+    if system_present:
+        raise SystemExit('an existing jellyfin.service was found but it did not become responsive; refusing to create a competing Docker backend')
+
+    docker,installed=ensure_docker(requirement)
+    image_ref=requirement['image']+'@'+requirement['imageDigest']
+    inspect=command_result([docker,'image','inspect',image_ref],30)
+    pulled=False
+    if inspect.returncode!=0:
+        pull=command_result([docker,'pull',image_ref],1800)
+        if pull.returncode!=0: raise SystemExit('failed to download Jellyfin container image: '+pull.stderr.strip()[:1600])
+        pulled=True
+        if command_result([docker,'image','inspect',image_ref],30).returncode!=0: raise SystemExit('Jellyfin image verification failed after pull')
+
+    ensure_volume(docker,requirement['configVolume']); ensure_volume(docker,requirement['cacheVolume'])
+    args=[docker,'create','--name',container,
+          '--label','com.neutronos.managed=true','--label','com.neutronos.package=jellyfin','--label','com.neutronos.runtime=jellyfin-server',
+          '--network',requirement['networkMode'],'--restart',requirement['restartPolicy'],
+          '--volume',requirement['configVolume']+':/config','--volume',requirement['cacheVolume']+':/cache']
+    mounted=[]
+    for root in requirement['mediaRoots']:
+        if Path(root).is_dir():
+            args += ['--mount',f'type=bind,source={root},target={root},readonly,bind-propagation=rslave']
+            mounted.append(root)
+    if requirement.get('autoDeviceDri') and Path('/dev/dri').exists(): args += ['--device','/dev/dri:/dev/dri']
+    args.append(image_ref)
+    created=command_result(args,120)
+    if created.returncode!=0: raise SystemExit('failed to create Jellyfin container: '+created.stderr.strip()[:1600])
+    started=command_result([docker,'start',container],90)
+    if started.returncode!=0:
+        command_result([docker,'rm','-f',container],60)
+        raise SystemExit('failed to start newly created Jellyfin container: '+started.stderr.strip()[:1600])
+    if not wait_jellyfin_http(150):
+        command_result([docker,'rm','-f',container],60)
+        raise SystemExit('new Jellyfin container did not become responsive on port 8096')
+    return {'type':'jellyfin-server','mode':'docker','containerName':container,'createdByPackage':True,
+            'image':requirement['image'],'imageDigest':requirement['imageDigest'],'configVolume':requirement['configVolume'],
+            'cacheVolume':requirement['cacheVolume'],'mediaRootsMounted':mounted,'deviceDri':bool(requirement.get('autoDeviceDri') and Path('/dev/dri').exists()),
+            'imagePulledByPackage':pulled,'serverUrl':'http://127.0.0.1:8096'},installed
+
+def remove_managed_jellyfin_runtime(runtime):
+    if not isinstance(runtime,dict) or runtime.get('mode')!='docker' or not runtime.get('createdByPackage'): return
+    docker=docker_cmd(); name=str(runtime.get('containerName') or 'jellyfin')
+    if not docker or not docker_container_exists(docker,name): return
+    if docker_label(docker,name,'com.neutronos.managed')!='true' or docker_label(docker,name,'com.neutronos.package')!='jellyfin':
+        raise SystemExit('refusing to remove Jellyfin container because NeutronOS ownership labels are missing')
+    result=command_result([docker,'rm','-f',name],90)
+    if result.returncode!=0: raise SystemExit('failed to remove NeutronOS-managed Jellyfin container: '+result.stderr.strip()[:1200])
+
+
+def stage_managed_jellyfin_runtime_removal(runtime, token):
+    if not isinstance(runtime,dict) or runtime.get('mode')!='docker' or not runtime.get('createdByPackage'): return {}
+    docker=docker_cmd(); name=str(runtime.get('containerName') or 'jellyfin')
+    if not docker or not docker_container_exists(docker,name): return {}
+    if docker_label(docker,name,'com.neutronos.managed')!='true' or docker_label(docker,name,'com.neutronos.package')!='jellyfin':
+        raise SystemExit('refusing to remove Jellyfin container because NeutronOS ownership labels are missing')
+    was_running=docker_container_running(docker,name)
+    temporary='neutronos-uninstall-jellyfin-'+str(token)[:12]
+    if docker_container_exists(docker,temporary): raise SystemExit('temporary Jellyfin uninstall container name already exists')
+    if was_running:
+        stopped=command_result([docker,'stop','--time','20',name],45)
+        if stopped.returncode!=0: raise SystemExit('failed to stop NeutronOS-managed Jellyfin container: '+stopped.stderr.strip()[:1200])
+    renamed=command_result([docker,'rename',name,temporary],30)
+    if renamed.returncode!=0:
+        if was_running: command_result([docker,'start',name],60)
+        raise SystemExit('failed to stage Jellyfin container removal: '+renamed.stderr.strip()[:1200])
+    return {'docker':docker,'original':name,'temporary':temporary,'wasRunning':was_running}
+
+def rollback_staged_runtime_removal(staged):
+    if not isinstance(staged,dict) or not staged: return
+    docker=staged.get('docker'); original=staged.get('original'); temporary=staged.get('temporary')
+    if docker and temporary and docker_container_exists(docker,temporary):
+        command_result([docker,'rename',temporary,original],30)
+        if staged.get('wasRunning'): command_result([docker,'start',original],60)
+
+def finalize_staged_runtime_removal(staged):
+    if not isinstance(staged,dict) or not staged: return
+    docker=staged.get('docker'); temporary=staged.get('temporary')
+    if docker and temporary and docker_container_exists(docker,temporary):
+        result=command_result([docker,'rm',temporary],60)
+        if result.returncode!=0: raise SystemExit('failed to finalize Jellyfin container removal: '+result.stderr.strip()[:1200])
+
+def appstore_install_signed(args):
+    if len(args)!=5: raise SystemExit('invalid appstore signed install request')
+    package_path,expected_sha,signature,key_id,package_id=args
+    emit_progress(0.70,'VERIFY SYSTEM PACKAGE','Re-verifying signed package inside the privileged transaction')
+    package,manifest=verify_signed_napp(package_path,expected_sha,signature,key_id,package_id)
+    rebuild_required=validate_rebuild_manifest(manifest,package_id)
+    dependencies=manifest.get('debianDependencies',[])
+    if not isinstance(dependencies,list): raise SystemExit('debianDependencies must be an array')
+    deps=[]
+    for raw in dependencies:
+        name=str(raw).strip().lower()
+        if not DEBIAN_RE.fullmatch(name): raise SystemExit(f'invalid Debian dependency: {raw}')
+        if name not in deps: deps.append(name)
+    emit_progress(0.73,'CHECK DEPENDENCIES','Checking declared Debian dependencies',deps)
+    missing=[name for name in deps if not package_installed(name)]
+    if missing:
+        emit_progress(0.76,'ADD DEPENDENCIES','Installing dependencies that are not already present',missing)
+        apt_get=required_binary('apt-get')
+        env=dict(os.environ); env['DEBIAN_FRONTEND']='noninteractive'
+        result=subprocess.run([apt_get,'install','-y','--no-install-recommends',*missing],env=env,check=False)
+        if result.returncode!=0: raise SystemExit('failed to install required Debian dependencies: '+', '.join(missing))
+        still_missing=[name for name in missing if not package_installed(name)]
+        if still_missing: raise SystemExit('dependency verification failed after apt install: '+', '.join(still_missing))
+    emit_progress(0.80,'VERIFY DEPENDENCIES','All required Debian dependencies are present',deps)
+    entries=normalized_system_entries(manifest)
+    runtime_requirements=normalized_runtime_requirements(manifest,package_id)
+    registry=appstore_registry(); previous=registry.get('packages',{}).get(package_id,{})
+    previous_runtime=previous.get('runtime',{}) if isinstance(previous,dict) else {}
+    runtime_info=previous_runtime if isinstance(previous_runtime,dict) else {}
+    conditional_dependencies=[]
+    owned_destinations=[str(e['destination']) for e in entries if e['ownership']=='package']
+    all_current_destinations=[str(e['destination']) for e in entries]
+    previous_owned=[str(v) for v in previous.get('ownedFiles',[]) if isinstance(v,str)] if isinstance(previous,dict) else []
+    previous_services=[str(v) for v in previous.get('services',[]) if isinstance(v,str)] if isinstance(previous,dict) else []
+    stale_owned=sorted(set(previous_owned)-set(all_current_destinations))
+    package_services=[Path(e['destination']).name for e in entries if e['ownership']=='package' and e['enableNow']]
+    enable_services=[Path(e['destination']).name for e in entries if e['enableNow']]
+    snapshot_services=sorted(set(previous_services+enable_services))
+    snapshot_files=sorted(set(owned_destinations+previous_owned+[str(e['destination']) for e in entries if e['ownership']=='shared' and not Path(e['destination']).exists()]))
+    token,_=create_root_snapshot(package_id,'install',snapshot_files,snapshot_services,registry)
+    try:
+        emit_progress(0.83,'INSTALL SYSTEM FILES','Installing package-owned system files',[str(e['destination']) for e in entries][:40])
+        removed_services=set(previous_services)-set(package_services)
+        for unit in sorted(removed_services): systemctl('disable','--now',unit,check=False)
+        with zipfile.ZipFile(package,'r') as archive:
+            names=archive.namelist()
+            if len(names)!=len(set(names)): raise SystemExit('duplicate archive members are denied')
+            name_set=set(names)
+            for entry in entries:
+                if entry['source'] not in name_set: raise SystemExit(f'missing system package member: {entry["source"]}')
+                info=archive.getinfo(entry['source'])
+                if (info.external_attr>>16)&0o170000==0o120000: raise SystemExit('system package symlinks are denied')
+                data=archive.read(entry['source']); dest=entry['destination']; actual=hashlib.sha256(data).hexdigest()
+                if dest.exists():
+                    if not dest.is_file() or dest.is_symlink(): raise SystemExit(f'unsupported existing system destination: {dest}')
+                    current=hashlib.sha256(dest.read_bytes()).hexdigest()
+                    if current==actual: continue
+                    if entry['ownership']=='shared': raise SystemExit(f'shared dependency differs from installed NeutronOS component: {dest}')
+                atomic_bytes(dest,data,entry['mode'])
+        for raw in stale_owned:
+            path=valid_system_destination(raw)
+            try: path.unlink()
+            except FileNotFoundError: pass
+        emit_progress(0.87,'ACTIVATE SERVICES','Reloading systemd and activating declared services',enable_services)
+        systemctl('daemon-reload')
+        for unit in enable_services: systemctl('enable','--now',unit)
+        if runtime_requirements: emit_progress(0.90,'PROVISION RUNTIME','Provisioning declared managed runtime requirements',[str(v.get('type') or 'runtime') for v in runtime_requirements if isinstance(v,dict)])
+        for requirement in runtime_requirements:
+            runtime_info,installed_runtime_deps=provision_jellyfin(requirement,previous_runtime)
+            for dependency in installed_runtime_deps:
+                if dependency not in conditional_dependencies: conditional_dependencies.append(dependency)
+        emit_progress(0.92,'COMMIT SYSTEM STATE','Recording package-owned privileged files and services')
+        registry=appstore_registry()
+        all_dependencies=list(deps)
+        for dependency in conditional_dependencies:
+            if dependency not in all_dependencies: all_dependencies.append(dependency)
+        registry['packages'][package_id]={'ownedFiles':owned_destinations,'sharedFiles':[str(e['destination']) for e in entries if e['ownership']=='shared'],'services':package_services,'dependencies':all_dependencies,'runtime':runtime_info,'runtimeRequirements':runtime_requirements,'rollbackToken':token,'version':str(manifest.get('version') or ''),'rebuildRequired':rebuild_required}
+        atomic_json(APPSTORE_ROOT_REGISTRY,registry,0o640)
+    except BaseException:
+        try:
+            if isinstance(runtime_info,dict) and runtime_info.get('createdByPackage') and not (isinstance(previous_runtime,dict) and previous_runtime.get('createdByPackage')):
+                remove_managed_jellyfin_runtime(runtime_info)
+        except Exception:
+            pass
+        try: restore_root_snapshot(token)
+        except Exception: pass
+        raise
+    installed_dependencies=list(missing)
+    for dependency in conditional_dependencies:
+        if dependency not in installed_dependencies: installed_dependencies.append(dependency)
+    rebuild_ticket=issue_rebuild_ticket(package_id,str(manifest.get('version') or ''),'install-update',expected_sha) if rebuild_required else ''
+    print(json.dumps({'success':True,'message':'Privileged dependencies and runtime are ready','packageId':package_id,'installedDependencies':installed_dependencies,'runtime':runtime_info,'rollbackToken':token,'rebuildTicket':rebuild_ticket},separators=(',',':')))
+
+def appstore_uninstall(args):
+    if len(args)!=1: raise SystemExit('invalid appstore uninstall request')
+    package_id=str(args[0]).strip().lower()
+    if not APP_ID_RE.fullmatch(package_id): raise SystemExit('invalid package id')
+    registry=appstore_registry(); current=registry.get('packages',{}).get(package_id)
+    current=current if isinstance(current,dict) else {}
+    owned=[str(v) for v in current.get('ownedFiles',[]) if isinstance(v,str)]
+    services=[str(v) for v in current.get('services',[]) if isinstance(v,str)]
+    rebuild_required=bool(current.get('rebuildRequired',False)); current_version=str(current.get('version') or '')
+    emit_progress(0.22,'AUTHORIZE REMOVAL','Authorizing this package exact registered uninstall paths for integrity monitoring')
+    arm_integrity_uninstall_authorization(package_id,owned)
+    if not current:
+        print(json.dumps({'success':True,'message':'Exact App Store uninstall paths authorized; no privileged package files were registered','packageId':package_id,'rollbackToken':''},separators=(',',':'))); return
+    token,_=create_root_snapshot(package_id,'uninstall',owned,services,registry)
+    runtime=current.get('runtime',{}) if isinstance(current,dict) else {}
+    staged_runtime={}
+    try:
+        if services: emit_progress(0.28,'STOP PACKAGE SERVICES','Stopping package-owned services before file removal',services)
+        for unit in services:
+            systemctl('disable','--now',unit,check=False)
+        emit_progress(0.34,'REMOVE SYSTEM FILES','Removing exact package-owned privileged files',owned[:40])
+        for raw in owned:
+            path=valid_system_destination(raw)
+            try: path.unlink()
+            except FileNotFoundError: pass
+        systemctl('daemon-reload',check=False)
+        if runtime: emit_progress(0.40,'REMOVE MANAGED RUNTIME','Staging package-created runtime components for safe removal')
+        staged_runtime=stage_managed_jellyfin_runtime_removal(runtime,token)
+        emit_progress(0.46,'RETIRE PRIVILEGED OWNERSHIP','Committing privileged App Store ownership removal')
+        registry=appstore_registry(); registry.get('packages',{}).pop(package_id,None); atomic_json(APPSTORE_ROOT_REGISTRY,registry,0o640)
+        finalize_staged_runtime_removal(staged_runtime)
+    except BaseException:
+        clear_integrity_uninstall_authorization()
+        try: rollback_staged_runtime_removal(staged_runtime)
+        except Exception: pass
+        try: restore_root_snapshot(token)
+        except Exception: pass
+        raise
+    rebuild_ticket=issue_rebuild_ticket(package_id,current_version,'uninstall','') if rebuild_required else ''
+    print(json.dumps({'success':True,'message':'Package-owned privileged files removed; shared dependencies preserved','packageId':package_id,'rollbackToken':token,'rebuildTicket':rebuild_ticket},separators=(',',':')))
+
+def appstore_root_rollback(args):
+    if len(args)!=1: raise SystemExit('invalid appstore rollback request')
+    clear_integrity_uninstall_authorization()
+    token=str(args[0])
+    meta=load_json_file(APPSTORE_ROOT_ROLLBACK/token/'snapshot.json',{})
+    package_id=str(meta.get('packageId') or '') if isinstance(meta,dict) else ''
+    restore_root_snapshot(token)
+    if package_id: invalidate_rebuild_tickets(package_id)
+
+def main():
+    if os.geteuid()!=0: raise SystemExit('root required')
+    if len(sys.argv)<2: raise SystemExit('action required')
+    action,args=sys.argv[1],sys.argv[2:]
+    actions={
+        'setup-region':setup_region,
+        'setup-identity':setup_identity,
+        'apply-preferences':apply_preferences,
+        'write-cpufreq':write_cpufreq,
+        'appstore-install-signed':appstore_install_signed,
+        'appstore-uninstall':appstore_uninstall,
+        'appstore-root-rollback':appstore_root_rollback,
+        'appstore-arm-resume-and-restart':appstore_arm_resume_and_restart,
+        'appstore-consume-resume':appstore_consume_resume,
+    }
+    handler=actions.get(action)
+    if handler is None: raise SystemExit('unsupported action')
+    if action.startswith('appstore-'):
+        try:
+            handler(args)
+        except SystemExit as exc:
+            print(json.dumps({'success':False,'message':str(exc)},separators=(',',':')))
+            raise SystemExit(1)
+        except Exception as exc:
+            print(json.dumps({'success':False,'message':f'privileged App Store failure: {exc}'},separators=(',',':')))
+            raise SystemExit(1)
+        return
+    handler(args)
+if __name__=='__main__': main()

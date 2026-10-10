@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "candidate": "final-repair",
+  "createdUtc": "2026-09-21T23:44:27.210071+00:00",
+  "baseRevision": "b0663374e0c627aa2438ec724c83990f484255e1",
+  "baselineImage": "output/NeutronOS-Apollo-1.0.1.img.xz",
+  "baselineImageSha256": "3d058c084287f8bac3e97bfb4fbfb0b418d9d8014f229206a0c818add62a4a07",
+  "modifiedFiles": [
+    {
+      "path": "qml/SetupWizard.qml",
+      "originalSha256": "46b1f9c61ab3e04fe6e3e9156d1cec3a6155d5b65fdfdda765fdf5b489ac0428",
+      "modifiedSha256": "621820afa2a8db7069e162fab6b50150f06bfc12a46843160466248fd28822f4"
+    },
+    {
+      "path": "qml/LoginScreen.qml",
+      "originalSha256": "f2168b21c5c63a3ba36fe03bdc257a34b35358eb6ee03d19ee81ee24e2c2460d",
+      "modifiedSha256": "c76abd7f927399e7d2656a7873884a2b13a2dabba310e6e4f7d21e1dda939acb"
+    },
+    {
+      "path": "qml/Console.qml",
+      "originalSha256": "c36735fc4afa7a7002fe44aa2abc3c88b7a8f5edd516df4df32fdbf79297af75",
+      "modifiedSha256": "d4e5b225c4022ff401ea6a9e77441e48fd926612aa401dead840796f43990586"
+    },
+    {
+      "path": "qml/modals/HelpModal.qml",
+      "originalSha256": "1cf0102248b0c3176a89f0b41d1926620e9f2f70ec9b65b5eef0028584d6f710",
+      "modifiedSha256": "f9d44a6d6a07890cca0dfe6a5c0608de239b7ebac59a741bd34d4a6187ffc8f0"
+    },
+    {
+      "path": "qml/modals/LoginInstructionsModal.qml",
+      "originalSha256": null,
+      "modifiedSha256": "592bd0372df3e4640b0b11be000bacc0bd8d450a69e1ad64635360388feecfb0"
+    },
+    {
+      "path": "qml/dashboard/v2/ModernDashboard.qml",
+      "originalSha256": "d2fbd387492b9ce41c69090623613c87f15773ea6d350d36070d326c02468321",
+      "modifiedSha256": "3faad43040f9687c451f6708173fbb61d72ea273d53fc65f3dc23a8db4e5f5b9"
+    },
+    {
+      "path": "src/SetupWizardManager.h",
+      "originalSha256": "f62b8b54b0125d07d4c48ce39b812241667f498b223319acc9f9111b725ae01e",
+      "modifiedSha256": "872ce83c855c33a2d0aac5083f81f23763f46d9c63b66f378a7f7a3a1a0b7a0f"
+    },
+    {
+      "path": "src/SetupWizardManager.cpp",
+      "originalSha256": "05503a0ce2113676ec5f28d028f7c6cd1dbbd43f25192b05370f881d6e2ebaf7",
+      "modifiedSha256": "8702e4200c63c94be7838a1c87d5cd986453235c905ef0729bec0f2cb394a056"
+    },
+    {
+      "path": "deployment/usr/local/sbin/neutronos-privileged-helper",
+      "originalSha256": "5c6f015863233c4466132028d7ec18430793c5d3afa625dc3b040be42eb0c41b",
+      "modifiedSha256": "cb8f8785df02bd6221806db7c73ce12c18a3aae9ac4b576aeaf256c11fc933b8"
+    },
+    {
+      "path": "deployment/usr/local/libexec/neutronos-privileged-helper.real",
+      "originalSha256": "90aa5901c1164296750a9f2b4cb59893e372a79a67d6fafc31b7d4708974964f",
+      "modifiedSha256": "35440c32e1a47da592a1d97c33c657d0a15bf09026e803ae84e9d6cdfbf3894f"
+    },
+    {
+      "path": "deployment/usr/local/libexec/neutronos-storage-setup.py",
+      "originalSha256": "0d386ce6ea21d086d47d87c2075e0c20111a2825241dd0822e5e935451dd7e99",
+      "modifiedSha256": "202fb26dc713bfc8926ca2858d476943c6f98724fb5be291a28d10c96ad47732"
+    }
+  ],
+  "requirements": [
+    {
+      "number": 1,
+      "name": "First Boot Wi-Fi password entry",
+      "implementation": "Shows the selected SSID and a masked Password field, returns from the keyboard to explicit Connect and Cancel controls, and reports connecting, verified success, authentication failure, backend failure, and timeout states without logging the password."
+    },
+    {
+      "number": 2,
+      "name": "Storage provisioning progress modal",
+      "implementation": "Runs the existing guarded storage provisioner through an asynchronous QProcess, streams real stages, prevents duplicate requests and active dismissal, and enables Continue only after verified capacity and mount results."
+    },
+    {
+      "number": 3,
+      "name": "One-time login instructions",
+      "implementation": "Uses setup completion state plus installation-level acknowledgment persistence, documents the actual combination timing and lockout values, and remains manually available from Help."
+    },
+    {
+      "number": 4,
+      "name": "Setup Wizard Bluetooth controller pairing",
+      "implementation": "Invokes the same ControllerSettingsModal and authoritative exact-MAC USB-to-Bluetooth registration workflow used by the working desktop controller tab."
+    },
+    {
+      "number": 5,
+      "name": "Wired controller status text",
+      "implementation": "Changes only the desktop controller status presentation from Wired / USB to Wired."
+    },
+    {
+      "number": 6,
+      "name": "First Boot Security Configuration",
+      "implementation": "Adds Default and Custom profiles backed by the existing security configuration helper, validates supported settings, atomically persists them, and reads them back before reporting success."
+    },
+    {
+      "number": 7,
+      "name": "First-login controller registration attention",
+      "implementation": "Queries authoritative bridge registration_needed state for an attached USB controller without requiring an already registered transport, resets attention per login session, and routes Triangle to the existing registration modal."
+    }
+  ],
+  "preserved": [
+    "Mesa 25.0.7 repair",
+    "kernel",
+    "firmware",
+    "libdrm",
+    "partition layout",
+    "storage safety algorithm",
+    "desktop App Carousel"
+  ]
+}

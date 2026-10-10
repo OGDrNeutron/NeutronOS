@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state=${NEUTRONOS_BOOT_PROGRESS_STATE:-/run/neutronos/boot-progress.json}
+
+# An intentional machine stop is never a fatal boot. Plymouth's native reboot
+# or poweroff unit owns the next visual; OnFailure must remain inert even if a
+# shell process reports an awkward exit while systemd is already stopping.
+system_state=$(/usr/bin/systemctl is-system-running 2>/dev/null || true)
+[ "$system_state" != stopping ] || exit 0
+
+# NEUTRONOS_BOOT_FAILURE_TERMINAL_STATE_V1
+# neutronos-boot-progress may reject a late ERROR transition after the boot
+# state has already reached a terminal/runtime phase. During an intentional
+# NeutronShell restart that refusal must not make this OnFailure helper fail.
+/usr/local/sbin/neutronos-boot-progress error >/dev/null 2>&1 || true
+
+# ERROR is permitted only while the boot UI is genuinely incomplete.  During
+# shutdown, reboot, normal runtime, or after an earlier terminal state this
+# helper must remain visually inert.
+phase=$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("phase", ""))' "$state" 2>/dev/null || true)
+[ "$phase" = ERROR ] || exit 0
+
+if ! /usr/bin/plymouth --ping >/dev/null 2>&1; then
+    /usr/sbin/plymouthd --mode=boot --attach-to-session
+fi
+/usr/bin/plymouth message --text=N85:ERROR >/dev/null 2>&1 || true
+/usr/bin/plymouth show-splash >/dev/null 2>&1 || true

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -u
+
+status=/run/neutronos/plymouth-initramfs.status
+valid=/run/neutronos/plymouth-boot.valid
+rm -f "$valid"
+
+for argument in $(cat /proc/cmdline 2>/dev/null); do
+    case "$argument" in
+        plymouth.enable=0|rd.plymouth=0|nosplash) exit 0 ;;
+    esac
+done
+
+fail()
+{
+    /usr/bin/logger -t neutronos-plymouth-adopt -- "boot Plymouth adoption failed: $1"
+    return 1
+}
+
+[ -r "$status" ] || { fail "missing initramfs status"; exit 1; }
+record=$(cat "$status")
+case "$record" in
+    "READY=1 MODE=boot "*) ;;
+    *) fail "initramfs status is not ready boot mode: $record"; exit 1 ;;
+esac
+
+recorded_pid=$(printf '%s\n' "$record" | sed -n 's/.* PID=\([0-9][0-9]*\) .*/\1/p')
+runtime_pid=$(cat /run/plymouth/pid 2>/dev/null || true)
+[ -n "$recorded_pid" ] || { fail "status has no valid PID"; exit 1; }
+[ "$runtime_pid" = "$recorded_pid" ] || {
+    fail "PID changed across initramfs/userspace (recorded=$recorded_pid runtime=${runtime_pid:-missing})"
+    exit 1
+}
+[ "$(cat "/proc/$recorded_pid/comm" 2>/dev/null || true)" = plymouthd ] || {
+    fail "recorded PID is missing or not plymouthd"; exit 1;
+}
+/usr/bin/plymouth --ping >/dev/null 2>&1 || {
+    fail "recorded boot daemon does not answer ping"; exit 1;
+}
+/usr/bin/plymouth --has-active-vt >/dev/null 2>&1 || {
+    fail "recorded boot daemon has no active VT"; exit 1;
+}
+
+/usr/local/sbin/neutronos-boot-progress 0
+phase=$(/usr/bin/python3 -c 'import json; print(json.load(open("/run/neutronos/boot-progress.json")).get("phase", ""))' 2>/dev/null || true)
+[ "$phase" = PROGRESS_000 ] || { fail "lifecycle controller rejected milestone zero"; exit 1; }
+printf 'PID=%s MODE=boot\n' "$recorded_pid" > "$valid"
+chmod 0644 "$valid"
+exit 0

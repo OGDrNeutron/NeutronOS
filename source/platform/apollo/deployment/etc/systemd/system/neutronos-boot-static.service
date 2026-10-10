@@ -1,0 +1,52 @@
+[Unit]
+Description=Optional early static NeutronOS XRGB8888 boot artwork and Triangle listener
+DefaultDependencies=no
+Wants=neutronos-recovery-entry.socket
+# Rootfs and /run already exist when PID 1 reads this unit. Device/socket
+# discovery is bounded in-process; neither delays the first artwork frame.
+Before=shutdown.target
+Conflicts=shutdown.target
+ConditionPathExists=/usr/share/neutronos/boot/Boot Animation Reference .png
+ConditionPathExists=!/run/neutronos/shell-process-started
+
+[Service]
+Type=exec
+DynamicUser=yes
+User=neutronos-boot-static
+SupplementaryGroups=video input neutronos-shell
+ExecStartPre=+/usr/local/sbin/neutronos-recovery-control boot-entry-runtime
+ExecStart=/usr/local/libexec/neutronos/NeutronBootStatic
+Restart=no
+TimeoutStartSec=3
+RuntimeMaxSec=180
+TimeoutStopSec=2
+WatchdogSec=2s
+NotifyAccess=main
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+Environment=QT_QPA_PLATFORM=offscreen
+Environment=NEUTRONOS_BOOT_INSTALLATION_BOOT_ID=c11e6ef7-432c-4776-aa32-b0551089f5d0
+UMask=0007
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=-/run/neutronos/boot
+InaccessiblePaths=-/var/lib/neutronos/recovery -/usr/local/sbin/neutronos-privileged-helper -/usr/local/libexec/neutronos-privileged-helper.real -/usr/local/lib/neutronos/neutronos-update-recovery -/run/systemd/private -/run/dbus/system_bus_socket -/run/neutronos/security
+PrivateTmp=disconnected
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX
+SystemCallFilter=~@reboot @mount @module @raw-io
+SystemCallErrorNumber=EPERM
+DevicePolicy=closed
+DeviceAllow=char-drm rw
+DeviceAllow=char-input r
+
+[Install]
+WantedBy=multi-user.target

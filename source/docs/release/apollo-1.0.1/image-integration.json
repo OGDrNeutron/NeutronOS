@@ -1,0 +1,432 @@
+{
+  "compressedImageValidation": {
+    "decompressedSha256": "31954b38eb777e9e4c66f2ff3f1857597efeda441c09c462874f266808b7c634",
+    "rawBytes": 7499999744,
+    "rawSha256": "31954b38eb777e9e4c66f2ff3f1857597efeda441c09c462874f266808b7c634",
+    "xzCrcTest": "passed"
+  },
+  "createdUtc": "2026-09-21T03:32:31.588481+00:00",
+  "offlineImageValidation": {
+    "dependenciesPresent": {
+      "blkid": true,
+      "blockdev": true,
+      "findmnt": true,
+      "mkfs.ext4": true,
+      "mount": true,
+      "partx": true,
+      "python3": true,
+      "sfdisk": true,
+      "udevadm": true,
+      "wipefs": true
+    },
+    "filesystemChecks": {
+      "bootVfat": {
+        "exitCode": 0,
+        "summary": "fsck.fat 4.2 (2021-01-31)\n/dev/loop1p1: 423 files, 25628/130811 clusters"
+      },
+      "partitionTable": {
+        "exitCode": 0,
+        "summary": "/dev/loop1:\nNo errors detected."
+      },
+      "rootExt4": {
+        "exitCode": 0,
+        "summary": "Pass 1: Checking inodes, blocks, and sizes\nPass 2: Checking directory structure\nPass 3: Checking directory connectivity\nPass 4: Checking reference counts\nPass 5: Checking group summary information\nrootfs: 78935/425152 files (3.2% non-contiguous), 651079/1697934 blocks\ne2fsck 1.47.2 (1-Jan-2025)"
+      }
+    },
+    "firstBootClean": {
+      "bootCmdlineUnchanged": true,
+      "setupStateAbsent": true,
+      "sshHostKeysAbsent": true,
+      "storageTransactionAbsent": true,
+      "temporaryDiagnosticsAbsent": true,
+      "userDataMountAbsent": true,
+      "userDataPartitionAbsent": true,
+      "wifiProfilesAbsent": true
+    },
+    "helperWatchdogHashesMatch": true,
+    "mesaInstalledItemsVerified": 97,
+    "packageVersions": {
+      "libdrm2": "2.4.134-3~bpo13+1+rpt1",
+      "libegl-mesa0": "25.0.7-2+rpt4",
+      "libgbm1": "25.0.7-2+rpt4",
+      "libgl1-mesa-dri": "25.0.7-2+rpt4",
+      "libglx-mesa0": "25.0.7-2+rpt4",
+      "linux-image-rpi-v8": "1:6.18.34-1+rpt1",
+      "mesa-libgallium": "25.0.7-2+rpt4",
+      "raspi-firmware": "1:1.20260521-3"
+    },
+    "partitionLayout": {
+      "device": "/dev/loop1",
+      "id": "0x041bba91",
+      "label": "dos",
+      "partitions": [
+        {
+          "node": "/dev/loop1p1",
+          "size": 1048576,
+          "start": 16384,
+          "type": "c"
+        },
+        {
+          "node": "/dev/loop1p2",
+          "size": 13583477,
+          "start": 1064960,
+          "type": "83"
+        }
+      ],
+      "sectorsize": 512,
+      "unit": "sectors"
+    },
+    "releaseId": "NeutronOS-Apollo-1.0.1",
+    "sourceBackedFiles": [
+      {
+        "path": "home/echo/NeutronOS/build/NeutronBootRenderer",
+        "sha256": "4e775a5622e44787541988bfb683655ffa67b95041f42fbfbcbf9611bcd09ef7"
+      },
+      {
+        "path": "home/echo/NeutronOS/build/NeutronBrowser",
+        "sha256": "dfa34e28d7ec3ae7300414e1d769405e58b428388e0aaaacfb05fe273275e3d8"
+      },
+      {
+        "path": "home/echo/NeutronOS/build/NeutronShell",
+        "sha256": "ab1f141b55025eb7f452f46de8e24a2b744af6ee01de6f2a2b03a45d3817ce2e"
+      },
+      {
+        "path": "home/echo/NeutronOS/config/version.json",
+        "sha256": "3f2b3d34c6e669c8cd63513c3e1a2c8071fd14f2f09bd16707d5a6ac7cf48fe5"
+      },
+      {
+        "path": "home/echo/NeutronOS/qml/SetupWizard.qml",
+        "sha256": "46b1f9c61ab3e04fe6e3e9156d1cec3a6155d5b65fdfdda765fdf5b489ac0428"
+      },
+      {
+        "path": "home/echo/NeutronOS/qml/apps/settings/Main.qml",
+        "sha256": "a9c75c300d87ab96df679d57fcae981c631d1bf3a5169ae294b39c98a3d58d7b"
+      },
+      {
+        "path": "home/echo/NeutronOS/qml/dashboard/v2/ModernDashboard.qml",
+        "sha256": "d2fbd387492b9ce41c69090623613c87f15773ea6d350d36070d326c02468321"
+      },
+      {
+        "path": "usr/local/libexec/neutronos-privileged-helper.real",
+        "sha256": "90aa5901c1164296750a9f2b4cb59893e372a79a67d6fafc31b7d4708974964f"
+      },
+      {
+        "path": "usr/local/libexec/neutronos-storage-setup.py",
+        "sha256": "0d386ce6ea21d086d47d87c2075e0c20111a2825241dd0822e5e935451dd7e99"
+      },
+      {
+        "path": "usr/local/sbin/neutronos-privileged-helper",
+        "sha256": "5c6f015863233c4466132028d7ec18430793c5d3afa625dc3b040be42eb0c41b"
+      }
+    ],
+    "storageHelperSyntax": true
+  },
+  "records": {
+    "apollo-1.0.1-guide-image-integration.json": {
+      "destination": "home/echo/NeutronOS/qml/dashboard/v2/ModernDashboard.qml",
+      "partitionCount": 2,
+      "releaseId": "NeutronOS-Apollo-1.0.1",
+      "sha256": "d2fbd387492b9ce41c69090623613c87f15773ea6d350d36070d326c02468321",
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/dashboard/v2/ModernDashboard.qml"
+    },
+    "apollo-1.0.1-image-integration.json": {
+      "baseImageSha256": "d9d7260e1c445d773e114cff08b14a01fb2b39130d824a95d361343f5308ebf9",
+      "bootCmdlineSha256": "dc7fdffc24dc8859a17edbc10d17fff1e5ee658fab96a92703254c7ab6143d69",
+      "firstBootSetupStateAbsent": true,
+      "installedSourceBackedFiles": [
+        {
+          "destination": "home/echo/NeutronOS/qml/SetupWizard.qml",
+          "gid": 0,
+          "mode": "0o644",
+          "sha256": "f48693fe1b753215a0c0095b31144a5df9d02906e0e83368952d9518b0b76dd5",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/SetupWizard.qml",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/qml/apps/settings/Main.qml",
+          "gid": 0,
+          "mode": "0o644",
+          "sha256": "a9c75c300d87ab96df679d57fcae981c631d1bf3a5169ae294b39c98a3d58d7b",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/apps/settings/Main.qml",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/qml/dashboard/v2/ModernDashboard.qml",
+          "gid": 0,
+          "mode": "0o644",
+          "sha256": "5b33d8548bdb55e66531115b53581fd2b6cd5605e1fd7045c3018c72d630aadd",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/dashboard/v2/ModernDashboard.qml",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/config/version.json",
+          "gid": 0,
+          "mode": "0o644",
+          "sha256": "3f2b3d34c6e669c8cd63513c3e1a2c8071fd14f2f09bd16707d5a6ac7cf48fe5",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/config/version.json",
+          "uid": 0
+        },
+        {
+          "destination": "usr/local/libexec/neutronos-privileged-helper.real",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "90aa5901c1164296750a9f2b4cb59893e372a79a67d6fafc31b7d4708974964f",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/libexec/neutronos-privileged-helper.real",
+          "uid": 0
+        },
+        {
+          "destination": "usr/local/sbin/neutronos-privileged-helper",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "af392750c616781cc7ee91a7c0d322f68bc8085bc0e490bca624dbda25272a94",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/sbin/neutronos-privileged-helper",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/build/NeutronShell",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "42bea90b3256ebcb1a993426fa3b57b56c4ad7be33acc96ecb74cba2b5a9a715",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/apollo-1.0.1-build/NeutronShell",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/build/NeutronBrowser",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "dfa34e28d7ec3ae7300414e1d769405e58b428388e0aaaacfb05fe273275e3d8",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/apollo-1.0.1-build/NeutronBrowser",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/build/NeutronBootRenderer",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "4e775a5622e44787541988bfb683655ffa67b95041f42fbfbcbf9611bcd09ef7",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/apollo-1.0.1-build/NeutronBootRenderer",
+          "uid": 0
+        }
+      ],
+      "mesaInstalledItemsMatchedPhysicalRepair": 97,
+      "mesaPackages": [
+        {
+          "file": "libegl-mesa0_25.0.7-2+rpt4_arm64.deb",
+          "sha256": "e4116be1c054f0a257b5e3b672ec11bafb82ff410dabef10f07f33a7594925f2",
+          "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libegl-mesa0_25.0.7-2+rpt4_arm64.deb"
+        },
+        {
+          "file": "libgbm1_25.0.7-2+rpt4_arm64.deb",
+          "sha256": "13cfaa55c1a086684d64934515ac3abd813be48c279c001e71cb051dc281e2a9",
+          "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libgbm1_25.0.7-2+rpt4_arm64.deb"
+        },
+        {
+          "file": "libgl1-mesa-dri_25.0.7-2+rpt4_arm64.deb",
+          "sha256": "4ac66a183d639ff49d95d2e7cb7ddb579afbd33bda0285926de52b260762a3ec",
+          "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libgl1-mesa-dri_25.0.7-2+rpt4_arm64.deb"
+        },
+        {
+          "file": "libglx-mesa0_25.0.7-2+rpt4_arm64.deb",
+          "sha256": "f2106d57c4b9ea709b479cc616b22d878421522dd87bf85f8e50280b7fe0e34c",
+          "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libglx-mesa0_25.0.7-2+rpt4_arm64.deb"
+        },
+        {
+          "file": "mesa-libgallium_25.0.7-2+rpt4_arm64.deb",
+          "sha256": "4981f1cd25e868a4849ec97aacd77203412fed6e38599f86bc8875641782d4fb",
+          "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/mesa-libgallium_25.0.7-2+rpt4_arm64.deb"
+        }
+      ],
+      "packageVersionsAfter": {
+        "libdrm2": [
+          "2.4.134-3~bpo13+1+rpt1",
+          "install ok installed"
+        ],
+        "libegl-mesa0": [
+          "25.0.7-2+rpt4",
+          "install ok installed"
+        ],
+        "libgbm1": [
+          "25.0.7-2+rpt4",
+          "install ok installed"
+        ],
+        "libgl1-mesa-dri": [
+          "25.0.7-2+rpt4",
+          "install ok installed"
+        ],
+        "libglx-mesa0": [
+          "25.0.7-2+rpt4",
+          "install ok installed"
+        ],
+        "linux-image-rpi-v8": [
+          "1:6.18.34-1+rpt1",
+          "install ok installed"
+        ],
+        "mesa-libgallium": [
+          "25.0.7-2+rpt4",
+          "install ok installed"
+        ],
+        "raspi-firmware": [
+          "1:1.20260521-3",
+          "install ok installed"
+        ]
+      },
+      "packageVersionsBefore": {
+        "libdrm2": [
+          "2.4.134-3~bpo13+1+rpt1",
+          "install ok installed"
+        ],
+        "libegl-mesa0": [
+          "26.2.0-1~bpo13+0~rpt3",
+          "install ok installed"
+        ],
+        "libgbm1": [
+          "26.2.0-1~bpo13+0~rpt3",
+          "install ok installed"
+        ],
+        "libgl1-mesa-dri": [
+          "26.2.0-1~bpo13+0~rpt3",
+          "install ok installed"
+        ],
+        "libglx-mesa0": [
+          "26.2.0-1~bpo13+0~rpt3",
+          "install ok installed"
+        ],
+        "linux-image-rpi-v8": [
+          "1:6.18.34-1+rpt1",
+          "install ok installed"
+        ],
+        "mesa-libgallium": [
+          "26.2.0-1~bpo13+0~rpt3",
+          "install ok installed"
+        ],
+        "raspi-firmware": [
+          "1:1.20260521-3",
+          "install ok installed"
+        ]
+      },
+      "partitionTable": {
+        "device": "/dev/loop1",
+        "id": "0x041bba91",
+        "label": "dos",
+        "partitions": [
+          {
+            "node": "/dev/loop1p1",
+            "size": 1048576,
+            "start": 16384,
+            "type": "c"
+          },
+          {
+            "node": "/dev/loop1p2",
+            "size": 13583477,
+            "start": 1064960,
+            "type": "83"
+          }
+        ],
+        "sectorsize": 512,
+        "unit": "sectors"
+      },
+      "releaseId": "NeutronOS-Apollo-1.0.1",
+      "securityWatchdogHelperHashes": {
+        "privileged-helper": "af392750c616781cc7ee91a7c0d322f68bc8085bc0e490bca624dbda25272a94",
+        "privileged-helper-real": "90aa5901c1164296750a9f2b4cb59893e372a79a67d6fafc31b7d4708974964f"
+      },
+      "sshHostKeysAbsent": true,
+      "temporaryDiagnosticOverridesAbsent": true,
+      "wifiProfilesAbsent": true
+    },
+    "apollo-1.0.1-storage-image-integration.json": {
+      "bootCmdlineSha256": "dc7fdffc24dc8859a17edbc10d17fff1e5ee658fab96a92703254c7ab6143d69",
+      "partitionTable": {
+        "device": "/dev/loop1",
+        "id": "0x041bba91",
+        "label": "dos",
+        "partitions": [
+          {
+            "node": "/dev/loop1p1",
+            "size": 1048576,
+            "start": 16384,
+            "type": "c"
+          },
+          {
+            "node": "/dev/loop1p2",
+            "size": 13583477,
+            "start": 1064960,
+            "type": "83"
+          }
+        ],
+        "sectorsize": 512,
+        "unit": "sectors"
+      },
+      "releaseId": "NeutronOS-Apollo-1.0.1",
+      "requiredRuntimeTools": [
+        "/usr/sbin/sfdisk",
+        "/usr/sbin/blockdev",
+        "/usr/sbin/blkid",
+        "/usr/sbin/wipefs",
+        "/usr/sbin/mkfs.ext4",
+        "/usr/bin/partx",
+        "/usr/bin/udevadm",
+        "/usr/bin/findmnt",
+        "/usr/bin/mount",
+        "/usr/bin/python3"
+      ],
+      "securityWatchdogHelperSha256": "5c6f015863233c4466132028d7ec18430793c5d3afa625dc3b040be42eb0c41b",
+      "storageFeatureFiles": [
+        {
+          "destination": "home/echo/NeutronOS/qml/SetupWizard.qml",
+          "gid": 0,
+          "mode": "0o644",
+          "sha256": "46b1f9c61ab3e04fe6e3e9156d1cec3a6155d5b65fdfdda765fdf5b489ac0428",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/SetupWizard.qml",
+          "uid": 0
+        },
+        {
+          "destination": "usr/local/sbin/neutronos-privileged-helper",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "5c6f015863233c4466132028d7ec18430793c5d3afa625dc3b040be42eb0c41b",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/sbin/neutronos-privileged-helper",
+          "uid": 0
+        },
+        {
+          "destination": "usr/local/libexec/neutronos-storage-setup.py",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "0d386ce6ea21d086d47d87c2075e0c20111a2825241dd0822e5e935451dd7e99",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/libexec/neutronos-storage-setup.py",
+          "uid": 0
+        },
+        {
+          "destination": "home/echo/NeutronOS/build/NeutronShell",
+          "gid": 0,
+          "mode": "0o755",
+          "sha256": "ab1f141b55025eb7f452f46de8e24a2b744af6ee01de6f2a2b03a45d3817ce2e",
+          "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/apollo-1.0.1-build/NeutronShell",
+          "uid": 0
+        }
+      ],
+      "storageTransactionAbsent": true,
+      "userDataPartitionAbsent": true
+    }
+  },
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "schemaVersion": 1,
+  "storageLoopValidation": {
+    "existing_unmanaged_partition": "an existing third partition is not managed by NeutronOS; no changes are permitted",
+    "existing_user_data_and_repeat": {
+      "fstabEntries": 1,
+      "status": "existing",
+      "uuidUnchanged": true
+    },
+    "insufficient_space": {
+      "diskBytes": 8000000000,
+      "status": "insufficient"
+    },
+    "interrupted": "injected formatting interruption",
+    "sufficient_space": {
+      "dataBytes": 8498708480,
+      "diskBytes": 16000000000,
+      "status": "available"
+    },
+    "unsupported_layout": "partition 2 differs from the verified Apollo layout"
+  }
+}

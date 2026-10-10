@@ -1,0 +1,106 @@
+{
+  "baseRevision": "b0663374e0c627aa2438ec724c83990f484255e1",
+  "createdUtc": "2026-09-21T03:32:31.588481+00:00",
+  "modifiedFiles": {
+    "CMakeLists.txt": {
+      "modified_sha256": "f659d06789f958886c10c94d7483f203e2e1f3ebf1720768d7ff53a56b723816",
+      "original_sha256": "d43e6c758ec1f972a3f85519022a6d2fdc894ad2eb5885eeaa48a3e590b549f4"
+    },
+    "config/version.json": {
+      "modified_sha256": "3f2b3d34c6e669c8cd63513c3e1a2c8071fd14f2f09bd16707d5a6ac7cf48fe5",
+      "original_sha256": "4ac3712825d76d008309c65d8e766aae781d75e80fc6fec3e8f44ef3204c0610"
+    },
+    "deployment/usr/local/libexec/neutronos-privileged-helper.real": {
+      "modified_sha256": "90aa5901c1164296750a9f2b4cb59893e372a79a67d6fafc31b7d4708974964f",
+      "original_sha256": "69e4de8b78087ef75a6b6aaf6f5717c7dbaead6be1185e7b152f60437fa13c9e"
+    },
+    "deployment/usr/local/libexec/neutronos-storage-setup.py": {
+      "modified_sha256": "0d386ce6ea21d086d47d87c2075e0c20111a2825241dd0822e5e935451dd7e99",
+      "original_sha256": null
+    },
+    "deployment/usr/local/sbin/neutronos-privileged-helper": {
+      "modified_sha256": "5c6f015863233c4466132028d7ec18430793c5d3afa625dc3b040be42eb0c41b",
+      "original_sha256": "d34e6837100c971b8acc7251f259f36a60e5cc95337868dfe1eb817fcf6dc447"
+    },
+    "qml/SetupWizard.qml": {
+      "modified_sha256": "46b1f9c61ab3e04fe6e3e9156d1cec3a6155d5b65fdfdda765fdf5b489ac0428",
+      "original_sha256": "337427061031c1333603d7dd8ef94c858f9f07973133058561f1e58a9f43bbdc"
+    },
+    "qml/apps/settings/Main.qml": {
+      "modified_sha256": "a9c75c300d87ab96df679d57fcae981c631d1bf3a5169ae294b39c98a3d58d7b",
+      "original_sha256": "f0256480daca518a0847a2953361cf26651e48b42fc222a73ebe2804f3733ec1"
+    },
+    "qml/dashboard/v2/ModernDashboard.qml": {
+      "modified_sha256": "d2fbd387492b9ce41c69090623613c87f15773ea6d350d36070d326c02468321",
+      "original_sha256": "b9330fc3d7321706b32fa2632b6f5a464f649b29d3c01da5af5f8f3b509ac891"
+    },
+    "src/ClockSettingsManager.cpp": {
+      "modified_sha256": "7b0e3c7e210490a06d78727c11f28609b3c92ad2bbdc9d7860892b095861d6a9",
+      "original_sha256": "f42b56530e81108cc69f1313e930722ccab8d55e4c35f389bb38f9877b123183"
+    },
+    "src/DashboardLayoutManager.cpp": {
+      "modified_sha256": "6e6ca4713b3f9855871053835d914dba7096301c75658de3e1cfde4e6bf17fe8",
+      "original_sha256": "6250e032818a6d05b91e9092bb1ecab4ef348606a40720fd3bb9584fba3ae59f"
+    },
+    "src/DashboardLayoutManager.h": {
+      "modified_sha256": "6ce89f651bc9c61a37d1a1eeeb508a93a8efcf80c233f221b3fb824f8cf6d059",
+      "original_sha256": "8f507831445c44f0a135696167b609aba06d1ffbf5d25cc460dcc4d9eacc8306"
+    },
+    "src/SetupWizardManager.cpp": {
+      "modified_sha256": "05503a0ce2113676ec5f28d028f7c6cd1dbbd43f25192b05370f881d6e2ebaf7",
+      "original_sha256": "e71c1a0b50c1356ace82505549739ee4dedccad702443930624a4f89e3b5d284"
+    },
+    "src/SetupWizardManager.h": {
+      "modified_sha256": "f62b8b54b0125d07d4c48ce39b812241667f498b223319acc9f9111b725ae01e",
+      "original_sha256": "1cfacda4af65bb7c30f2471047dddc4a7310849ab47dd3b132ffb32883164e1b"
+    },
+    "tests/dashboard_layout_manager_test.cpp": {
+      "modified_sha256": "39bb69ee0ecadddb80cf462529307249542bbcdc39df7248d890737c7fd93e49",
+      "original_sha256": "3873a6d9fbf95fc51cf5ba772c12769a902c56d84d5fe5c926f6592c266fcd33"
+    }
+  },
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "requirements": [
+    {
+      "implementation": "Guard helper owns one host-key generation path; enabled/disabled service state is persisted; the image contains no host keys.",
+      "name": "SSH provisioning",
+      "number": 1
+    },
+    {
+      "implementation": "Qt timezone model is populated without timedated availability; the guarded helper validates and applies system timezones.",
+      "name": "Timezone selection",
+      "number": 2
+    },
+    {
+      "implementation": "First Boot always reaches the optional Wi-Fi scan/connect stage and provides Skip.",
+      "name": "Wi-Fi setup",
+      "number": 3
+    },
+    {
+      "implementation": "Authoritative controller bridge status drives per-session tab attention and Triangle registration routing.",
+      "name": "Unregistered controller attention",
+      "number": 4
+    },
+    {
+      "implementation": "Fresh settings use list view while saved explicit display mode remains authoritative.",
+      "name": "Settings List View default",
+      "number": 5
+    },
+    {
+      "implementation": "Options opens the existing guide modal; guide and App Carousel completion are persisted as independent stages.",
+      "name": "Controller Guide onboarding",
+      "number": 6
+    },
+    {
+      "implementation": "Desktop is a real backend destination, the fresh default, and remains selectable beside prior destinations.",
+      "name": "Desktop dashboard default",
+      "number": 7
+    },
+    {
+      "implementation": "The wizard shows an inspected layout, requires confirmation, and the privileged helper creates an idempotent ext4 user-data partition at /srv/neutronos/user-data only in verified free space.",
+      "name": "First Boot storage provisioning",
+      "number": 8
+    }
+  ],
+  "schemaVersion": 1
+}

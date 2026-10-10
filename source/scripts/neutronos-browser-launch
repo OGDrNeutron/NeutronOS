@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly EXPECTED_SPEC='/var/lib/neutronos/apps/browser-runtime/launch.json'
+readonly SUPERVISOR='/usr/local/libexec/neutronos-browser-supervisor'
+SPEC="${1:-}"
+
+fail() { printf '%s\n' "$1" >&2; exit "${2:-64}"; }
+
+[[ "$SPEC" == "$EXPECTED_SPEC" ]] || fail 'Rejected browser launch specification.' 64
+[[ -x "$SUPERVISOR" && -f "$SUPERVISOR" && ! -L "$SUPERVISOR" ]] || \
+    fail 'The trusted browser supervisor is not installed.' 69
+read -r SUPERVISOR_OWNER SUPERVISOR_MODE < <(/usr/bin/stat -Lc '%U %a' -- "$SUPERVISOR")
+[[ "$SUPERVISOR_OWNER" == root ]] || fail 'The browser supervisor is not root-owned.' 77
+(( (8#$SUPERVISOR_MODE & 8#022) == 0 )) || \
+    fail 'The browser supervisor is writable by an untrusted account.' 77
+
+SESSION_ID="$(/usr/bin/python3 - "$SPEC" <<'PY'
+import json, os, pwd, re, stat, sys
+try:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, 'O_NOFOLLOW'):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(sys.argv[1], flags)
+    with os.fdopen(descriptor, 'r', encoding='utf-8') as handle:
+        info = os.fstat(handle.fileno())
+        expected_uid = pwd.getpwnam('neutronos').pw_uid
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != expected_uid:
+            raise ValueError
+        if info.st_mode & 0o077 or not 0 < info.st_size <= 4096:
+            raise ValueError
+        value = json.load(handle)
+    if not isinstance(value, dict) or set(value) != {
+        'version', 'sessionId', 'user', 'shellVt', 'browserVt', 'humanUser', 'humanHome'
+    }:
+        raise ValueError
+    if value['version'] != 1 or value['user'] != 'neutronos':
+        raise ValueError
+    session = str(value['sessionId'])
+    if not re.fullmatch(r'[0-9]{10,20}-[0-9]{1,10}', session):
+        raise ValueError
+    if isinstance(value['shellVt'], bool) or isinstance(value['browserVt'], bool):
+        raise ValueError
+    shell_vt = int(value['shellVt'])
+    browser_vt = int(value['browserVt'])
+    if not 1 <= shell_vt <= 12 or not 1 <= browser_vt <= 12 or shell_vt == browser_vt:
+        raise ValueError
+except Exception:
+    raise SystemExit(1)
+print(session)
+PY
+)" || fail 'Browser launch specification is missing, unsafe or malformed.' 65
+
+exec /usr/bin/systemd-run \
+    --unit="neutronos-browser-session-${SESSION_ID}" \
+    --collect --no-block --quiet \
+    --property=Type=exec \
+    --property=User=root \
+    --property=Group=root \
+    --property=KillMode=mixed \
+    --property=TimeoutStopSec=15s \
+    --property=NoNewPrivileges=no \
+    --property=StandardOutput=journal \
+    --property=StandardError=journal \
+    "$SUPERVISOR" "$SPEC"

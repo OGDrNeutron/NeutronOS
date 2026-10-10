@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+RUN=/run/neutronos
+BOOT=$RUN/boot
+SEEN=$RUN/shell-process-started
+install -d -o root -g neutronos-shell -m 3770 "$RUN"
+install -d -o root -g neutronos-shell -m 2770 "$BOOT"
+# Serialize the final framebuffer write and the start of EGLFS. This lock is
+# presentation-only and has a bounded wait; it never gates networking or SSH.
+exec 9>"$BOOT/framebuffer.lock"
+chown root:neutronos-shell "$BOOT/framebuffer.lock"
+chmod 0660 "$BOOT/framebuffer.lock"
+flock -w 2 9 || true
+atomic_marker() {
+    local name=$1 value=$2
+    local temporary="$BOOT/.${name}.$$"
+    printf '%s\n' "$value" > "$temporary"
+    chown root:neutronos-shell "$temporary"
+    chmod 0660 "$temporary"
+    mv -f -- "$temporary" "$BOOT/$name"
+}
+atomic_marker shell-starting qt-eglfs-pending
+# The root renderer must release DRM master before Qt opens the KMS device.
+# Unlock before waiting so this cannot form a renderer/launcher lock cycle.
+flock -u 9
+for attempt in {1..40}; do
+    [[ -e "$BOOT/drm-released" ]] && break
+    /usr/bin/systemctl is-active --quiet neutronos-boot-renderer.service || break
+    sleep 0.05
+done
+# Presentation remains optional: a stuck renderer must release its FD before
+# EGLFS proceeds. This branch is a future boot fail-safe, never an installer action.
+if [[ ! -e "$BOOT/drm-released" ]] && /usr/bin/systemctl is-active --quiet neutronos-boot-renderer.service; then
+    # Send a signal, not an ordered stop job from inside this start job.
+    /usr/bin/systemctl kill --kill-whom=main --signal=TERM neutronos-boot-renderer.service || true
+    for attempt in {1..40}; do
+        /usr/bin/systemctl is-active --quiet neutronos-boot-renderer.service || break
+        sleep 0.05
+    done
+fi
+if [[ -e "$SEEN" ]]; then
+    atomic_marker completed shell-restart
+fi
+temporary="$RUN/.shell-process-started.$$"
+printf 'seen\n' > "$temporary"
+chown root:neutronos-shell "$temporary"
+chmod 0660 "$temporary"
+mv -f -- "$temporary" "$SEEN"
+# The process exit releases the lock. Existing scanout remains in place.

@@ -1,0 +1,8 @@
+[Unit]
+Description=Maintain NeutronOS human-data permissions
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+Unit=neutronos-human-storage-owner.service
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NeutronOS Remote</title>
+<meta name="neutronos-remote-ui" content="2.2">
+<style>
+:root{
+  color-scheme:dark;
+  --accent:#ff203e;
+  --accent-soft:color-mix(in srgb,var(--accent) 22%,transparent);
+  --panel:rgba(12,14,20,.86);
+  --line:rgba(255,255,255,.12);
+  --text:#f7f8fb;
+  --muted:#8e96a7;
+  --shadow:0 20px 70px rgba(0,0,0,.52),0 0 26px color-mix(in srgb,var(--accent) 14%,transparent);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050608;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color:var(--text);touch-action:none;overscroll-behavior:none}
+body:before{content:"";position:fixed;inset:-20%;background:radial-gradient(circle at 50% 18%,color-mix(in srgb,var(--accent) 15%,transparent),transparent 36%),radial-gradient(circle at 15% 80%,#1a2130 0,transparent 34%),linear-gradient(145deg,#06070a,#020305 65%);pointer-events:none}
+button,input,select{font:inherit}.hidden{display:none!important}
+#app{position:fixed;inset:0;overflow:hidden}
+.stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);overflow:hidden;background:linear-gradient(155deg,rgba(16,18,25,.72),rgba(3,4,7,.96));border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 0 80px rgba(0,0,0,.55)}
+.stage.upright{width:100vw;height:100vh}
+.stage.sideways{width:100vh;height:100vw;transform:translate(-50%,-50%) rotate(-90deg)}
+.stage:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 44%,rgba(255,255,255,.025) 50%,transparent 56%);pointer-events:none}
+
+.topbar{position:absolute;z-index:90;left:0;right:0;top:max(10px,env(safe-area-inset-top));height:38px;pointer-events:none}
+.topbar>*{pointer-events:auto}.drop-wrap{position:absolute;left:50%;top:0;transform:translateX(-50%)}
+.dropbar{position:relative;min-width:128px;height:34px;border-radius:0 0 17px 17px;border:1px solid var(--line);border-top:0;background:rgba(7,9,13,.92);box-shadow:0 10px 28px #0008;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;letter-spacing:.12em;font-weight:800;text-transform:uppercase;cursor:pointer}
+.dropbar:before{content:"";position:absolute;top:5px;width:30px;height:3px;border-radius:3px;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.dropbar span{padding-top:6px}.mode-menu{position:absolute;top:38px;left:50%;transform:translateX(-50%);width:146px;padding:7px;border:1px solid var(--line);border-radius:18px;background:rgba(7,9,13,.97);box-shadow:var(--shadow);display:none}.mode-menu.open{display:grid;gap:5px}.mode-menu button{height:36px;border:0;border-radius:12px;background:transparent;color:#cfd3dc;font-weight:750}.mode-menu button.active,.mode-menu button:active{background:var(--accent-soft);color:#fff}.micro-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:rgba(7,9,13,.86);color:#fff;display:grid;place-items:center;font-size:16px;box-shadow:0 8px 22px #0007}.topbar .settings-open{position:absolute;right:calc(50% + 76px);top:0}
+.status-pill{position:absolute;z-index:95;left:calc(50% + 76px);top:3px;height:28px;padding:0 10px;border-radius:999px;background:rgba(6,7,10,.78);border:1px solid var(--line);font-size:10px;letter-spacing:.1em;font-weight:800;color:#aeb5c2;display:flex;align-items:center;gap:6px;white-space:nowrap}.status-dot{width:7px;height:7px;border-radius:50%;background:#727988}.status-pill.online .status-dot{background:#31e98b;box-shadow:0 0 10px #31e98b}.status-pill.local .status-dot{background:#ffb13b;box-shadow:0 0 10px #ffb13b}.status-pill.error .status-dot{background:#ff4058;box-shadow:0 0 10px #ff4058}
+
+.control{position:absolute;z-index:20}.stage button,.control,.draggable,.shoulder,.joystick,.keyboard-chip,.quick-app,.dropbar,.mode-menu,.status-pill,.edit-label{user-select:none!important;-webkit-user-select:none!important;-webkit-touch-callout:none!important;-webkit-user-drag:none!important}.pad-btn,.face-btn,.center-btn,.shoulder,.stick{touch-action:none;cursor:pointer}.pad-btn,.face-btn,.center-btn,.shoulder{border:1px solid rgba(255,255,255,.13);background:linear-gradient(160deg,rgba(36,39,49,.92),rgba(12,14,19,.96));color:#fff;box-shadow:0 10px 30px #0008,inset 0 1px rgba(255,255,255,.08)}
+.pad-btn:active,.face-btn:active,.center-btn:active,.shoulder.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 24px var(--accent-soft),inset 0 1px rgba(255,255,255,.12);transform:scale(.96)}
+
+.dpad{width:190px;height:190px;position:absolute}.dpad:before{content:"";position:absolute;left:63px;top:63px;width:64px;height:64px;border-radius:19px;background:#11151d;border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 0 22px #000}.pad-btn{position:absolute;width:66px;height:66px;border-radius:18px;display:grid;place-items:center;font-size:27px;font-weight:900}.pad-up{left:62px;top:0}.pad-down{left:62px;bottom:0}.pad-left{left:0;top:62px}.pad-right{right:0;top:62px}.pad-btn span{opacity:.82}
+.face-diamond{width:190px;height:190px;position:absolute}.face-btn{position:absolute;width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-size:29px;font-weight:700}.face-triangle{left:62px;top:0}.face-x{left:62px;bottom:0}.face-square{left:0;top:62px}.face-circle{right:0;top:62px}.face-btn[data-button="context"]{color:#77f2a5}.face-btn[data-button="secondary"]{color:#e5a5ff}.face-btn[data-button="cancel"]{color:#ff7c8e}.face-btn[data-button="primary"]{color:#8cc9ff}.ps-cross{position:relative;display:block;width:29px;height:29px;filter:drop-shadow(0 0 7px currentColor)}.ps-cross:before,.ps-cross:after{content:"";position:absolute;left:50%;top:50%;width:29px;height:5px;border-radius:999px;background:currentColor;transform-origin:center}.ps-cross:before{transform:translate(-50%,-50%) rotate(45deg)}.ps-cross:after{transform:translate(-50%,-50%) rotate(-45deg)}
+.face-row{display:flex;gap:16px;align-items:center;justify-content:center}.face-row .face-btn{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:61px;height:61px;flex:0 0 61px}
+.center-cluster{display:flex;align-items:center;gap:12px;position:absolute}.center-btn{height:40px;min-width:72px;padding:0 13px;border-radius:15px;font-size:10px;font-weight:850;letter-spacing:.09em}.atom-btn{width:54px;min-width:54px;height:54px;border-radius:50%;font-size:31px;color:var(--accent);text-shadow:0 0 15px var(--accent);padding:0}
+.shoulder{position:absolute;height:50px;min-width:104px;border-radius:17px;display:grid;place-items:center;font-size:13px;font-weight:850;letter-spacing:.12em}
+
+.joystick{position:absolute;width:164px;height:164px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#1c202a,#0b0d12 70%);border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 44px #0009,inset 0 0 28px #000}.joystick:before{content:"";position:absolute;inset:22px;border-radius:50%;border:1px solid rgba(255,255,255,.08)}.stick-knob{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px;border-radius:50%;background:radial-gradient(circle at 40% 34%,#343a49,#12151c 62%);border:1px solid rgba(255,255,255,.14);box-shadow:0 9px 24px #000c,inset 0 2px rgba(255,255,255,.08);will-change:transform}
+
+/* Browse, visually landscape but physically portrait. */
+#browse .browse-dpad{left:8%;top:50%;transform:translateY(-50%)}
+#browse .browse-face{right:8%;top:50%;transform:translateY(-50%)}
+#browse .browse-center{left:50%;top:55%;transform:translate(-50%,-50%)}
+#browse .shoulder-l{left:6%;top:8%}#browse .shoulder-r{right:6%;top:8%}
+#browse .hint{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);font-size:10px;color:#697180;letter-spacing:.08em}
+
+/* Media upright. */
+#media .media-center{left:50%;top:12.5%;transform:translateX(-50%)}
+#media .media-face{left:50%;top:25.5%;transform:translateX(-50%)}
+#media .media-dpad{left:50%;top:43%;transform:translateX(-50%) scale(1.06)}
+.quick-apps{position:absolute;left:50%;bottom:max(34px,calc(18px + env(safe-area-inset-bottom)));transform:translateX(-50%);display:flex;gap:13px;z-index:30}.quick-app{width:74px;height:74px;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible;padding:0;position:relative}.quick-app img{width:74px;height:74px;object-fit:contain;display:block;border:0;border-radius:0;box-shadow:0 12px 26px #0009}.quick-app .fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:9px;color:#aeb5c2;padding:6px;text-align:center;border:1px dashed rgba(255,255,255,.15);border-radius:16px}.quick-app.icon-loaded .fallback{display:none}.quick-app:active{transform:scale(.94);filter:drop-shadow(0 0 12px var(--accent-soft))}
+
+/* Gaming sideways. */
+#gaming .draggable{position:absolute;transform:translate(-50%,-50%);z-index:24;display:grid;place-items:center}#gaming .draggable>*{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important}.editing #gaming .draggable{animation:controlPulse .78s ease-in-out infinite alternate;outline:1px dashed color-mix(in srgb,var(--accent) 70%,white 10%);outline-offset:7px;border-radius:22px}.editing #gaming .draggable *{pointer-events:none}@keyframes controlPulse{from{filter:drop-shadow(0 0 2px var(--accent));opacity:.88}to{filter:drop-shadow(0 0 16px var(--accent));opacity:1}}
+#gaming [data-drag-key="dpad"]{left:22%;top:31%}#gaming [data-drag-key="face"]{left:78%;top:31%}#gaming [data-drag-key="leftstick"]{left:23%;top:72%}#gaming [data-drag-key="rightstick"]{left:77%;top:72%}#gaming [data-drag-key="center"]{left:50%;top:58%}#gaming [data-drag-key="l1"]{left:10%;top:9%}#gaming [data-drag-key="l2"]{left:10%;top:19%}#gaming [data-drag-key="r1"]{left:90%;top:9%}#gaming [data-drag-key="r2"]{left:90%;top:19%}
+#gaming .edit-atom{position:absolute;z-index:80;left:50%;bottom:3.5%;transform:translateX(-50%);width:39px;height:39px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 75%,white 5%);background:#090b10;color:var(--accent);font-size:24px;box-shadow:0 0 18px var(--accent-soft);display:grid;place-items:center}.editing #gaming .edit-atom{box-shadow:0 0 24px var(--accent),0 0 50px var(--accent-soft)}
+.edit-label{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);font-size:10px;letter-spacing:.12em;color:var(--accent);font-weight:900;opacity:0}.editing .edit-label{opacity:1}
+
+/* Login / settings */
+.overlay{position:fixed;z-index:500;inset:0;background:rgba(0,0,0,.74);backdrop-filter:blur(14px);display:grid;place-items:center;padding:20px}.sheet{width:min(430px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:30px;background:linear-gradient(155deg,#11141c,#080a0f 70%);box-shadow:var(--shadow);padding:24px}.sheet h2{margin:0 0 7px;font-size:25px}.sheet p{margin:0 0 19px;color:#929aaa;line-height:1.45;font-size:13px}.brand{color:var(--accent);font-size:10px;letter-spacing:.2em;font-weight:900;margin-bottom:8px}.field{display:grid;gap:7px;margin:12px 0}.field label{font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:#7e8798;font-weight:800}.field input,.field select{height:46px;border-radius:14px;border:1px solid var(--line);background:#05070b;color:#fff;padding:0 13px;outline:0}.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}.primary-action,.secondary-action{width:100%;height:48px;border-radius:15px;font-weight:850;border:1px solid var(--line);margin-top:9px}.primary-action{background:var(--accent);color:#fff;border-color:var(--accent)}.secondary-action{background:#10131a;color:#dce1ea}.form-error{min-height:20px;margin-top:10px;color:#ff7184;font-size:12px;font-weight:700}.auth-tabs{display:flex;gap:7px;margin-bottom:12px}.auth-tabs button{flex:1;height:36px;border-radius:11px;border:1px solid var(--line);background:#090b10;color:#969faf;font-size:10px;font-weight:850}.auth-tabs button.active{color:#fff;border-color:var(--accent);background:var(--accent-soft)}
+.settings-grid{display:grid;gap:12px}.settings-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}.settings-row strong{font-size:13px}.settings-row small{display:block;color:#798192;margin-top:4px}.settings-row input[type="color"]{width:45px;height:34px;padding:1px;border:0;background:transparent}.settings-row input[type="checkbox"]{width:22px;height:22px;accent-color:var(--accent)}.quick-config{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}.quick-config select{width:100%}.close-x{float:right;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#0d1016;color:#fff}
+
+/* Native keyboard trigger. iOS requires a user gesture to display its keyboard. */
+.keyboard-chip{z-index:300;height:42px;padding:0 13px;border-radius:21px;border:1px solid var(--line);background:rgba(8,10,14,.92);color:#aab2c0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:850;box-shadow:0 12px 30px #0009;letter-spacing:.06em}.keyboard-chip.needed{color:#fff;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 22px var(--accent-soft);animation:keyPulse 1s ease-in-out infinite alternate}@keyframes keyPulse{from{filter:brightness(.96)}to{filter:brightness(1.15)}}
+#browse .browse-keyboard{position:absolute;left:50%;top:67%;transform:translateX(-50%)}#media .media-keyboard{position:absolute;left:50%;bottom:max(122px,calc(102px + env(safe-area-inset-bottom)));transform:translateX(-50%)}
+#nativeInput{position:fixed;z-index:-1;left:50%;bottom:0;width:2px;height:2px;opacity:.01;border:0;padding:0;font-size:16px}
+.toast{position:fixed;z-index:600;left:50%;bottom:max(70px,calc(52px + env(safe-area-inset-bottom)));transform:translateX(-50%) translateY(30px);opacity:0;transition:.2s;max-width:84vw;padding:11px 15px;border:1px solid var(--line);border-radius:15px;background:#0a0d13;color:#fff;font-size:12px;box-shadow:0 14px 40px #000b;pointer-events:none}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:430px){.dpad{transform-origin:center}.status-pill{font-size:9px}.sheet{padding:20px}.face-row{gap:10px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="browse" class="stage sideways mode-stage">
+    <div class="topbar"><button class="micro-btn settings-open" aria-label="Settings">⚙︎</button><div class="drop-wrap"><button class="dropbar"><span>BROWSE</span></button><div class="mode-menu"><button data-mode="browse" class="active">Browse</button><button data-mode="media">Media</button><button data-mode="gaming">Gaming</button></div></div><div class="status-pill"><i class="status-dot"></i><span class="status-text">CHECKING</span></div></div>
+    <button class="shoulder shoulder-l hold-shoulder" data-tap="l1" data-hold="l2">L1</button>
+    <button class="shoulder shoulder-r hold-shoulder" data-tap="r1" data-hold="r2">R1</button>
+    <div class="control dpad browse-dpad" data-control="dpad"></div>
+    <div class="control face-diamond browse-face" data-control="face"></div>
+    <div class="control center-cluster browse-center" data-control="center"></div>
+    <button class="keyboard-chip browse-keyboard" aria-label="Open native keyboard"><span>⌨︎</span><span class="keyboard-label">KEYBOARD</span></button>
+    <div class="hint">HOLD L1 / R1 FOR L2 / R2</div>
+  </section>
+
+  <section id="media" class="stage upright mode-stage hidden">
+    <div class="topbar"><button class="micro-btn settings-open" aria-label="Settings">⚙︎</button><div class="drop-wrap"><button class="dropbar"><span>MEDIA</span></button><div class="mode-menu"><button data-mode="browse">Browse</button><button data-mode="media" class="active">Media</button><button data-mode="gaming">Gaming</button></div></div><div class="status-pill"><i class="status-dot"></i><span class="status-text">CHECKING</span></div></div>
+    <div class="control center-cluster media-center" data-control="center"></div>
+    <div class="control face-row media-face" data-control="face-row"></div>
+    <div class="control dpad media-dpad" data-control="dpad"></div>
+    <button class="keyboard-chip media-keyboard" aria-label="Open native keyboard"><span>⌨︎</span><span class="keyboard-label">KEYBOARD</span></button>
+    <div class="quick-apps" id="quickApps"></div>
+  </section>
+
+  <section id="gaming" class="stage sideways mode-stage hidden">
+    <div class="topbar"><button class="micro-btn settings-open" aria-label="Settings">⚙︎</button><div class="drop-wrap"><button class="dropbar"><span>GAMING</span></button><div class="mode-menu"><button data-mode="browse">Browse</button><button data-mode="media">Media</button><button data-mode="gaming" class="active">Gaming</button></div></div><div class="status-pill"><i class="status-dot"></i><span class="status-text">CHECKING</span></div></div>
+    <div class="draggable" data-drag-key="l1"><button class="shoulder" data-button="l1">L1</button></div>
+    <div class="draggable" data-drag-key="l2"><button class="shoulder" data-button="l2">L2</button></div>
+    <div class="draggable" data-drag-key="r1"><button class="shoulder" data-button="r1">R1</button></div>
+    <div class="draggable" data-drag-key="r2"><button class="shoulder" data-button="r2">R2</button></div>
+    <div class="draggable" data-drag-key="dpad"><div class="dpad" data-control="dpad"></div></div>
+    <div class="draggable" data-drag-key="face"><div class="face-diamond" data-control="face"></div></div>
+    <div class="draggable" data-drag-key="leftstick"><div class="joystick" data-stick="leftstick"><div class="stick-knob"></div></div></div>
+    <div class="draggable" data-drag-key="rightstick"><div class="joystick" data-stick="rightstick"><div class="stick-knob"></div></div></div>
+    <div class="draggable" data-drag-key="center"><div class="center-cluster" data-control="center"></div></div>
+    <div class="edit-label">CUSTOMIZE MODE • DRAG CONTROLS</div>
+    <button class="edit-atom" id="editAtom" aria-label="Hold to customize">⚛</button>
+  </section>
+
+  <textarea id="nativeInput" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" inputmode="text"></textarea>
+  <div id="toast" class="toast"></div>
+
+  <div id="authOverlay" class="overlay hidden">
+    <div class="sheet">
+      <div class="brand">NEUTRONOS REMOTE</div>
+      <h2>Controller Access</h2>
+      <p id="authMessage">Authenticate to this controller. The page no longer waits forever on a missing browser token.</p>
+      <div class="auth-tabs"><button data-auth-tab="account" class="active">ACCOUNT</button><button data-auth-tab="pair">PAIR CODE</button></div>
+      <form id="accountForm">
+        <div class="field"><label>Linux username</label><input id="loginUser" autocomplete="username" value="neutronos"></div>
+        <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+        <button class="primary-action" type="submit">SIGN IN</button>
+      </form>
+      <form id="pairForm" class="hidden">
+        <div class="field"><label>Pairing code</label><input id="pairCode" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" maxlength="12"></div>
+        <button class="primary-action" type="submit">PAIR THIS PHONE</button>
+      </form>
+      <div class="form-error" id="authError"></div>
+    </div>
+  </div>
+
+  <div id="settingsOverlay" class="overlay hidden">
+    <div class="sheet">
+      <button class="close-x" id="settingsClose">×</button>
+      <div class="brand">CONTROLLER SETTINGS</div>
+      <h2>Remote Layout</h2>
+      <p>Settings are stored only in this browser. Gaming positions can be reset at any time.</p>
+      <div class="settings-grid">
+        <div class="settings-row"><div><strong>Accent color</strong><small>Default Neutron red</small></div><input type="color" id="accentPicker" value="#ff203e"></div>
+        <div class="settings-row"><div><strong>Haptics</strong><small>Short vibration on controls</small></div><input type="checkbox" id="hapticsToggle" checked></div>
+        <div class="settings-row"><div><strong>Browse shoulder hold</strong><small>Hold L1/R1 to send L2/R2</small></div><select id="holdDelay"><option value="300">0.30s</option><option value="400" selected>0.40s</option><option value="500">0.50s</option><option value="650">0.65s</option></select></div>
+        <div><strong style="font-size:13px">Media quick apps</strong><small style="display:block;color:#798192;margin-top:4px">Choose four installed NeutronOS apps.</small><div class="quick-config" id="quickConfig"></div></div>
+        <button class="secondary-action keyboard-settings" id="settingsKeyboard">OPEN NATIVE KEYBOARD</button>
+        <button class="secondary-action" id="resetGaming">RESET GAMING LAYOUT</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const store={
+  get(k,d=null){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch{return d}},
+  set(k,v){localStorage.setItem(k,JSON.stringify(v))}
+};
+let mode=store.get('neutron.remote.mode','browse');
+let token=store.get('neutron.remote.token','');
+let authMode='token', connected=false, editMode=false, apps=[], keyboardActive=false;
+let config=Object.assign({accent:'#ff203e',haptics:true,holdDelay:400,quickApps:['browser','musicplayer','jellyfin','games']},store.get('neutron.remote.config',{}));
+const toastEl=$('#toast'); let toastTimer=0;
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.remove('show'),2200)}
+function haptic(ms=12){if(config.haptics&&navigator.vibrate)navigator.vibrate(ms)}
+function nonce(){return (crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2))}
+function authHeaders(json=true){const h={};if(json)h['Content-Type']='application/json';if(authMode==='token'&&token)h.Authorization='Bearer '+token;return h}
+async function api(path,options={}){const opts=Object.assign({cache:'no-store',credentials:'same-origin'},options);opts.headers=Object.assign({},authHeaders(opts.method&&opts.method!=='GET'),opts.headers||{});let r;try{r=await fetch(path,opts)}catch(e){throw new Error('Controller network unavailable')};let j=null;try{j=await r.json()}catch{};if(r.status===401&&authMode==='token'){connected=false;showAuth('Your saved controller access is missing or expired. Sign in or pair this phone.')}if(!r.ok)throw new Error((j&&j.error)||('Request failed: HTTP '+r.status));return j||{ok:true}}
+function setStatus(kind,text){$$('.status-pill').forEach(p=>{p.className='status-pill '+kind;p.querySelector('.status-text').textContent=text})}
+function renderControlTemplates(){
+  const dpad=`<button class="pad-btn pad-up" data-button="up"><span>▲</span></button><button class="pad-btn pad-left" data-button="left"><span>◀</span></button><button class="pad-btn pad-right" data-button="right"><span>▶</span></button><button class="pad-btn pad-down" data-button="down"><span>▼</span></button>`;
+  const cross=`<span class="ps-cross" aria-hidden="true"></span>`;
+  const face=`<button class="face-btn face-triangle" data-button="context">△</button><button class="face-btn face-square" data-button="secondary">□</button><button class="face-btn face-circle" data-button="cancel">○</button><button class="face-btn face-x" data-button="primary">${cross}</button>`;
+  const row=`<button class="face-btn" data-button="primary">${cross}</button><button class="face-btn" data-button="cancel">○</button><button class="face-btn" data-button="secondary">□</button><button class="face-btn" data-button="context">△</button>`;
+  const center=`<button class="center-btn" data-button="quick">START</button><button class="center-btn atom-btn" data-button="home">⚛</button><button class="center-btn" data-button="system">OPTIONS</button>`;
+  $$('[data-control="dpad"]').forEach(x=>x.innerHTML=dpad);$$('[data-control="face"]').forEach(x=>x.innerHTML=face);$$('[data-control="face-row"]').forEach(x=>x.innerHTML=row);$$('[data-control="center"]').forEach(x=>x.innerHTML=center);
+}
+async function sendEvent(button,state='press',x=0,y=0){if(editMode)return;const body={button,state,x,y,time:Date.now(),nonce:nonce()};try{await api('/api/controller/event',{method:'POST',body:JSON.stringify(body)});connected=true}catch(e){toast(e.message);throw e}}
+function bindButton(el){if(el.dataset.bound)return;el.dataset.bound='1';let down=false;const press=e=>{if(editMode)return;e.preventDefault();down=true;el.classList.add('active');haptic();sendEvent(el.dataset.button,'press').catch(()=>{});try{el.setPointerCapture(e.pointerId)}catch{}};const release=e=>{if(!down)return;e.preventDefault();down=false;el.classList.remove('active');sendEvent(el.dataset.button,'release').catch(()=>{})};el.addEventListener('pointerdown',press);el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release)}
+function bindShoulderHold(el){let timer=0,held=false,pointer=-1;el.addEventListener('pointerdown',e=>{if(editMode)return;e.preventDefault();pointer=e.pointerId;held=false;el.classList.add('active');try{el.setPointerCapture(pointer)}catch{};timer=setTimeout(()=>{held=true;haptic(18);sendEvent(el.dataset.hold,'press').catch(()=>{})},Number(config.holdDelay)||400)});const end=e=>{if(pointer!==e.pointerId)return;clearTimeout(timer);el.classList.remove('active');if(held)sendEvent(el.dataset.hold,'release').catch(()=>{});else{haptic();sendEvent(el.dataset.tap,'press').then(()=>sendEvent(el.dataset.tap,'release')).catch(()=>{})}pointer=-1};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end)}
+function bindAllButtons(){$$('[data-button]').forEach(bindButton);$$('.hold-shoulder').forEach(bindShoulderHold)}
+function bindStick(el){const knob=el.querySelector('.stick-knob');let pid=null,last=0;function move(e){if(pid!==e.pointerId||editMode)return;const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.32,dist=Math.hypot(dx,dy)||1;if(dist>max){dx=dx/dist*max;dy=dy/dist*max}knob.style.transform=`translate(${dx}px,${dy}px)`;const now=performance.now();if(now-last>28){last=now;const x=Math.round(dx/max*32767),y=Math.round(dy/max*32767);sendEvent(el.dataset.stick,'move',x,y).catch(()=>{})}}function start(e){if(editMode)return;e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid)}catch{};move(e);haptic()}function end(e){if(pid!==e.pointerId)return;pid=null;knob.style.transform='';sendEvent(el.dataset.stick,'move',0,0).catch(()=>{})}el.addEventListener('pointerdown',start);el.addEventListener('pointermove',move);el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end)}
+function setMode(next){if(!['browse','media','gaming'].includes(next))return;mode=next;store.set('neutron.remote.mode',mode);$$('.mode-stage').forEach(s=>s.classList.toggle('hidden',s.id!==mode));$$('.mode-menu').forEach(m=>{m.classList.remove('open');m.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode))});if(editMode&&mode!=='gaming')setEdit(false)}
+function bindMenus(){$$('.dropbar').forEach(b=>b.onclick=e=>{e.stopPropagation();b.parentElement.querySelector('.mode-menu').classList.toggle('open')});$$('.mode-menu button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));document.addEventListener('pointerdown',e=>{if(!e.target.closest('.drop-wrap'))$$('.mode-menu').forEach(m=>m.classList.remove('open'))})}
+function setEdit(on){editMode=!!on;document.body.classList.toggle('editing',editMode);toast(editMode?'Gaming controls unlocked':'Gaming layout saved');haptic(editMode?25:12)}
+function bindEditAtom(){let timer=0;const a=$('#editAtom');a.addEventListener('pointerdown',e=>{e.preventDefault();timer=setTimeout(()=>setEdit(!editMode),700)});['pointerup','pointercancel','pointerleave'].forEach(ev=>a.addEventListener(ev,()=>clearTimeout(timer)))}
+function gamingLayout(){return store.get('neutron.remote.gamingLayout',{})||{}}
+function applyGamingLayout(){const l=gamingLayout();$$('#gaming .draggable').forEach(el=>{const v=l[el.dataset.dragKey];if(v){el.style.left=v.x+'%';el.style.top=v.y+'%'}})}
+function bindDrags(){$$('#gaming .draggable').forEach(el=>{let pid=null;el.addEventListener('pointerdown',e=>{if(!editMode)return;e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid)}catch{}});el.addEventListener('pointermove',e=>{if(!editMode||pid!==e.pointerId)return;const r=$('#gaming').getBoundingClientRect();let x=(e.clientX-r.left)/r.width*100,y=(e.clientY-r.top)/r.height*100;x=Math.max(4,Math.min(96,x));y=Math.max(4,Math.min(96,y));el.style.left=x+'%';el.style.top=y+'%';const l=gamingLayout();l[el.dataset.dragKey]={x:+x.toFixed(2),y:+y.toFixed(2)};store.set('neutron.remote.gamingLayout',l)});['pointerup','pointercancel'].forEach(ev=>el.addEventListener(ev,e=>{if(pid===e.pointerId)pid=null}))})}
+function applyConfig(){document.documentElement.style.setProperty('--accent',config.accent||'#ff203e');$('#accentPicker').value=config.accent||'#ff203e';$('#hapticsToggle').checked=config.haptics!==false;$('#holdDelay').value=String(config.holdDelay||400)}
+function saveConfig(){store.set('neutron.remote.config',config);applyConfig();renderQuickApps()}
+async function loadApps(){try{const j=await api('/api/apps');apps=j.apps||[]}catch(e){apps=[]}renderQuickConfig();renderQuickApps()}
+function appById(id){return apps.find(a=>a.id===id)}
+async function iconFor(img,app){if(!app)return;try{const r=await fetch(app.iconUrl,{headers:authHeaders(false),credentials:'same-origin',cache:'no-store'});if(!r.ok)throw 0;const blob=await r.blob();img.onload=()=>{const button=img.closest('.quick-app');if(button)button.classList.add('icon-loaded')};img.src=URL.createObjectURL(blob)}catch{img.removeAttribute('src')}}
+function renderQuickApps(){const box=$('#quickApps');box.innerHTML='';const ids=(config.quickApps||[]).slice(0,4);while(ids.length<4)ids.push('');ids.forEach((id,i)=>{const app=appById(id);const b=document.createElement('button');b.className='quick-app';b.innerHTML=`<img alt=""><span class="fallback">${app?app.name:'SET APP'}</span>`;if(app){iconFor(b.querySelector('img'),app);b.onclick=async()=>{haptic();try{await api('/api/apps/launch',{method:'POST',body:JSON.stringify({appId:app.id})});toast('Opening '+app.name)}catch(e){toast(e.message)}}}else b.onclick=()=>openSettings();box.appendChild(b)})}
+function renderQuickConfig(){const box=$('#quickConfig');box.innerHTML='';for(let i=0;i<4;i++){const s=document.createElement('select');s.innerHTML='<option value="">Choose app '+(i+1)+'</option>'+apps.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');s.value=(config.quickApps||[])[i]||'';s.onchange=()=>{config.quickApps=config.quickApps||[];config.quickApps[i]=s.value;saveConfig()};box.appendChild(s)}}
+function openSettings(){$('#settingsOverlay').classList.remove('hidden');renderQuickConfig()}function closeSettings(){$('#settingsOverlay').classList.add('hidden')}
+function bindSettings(){$$('.settings-open').forEach(b=>b.onclick=openSettings);$('#settingsClose').onclick=closeSettings;$('#accentPicker').oninput=e=>{config.accent=e.target.value;saveConfig()};$('#hapticsToggle').onchange=e=>{config.haptics=e.target.checked;saveConfig()};$('#holdDelay').onchange=e=>{config.holdDelay=Number(e.target.value);saveConfig()};$('#resetGaming').onclick=()=>{localStorage.removeItem('neutron.remote.gamingLayout');$$('#gaming .draggable').forEach(el=>{el.style.left='';el.style.top=''});toast('Gaming layout reset')}}
+function showAuth(msg='Authentication required'){$('#authOverlay').classList.remove('hidden');$('#authMessage').textContent=msg;$('#authError').textContent='';setStatus('error','AUTH REQUIRED')}function hideAuth(){$('#authOverlay').classList.add('hidden')}
+function bindAuth(){let tab='account';$$('[data-auth-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.authTab;$$('[data-auth-tab]').forEach(x=>x.classList.toggle('active',x.dataset.authTab===tab));$('#accountForm').classList.toggle('hidden',tab!=='account');$('#pairForm').classList.toggle('hidden',tab!=='pair');$('#authError').textContent=''});$('#accountForm').onsubmit=async e=>{e.preventDefault();$('#authError').textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#loginUser').value,password:$('#loginPass').value}),credentials:'same-origin'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Sign in failed');token=j.token;store.set('neutron.remote.token',token);$('#loginPass').value='';hideAuth();await heartbeat(true);await loadApps()}catch(err){$('#authError').textContent=err.message}};$('#pairForm').onsubmit=async e=>{e.preventDefault();$('#authError').textContent='';try{const device=store.get('neutron.remote.deviceId','iphone-'+Math.random().toString(36).slice(2,10));store.set('neutron.remote.deviceId',device);const r=await fetch('/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:device,code:$('#pairCode').value}),credentials:'same-origin'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Pairing failed');token=j.token;store.set('neutron.remote.token',token);hideAuth();await heartbeat(true);await loadApps()}catch(err){$('#authError').textContent=err.message}}}
+async function heartbeat(force=false){try{const pub=await fetch('/api/public/status',{cache:'no-store',credentials:'same-origin'}).then(r=>r.json());authMode=pub.authMode||'token';if(authMode==='token'&&!token){connected=false;showAuth('This hostname has no saved controller token yet. Sign in with your NeutronOS account or pair this phone.');return}const j=await api('/api/status');connected=true;setStatus(authMode==='pam'?'local':'online',authMode==='pam'?'LOCAL SECURE':'ONLINE');keyboardActive=!!j.textInputActive;if(force)hideAuth()}catch(e){connected=false;if(authMode==='token'&&String(e.message).includes('authentication'))showAuth(e.message);else setStatus('error','OFFLINE')}}
+async function pollKeyboard(){if(!connected)return;try{const j=await api('/api/keyboard/status');const was=keyboardActive;keyboardActive=!!j.textInputActive;$$('.keyboard-chip').forEach(chip=>chip.classList.toggle('needed',keyboardActive));$$('.keyboard-label').forEach(label=>label.textContent=keyboardActive?'TAP TO TYPE':'KEYBOARD');if(keyboardActive&&!was)haptic(24)}catch{}}
+function bindNativeKeyboard(){const input=$('#nativeInput');const openKeyboard=()=>{if(!keyboardActive){toast('No editable NeutronOS text field is focused');return}input.value='';input.focus({preventScroll:true});haptic(18)};$$('.keyboard-chip').forEach(chip=>chip.onclick=openKeyboard);$('#settingsKeyboard').onclick=openKeyboard;input.addEventListener('beforeinput',e=>{if(!keyboardActive)return;const t=e.inputType||'';if(t==='deleteContentBackward'){e.preventDefault();api('/api/keyboard/input',{method:'POST',body:JSON.stringify({op:'backspace',count:1})}).catch(err=>toast(err.message));return}if(t==='insertLineBreak'){e.preventDefault();api('/api/keyboard/input',{method:'POST',body:JSON.stringify({op:'enter'})}).catch(err=>toast(err.message));return}if((t.startsWith('insert')||t==='insertFromPaste')&&e.data){e.preventDefault();api('/api/keyboard/input',{method:'POST',body:JSON.stringify({op:'text',text:e.data})}).then(j=>{if(j.unsupported)toast('Unsupported characters: '+j.unsupported)}).catch(err=>toast(err.message))}});input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();api('/api/keyboard/input',{method:'POST',body:JSON.stringify({op:'enter'})}).catch(err=>toast(err.message))}else if(e.key==='Tab'){e.preventDefault();api('/api/keyboard/input',{method:'POST',body:JSON.stringify({op:'tab'})}).catch(err=>toast(err.message))}})}
+function init(){renderControlTemplates();bindMenus();bindAllButtons();$$('.joystick').forEach(bindStick);bindEditAtom();bindDrags();applyGamingLayout();bindSettings();bindAuth();bindNativeKeyboard();applyConfig();setMode(mode);heartbeat(true).then(()=>loadApps());setInterval(()=>heartbeat(false),2800);setInterval(pollKeyboard,700);document.addEventListener('contextmenu',e=>{if(!e.target.closest('input,textarea,select'))e.preventDefault()});document.addEventListener('selectstart',e=>{if(!e.target.closest('input,textarea,select'))e.preventDefault()});document.addEventListener('gesturestart',e=>e.preventDefault())}
+init();
+})();
+</script>
+</body>
+</html>

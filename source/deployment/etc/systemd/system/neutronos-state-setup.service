@@ -1,0 +1,14 @@
+[Unit]
+Description=Prepare NeutronOS runtime and state ownership
+DefaultDependencies=no
+After=local-fs.target
+Before=neutronos.service neutron-securityd.service neutronos-remote-controller.service neutronos-offline-network.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/neutronos/neutronos.conf
+ExecStart=/usr/local/sbin/neutronos-state-setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=neutronos.target

@@ -1,0 +1,12 @@
+{
+  "authoritativeSource": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working",
+  "baseImage": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/output/NeutronOS-Apollo-1.0.0-rc1.img.xz",
+  "baseImageSha256": "d9d7260e1c445d773e114cff08b14a01fb2b39130d824a95d361343f5308ebf9",
+  "baseRevision": "b0663374e0c627aa2438ec724c83990f484255e1",
+  "buildInstructions": "docs/release/apollo-1.0.1/BUILD.md",
+  "createdUtc": "2026-09-21T03:32:31.588481+00:00",
+  "mesaProvenance": "docs/release/apollo-1.0.1/mesa-provenance.json",
+  "originalRc1SourceArchiveSha256": "fffe6170a93be522b554c2db9fb2664d167f0b54399470f26c957adba9b386ba",
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "schemaVersion": 1
+}

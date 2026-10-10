@@ -1,0 +1,41 @@
+[Unit]
+Description=NeutronOS Security Core, Recovery and Vault Daemon
+Documentation=file:///opt/neutronos/qml/apps/security/README.txt
+After=local-fs.target systemd-journald.service neutronos-state-setup.service neutronos-firewall-guard.service
+Requires=neutronos-state-setup.service neutronos-firewall-guard.service
+Before=neutronos.service neutron-remote-service.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/neutronos/securityd.conf
+Environment=NEUTRONOS_ROOT=/opt/neutronos
+Environment=NEUTRONOS_OWNER=neutronos
+Environment=NEUTRONOS_GROUP=neutronos
+Environment=PYTHONPATH=/usr/local/lib/neutronos
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/neutron-securityd.py --state-dir /var/lib/neutronos/security-core --project-root ${NEUTRONOS_ROOT} --owner ${NEUTRONOS_OWNER} --group ${NEUTRONOS_GROUP} --authorization-policy /etc/neutronos/security-authorization.json
+Restart=always
+RestartSec=2
+TimeoutStopSec=20
+Nice=5
+UMask=0027
+RuntimeDirectory=neutronos/security
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=restart
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ProtectKernelTunables=no
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadWritePaths=/var/lib/neutronos/security-core /run/neutronos/security -/var/lib/clamav -/etc/sysctl.d -/etc/ssh/sshd_config.d -/boot
+
+[Install]
+WantedBy=multi-user.target

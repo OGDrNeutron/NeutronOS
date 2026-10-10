@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Read-only systemd generator for staged NeutronOS Recovery requests."""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def link(target: Path, source: str) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        target.symlink_to(source)
+    except FileExistsError:
+        pass
+
+
+def request_root() -> Path:
+    override = os.environ.get("NEUTRONOS_RECOVERY_TEST_ROOT", "").strip()
+    return Path(override) if override else Path("/var/lib/neutronos/recovery")
+
+
+def load_request(root: Path) -> dict:
+    for name in ("next-boot.json", "safe-mode-next-boot.json"):
+        path = root / name
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            continue
+        if (isinstance(value, dict) and value.get("schemaVersion") == 1 and
+                value.get("oneShot") is True and
+                value.get("mode") in ("UPDATE", "BACKUP_RESTORE", "RECOVERY", "SAFE")):
+            return value
+    return {}
+
+
+def generate(generator: Path, state: dict) -> None:
+    if not state:
+        return
+    # Generators run before the root filesystem is remounted writable.  They
+    # must never consume persistent state.  The Recovery service begins and
+    # later completes/cancels the transaction after local-fs.target.
+    link(generator / "neutronos.service", "/dev/null")
+    link(generator / "multi-user.target.wants/neutronos-recovery-ui.service",
+         "/etc/systemd/system/neutronos-recovery-ui.service")
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        return 0
+    generator = Path(sys.argv[2] if len(sys.argv) > 2 else sys.argv[1])
+    generate(generator, load_request(request_root()))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

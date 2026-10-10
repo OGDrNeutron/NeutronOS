@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+install -d -o root -g neutronos-shell -m 3770 /run/neutronos
+rm -f /run/neutronos/login-ready /run/neutronos/shell-frame-ready

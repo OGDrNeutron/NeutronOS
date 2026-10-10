@@ -1,0 +1,7 @@
+[Unit]
+Description=Reconcile NeutronOS human-data ownership
+After=local-fs.target
+ConditionPathIsMountPoint=/NeutronOS
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/libexec/neutronos-human-storage-owner.py

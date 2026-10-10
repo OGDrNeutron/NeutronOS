@@ -1,0 +1,1 @@
+neutronos ALL=(root) NOPASSWD: /usr/local/sbin/neutronos-privileged-helper

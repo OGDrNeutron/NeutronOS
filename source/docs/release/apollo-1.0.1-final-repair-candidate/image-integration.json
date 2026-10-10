@@ -1,0 +1,112 @@
+{
+  "releaseId": "NeutronOS-Apollo-1.0.1",
+  "candidate": "final-repair",
+  "installed": [
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/SetupWizard.qml",
+      "destination": "home/echo/NeutronOS/qml/SetupWizard.qml",
+      "sha256": "621820afa2a8db7069e162fab6b50150f06bfc12a46843160466248fd28822f4",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/LoginScreen.qml",
+      "destination": "home/echo/NeutronOS/qml/LoginScreen.qml",
+      "sha256": "c76abd7f927399e7d2656a7873884a2b13a2dabba310e6e4f7d21e1dda939acb",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/Console.qml",
+      "destination": "home/echo/NeutronOS/qml/Console.qml",
+      "sha256": "d4e5b225c4022ff401ea6a9e77441e48fd926612aa401dead840796f43990586",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/modals/HelpModal.qml",
+      "destination": "home/echo/NeutronOS/qml/modals/HelpModal.qml",
+      "sha256": "f9d44a6d6a07890cca0dfe6a5c0608de239b7ebac59a741bd34d4a6187ffc8f0",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/modals/LoginInstructionsModal.qml",
+      "destination": "home/echo/NeutronOS/qml/modals/LoginInstructionsModal.qml",
+      "sha256": "592bd0372df3e4640b0b11be000bacc0bd8d450a69e1ad64635360388feecfb0",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/qml/dashboard/v2/ModernDashboard.qml",
+      "destination": "home/echo/NeutronOS/qml/dashboard/v2/ModernDashboard.qml",
+      "sha256": "3faad43040f9687c451f6708173fbb61d72ea273d53fc65f3dc23a8db4e5f5b9",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/src/SetupWizardManager.h",
+      "destination": "home/echo/NeutronOS/src/SetupWizardManager.h",
+      "sha256": "872ce83c855c33a2d0aac5083f81f23763f46d9c63b66f378a7f7a3a1a0b7a0f",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/src/SetupWizardManager.cpp",
+      "destination": "home/echo/NeutronOS/src/SetupWizardManager.cpp",
+      "sha256": "8702e4200c63c94be7838a1c87d5cd986453235c905ef0729bec0f2cb394a056",
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/sbin/neutronos-privileged-helper",
+      "destination": "usr/local/sbin/neutronos-privileged-helper",
+      "sha256": "cb8f8785df02bd6221806db7c73ce12c18a3aae9ac4b576aeaf256c11fc933b8",
+      "mode": "0o755",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/libexec/neutronos-privileged-helper.real",
+      "destination": "usr/local/libexec/neutronos-privileged-helper.real",
+      "sha256": "35440c32e1a47da592a1d97c33c657d0a15bf09026e803ae84e9d6cdfbf3894f",
+      "mode": "0o755",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working/deployment/usr/local/libexec/neutronos-storage-setup.py",
+      "destination": "usr/local/libexec/neutronos-storage-setup.py",
+      "sha256": "202fb26dc713bfc8926ca2858d476943c6f98724fb5be291a28d10c96ad47732",
+      "mode": "0o755",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "source": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/staging/apollo-1.0.1-build/NeutronShell",
+      "destination": "home/echo/NeutronOS/build/NeutronShell",
+      "sha256": "a958c2349e6e9dc076473aa4de79886ef518007d3eae86334e46047a1ad789f8",
+      "mode": "0o755",
+      "uid": 0,
+      "gid": 0
+    }
+  ],
+  "watchdogHashes": [
+    {
+      "path": "var/lib/neutronos/security-core/privileged-helper.sha256",
+      "sha256Value": "cb8f8785df02bd6221806db7c73ce12c18a3aae9ac4b576aeaf256c11fc933b8"
+    },
+    {
+      "path": "var/lib/neutronos/security-core/privileged-helper-real.sha256",
+      "sha256Value": "35440c32e1a47da592a1d97c33c657d0a15bf09026e803ae84e9d6cdfbf3894f"
+    }
+  ]
+}

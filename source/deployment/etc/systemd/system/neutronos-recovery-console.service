@@ -1,0 +1,20 @@
+[Unit]
+Description=NeutronOS one-shot local Recovery terminal
+Documentation=file:/opt/neutronos/docs/RECOVERY.md
+Conflicts=neutronos.service getty@tty1.service neutronos-compositor.service neutronos-recovery-ui.service
+After=systemd-user-sessions.service local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/neutronos-recovery-banner
+Restart=on-failure
+RestartSec=2
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target

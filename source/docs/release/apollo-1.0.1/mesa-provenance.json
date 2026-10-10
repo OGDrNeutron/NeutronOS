@@ -1,0 +1,108 @@
+{
+  "candidatePackages": [
+    {
+      "file": "libegl-mesa0_25.0.7-2+rpt4_arm64.deb",
+      "sha256": "e4116be1c054f0a257b5e3b672ec11bafb82ff410dabef10f07f33a7594925f2",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libegl-mesa0_25.0.7-2+rpt4_arm64.deb"
+    },
+    {
+      "file": "libgbm1_25.0.7-2+rpt4_arm64.deb",
+      "sha256": "13cfaa55c1a086684d64934515ac3abd813be48c279c001e71cb051dc281e2a9",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libgbm1_25.0.7-2+rpt4_arm64.deb"
+    },
+    {
+      "file": "libgl1-mesa-dri_25.0.7-2+rpt4_arm64.deb",
+      "sha256": "4ac66a183d639ff49d95d2e7cb7ddb579afbd33bda0285926de52b260762a3ec",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libgl1-mesa-dri_25.0.7-2+rpt4_arm64.deb"
+    },
+    {
+      "file": "libglx-mesa0_25.0.7-2+rpt4_arm64.deb",
+      "sha256": "f2106d57c4b9ea709b479cc616b22d878421522dd87bf85f8e50280b7fe0e34c",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libglx-mesa0_25.0.7-2+rpt4_arm64.deb"
+    },
+    {
+      "file": "mesa-libgallium_25.0.7-2+rpt4_arm64.deb",
+      "sha256": "4981f1cd25e868a4849ec97aacd77203412fed6e38599f86bc8875641782d4fb",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/mesa-libgallium_25.0.7-2+rpt4_arm64.deb"
+    }
+  ],
+  "createdUtc": "2026-09-21T01:08:06.864106+00:00",
+  "development": {
+    "firmware": "raspi-firmware 1:1.20260521-3",
+    "kernel": "linux-image-rpi-v8 1:6.18.34-1+rpt1",
+    "libdrm": "2.4.131-1~bpo13+1+rpt2",
+    "mesa": "25.0.7-2+rpt4",
+    "qtGuiOpenGL": "6.8.2+dfsg-9+deb13u2",
+    "qtQuickQml": "6.8.2+dfsg-7"
+  },
+  "physicalStatus": "not tested",
+  "preparationEvidence": [
+    "35 Mesa 25 package payload regular files exactly match development installation",
+    "48 Mesa 26 package payload regular files and 70 symlinks exactly match release installation",
+    "All 47 Mesa 25 drm/amdgpu undefined symbols are exported by release libdrm2/libdrm-amdgpu1",
+    "apt-get simulation against release dpkg status selects precisely five Mesa downgrades and no other package changes",
+    "dpkg --no-act install against release root succeeds",
+    "Kernel V3D and VC4 modules have matching SHA-256 across development and release"
+  ],
+  "purpose": "Reversible physical-boot test of coherent Mesa 25.0.7 graphics stack on Apollo RC1 release USB",
+  "releaseBefore": {
+    "firmware": "raspi-firmware 1:1.20260521-3",
+    "kernel": "linux-image-rpi-v8 1:6.18.34-1+rpt1",
+    "libdrm": "2.4.134-3~bpo13+1+rpt1",
+    "mesa": "26.2.0-1~bpo13+0~rpt3",
+    "qtGuiOpenGL": "6.8.2+dfsg-9+deb13u2",
+    "qtQuickQml": "6.8.2+dfsg-7"
+  },
+  "releaseUsb": {
+    "rootPartitionSizeBytes": 6954740224,
+    "serial": "121220160204",
+    "sizeBytes": 126437294080,
+    "transport": "usb"
+  },
+  "rollbackPackages": [
+    {
+      "file": "libegl-mesa0_26.2.0-1~bpo13+0~rpt3_arm64.deb",
+      "sha256": "71bcf7c2389ddc3964dcdcf60b0fa54f2d3c2967e2d4412f8faef24db4790d8e",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libegl-mesa0_26.2.0-1~bpo13+0~rpt3_arm64.deb"
+    },
+    {
+      "file": "libgbm1_26.2.0-1~bpo13+0~rpt3_arm64.deb",
+      "sha256": "9d2e2a7532c88f37a2694e39b8da127486a04a4be79e2a368701dd013fe8053e",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libgbm1_26.2.0-1~bpo13+0~rpt3_arm64.deb"
+    },
+    {
+      "file": "libgl1-mesa-dri_26.2.0-1~bpo13+0~rpt3_arm64.deb",
+      "sha256": "e976b5d1260580bf97f5efed32dd577ea603f67632f196a771508c99e672e635",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libgl1-mesa-dri_26.2.0-1~bpo13+0~rpt3_arm64.deb"
+    },
+    {
+      "file": "libglx-mesa0_26.2.0-1~bpo13+0~rpt3_arm64.deb",
+      "sha256": "0acb230770882a37129c48ffb917d3e1978ff191f552c547cd1b48271ff6fa22",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/libglx-mesa0_26.2.0-1~bpo13+0~rpt3_arm64.deb"
+    },
+    {
+      "file": "mesa-libgallium_26.2.0-1~bpo13+0~rpt3_arm64.deb",
+      "sha256": "7debfb6f632d6a2a4d0fcbb8cfa138a9049404a9df8bc665b8e0e6e9e1a1c2d5",
+      "source": "https://archive.raspberrypi.com/debian/pool/main/m/mesa/mesa-libgallium_26.2.0-1~bpo13+0~rpt3_arm64.deb"
+    }
+  ],
+  "schemaVersion": 1,
+  "scope": [
+    "mesa-libgallium",
+    "libegl-mesa0",
+    "libgbm1",
+    "libgl1-mesa-dri",
+    "libglx-mesa0"
+  ],
+  "sourceRevision": "b0663374e0c627aa2438ec724c83990f484255e1",
+  "unchanged": [
+    "libdrm2",
+    "libdrm-amdgpu1",
+    "libdrm-common",
+    "Qt",
+    "kernel",
+    "firmware",
+    "Plymouth",
+    "NeutronShell"
+  ]
+}

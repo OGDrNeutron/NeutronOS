@@ -1,0 +1,37 @@
+[Unit]
+Description=NeutronOS Offline Roku Wi-Fi and LAN Controller
+Documentation=file:/etc/neutronos/offline-network.json
+After=NetworkManager.service neutronos-state-setup.service
+Wants=NetworkManager.service
+Requires=neutronos-state-setup.service
+ConditionPathExists=/usr/bin/nmcli
+
+[Service]
+Type=simple
+User=root
+Group=root
+Environment=PYTHONPATH=/usr/local/lib/neutronos
+ExecStart=/usr/bin/python3 /usr/local/libexec/neutronos-offline-networkd.py --daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+TimeoutStartSec=15
+TimeoutStopSec=12
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neutron-offline-network
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/etc/neutronos /var/lib/neutronos/network -/run/neutronos
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LockPersonality=yes
+RestrictRealtime=yes
+
+[Install]
+WantedBy=multi-user.target

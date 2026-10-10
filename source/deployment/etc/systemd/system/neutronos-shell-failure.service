@@ -1,0 +1,7 @@
+[Unit]
+Description=NeutronOS shell startup failure accounting
+After=neutronos.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/neutronos-shell-failure

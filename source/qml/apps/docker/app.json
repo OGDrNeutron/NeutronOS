@@ -1,0 +1,17 @@
+{
+  "id": "docker",
+  "name": "Docker",
+  "subtitle": "Container Manager",
+  "description": "Create, inspect, edit, start, stop, and remove Docker containers with controller-first safety confirmations.",
+  "category": "System",
+  "type": "qml",
+  "qmlSource": "docker/Main.qml",
+  "entry": "Main.qml",
+  "icon": "docker",
+  "poster": "docker",
+  "version": "2.0.0",
+  "favorite": true,
+  "controllerOnly": true,
+  "fullscreen": true,
+  "permissions": ["docker", "systemd", "network", "filesystem", "package-management"]
+}

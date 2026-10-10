@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "repositories": [
+    {
+      "id": "neutronos-official",
+      "name": "NeutronOS Official",
+      "url": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/index.json",
+      "enabled": true,
+      "trusted": true
+    }
+  ]
+}

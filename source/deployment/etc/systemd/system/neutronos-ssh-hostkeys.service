@@ -1,0 +1,23 @@
+[Unit]
+Description=Generate per-device OpenSSH host keys for NeutronOS
+After=local-fs.target
+Before=ssh.service ssh.socket sshd.service sshd@.service
+OnFailure=neutronos-one-shot-diagnostic@%n.service
+
+[Service]
+Type=oneshot
+# Restore the release-root path proven to work: ssh-keygen is the direct
+# systemd process, never a child of the Python privileged helper.
+ExecStartPre=/usr/local/sbin/neutronos-privileged-helper prepare-ssh-hostkeys
+ExecStartPre=/usr/local/libexec/neutronos-one-shot-diagnostic ssh-before
+ExecStart=/usr/bin/ssh-keygen -A
+ExecStartPost=/usr/local/sbin/neutronos-privileged-helper verify-ssh-hostkeys
+ExecStopPost=/usr/local/libexec/neutronos-one-shot-diagnostic ssh-after
+RemainAfterExit=yes
+User=root
+Group=root
+StandardInput=null
+StandardOutput=append:/var/lib/neutronos/diagnostics/one-shot/ssh-keygen.stdout.log
+StandardError=append:/var/lib/neutronos/diagnostics/one-shot/ssh-keygen.stderr.log
+LimitCORE=64M
+UMask=0077

@@ -1,0 +1,9 @@
+[Unit]
+Description=Capture one-shot NeutronOS failure evidence for %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/neutronos-one-shot-diagnostic systemd-failure %i
+User=root
+Group=root
+UMask=0077

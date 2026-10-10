@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+system_state=$(/usr/bin/systemctl is-system-running 2>/dev/null || true)
+[[ "$system_state" != stopping ]] || exit 0
+result=$(/usr/bin/systemctl show neutronos.service -p Result --value 2>/dev/null || printf unknown)
+state=$(/usr/local/sbin/neutronos-recovery-control record-failure "$result")
+count=$(/usr/bin/python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("consecutiveFailures",0))' "$state")
+if (( count >= 3 )); then
+    /usr/bin/mkdir -p /run/neutronos
+    /usr/local/sbin/neutronos-recovery-control consume /run/neutronos >/dev/null
+    /usr/bin/systemctl start neutronos-recovery-console.service
+fi

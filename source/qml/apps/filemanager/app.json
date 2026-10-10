@@ -1,0 +1,30 @@
+{
+  "id": "filemanager",
+  "name": "File Manager",
+  "subtitle": "Files, Archives & Encryption",
+  "description": "Controller-first three-pane file manager with local/removable storage, SFTP mounts, tags, previews, editing, archives and encryption.",
+  "category": "System",
+  "type": "qml",
+  "qmlSource": "filemanager/Main.qml",
+  "entry": "Main.qml",
+  "icon": "filemanager",
+  "poster": "filemanager",
+  "version": "1.1.0-alpha",
+  "favorite": true,
+  "hidden": false,
+  "priority": 115,
+  "controllerOnly": true,
+  "fullscreen": true,
+  "launchMode": "apphost",
+  "suspendsConsole": true,
+  "permissions": [
+    "filesystem",
+    "storage",
+    "clipboard",
+    "archives",
+    "encryption",
+    "removable-media",
+    "network",
+    "sftp"
+  ]
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=Finalize NeutronOS first-boot account handoff
+After=local-fs.target
+RequiresMountsFor=/var/lib/neutronos/setup
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/neutronos-privileged-helper finalize-setup
+User=root
+Group=root
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

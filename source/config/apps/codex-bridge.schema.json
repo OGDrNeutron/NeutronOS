@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neutronos.local/schemas/apps/codex-bridge-1.json",
+  "title": "NeutronOS Codex package bridge protocol",
+  "type": "object",
+  "required": ["action"],
+  "properties": {
+    "action": {
+      "enum": ["open", "refresh", "install-runtime", "new-session", "resume-session", "prompt", "interrupt", "chatgpt-login", "api-key-login", "approval", "set-reasoning", "close"]
+    },
+    "threadId": {"type": "string"},
+    "text": {"type": "string"},
+    "apiKey": {"type": "string"},
+    "requestId": {},
+    "decision": {"enum": ["accept", "acceptForSession", "decline", "cancel"]},
+    "effort": {"enum": ["low", "medium", "high", "xhigh"]}
+  },
+  "additionalProperties": true
+}

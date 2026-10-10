@@ -1,0 +1,40 @@
+[Unit]
+Description=Read-only NeutronOS boot milestone observation
+DefaultDependencies=no
+After=systemd-remount-fs.service
+Before=shutdown.target
+Conflicts=shutdown.target
+ConditionPathExists=!/run/neutronos/boot/completed
+
+[Service]
+Type=exec
+User=root
+Group=neutronos-shell
+SupplementaryGroups=neutronos-shell
+RuntimeDirectory=neutronos/boot-status
+RuntimeDirectoryMode=2750
+RuntimeDirectoryPreserve=yes
+# Initialize shared presentation state without preparing or consuming Recovery.
+ExecStartPre=+/usr/local/sbin/neutronos-recovery-control boot-entry-runtime
+ExecStart=/usr/local/sbin/neutronos-recovery-control observe-boot
+Restart=no
+TimeoutStartSec=3
+TimeoutStopSec=2
+RuntimeMaxSec=180
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/neutronos/boot-status
+RestrictAddressFamilies=AF_UNIX
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+SystemCallFilter=~@reboot @mount @module @raw-io
+PrivateTmp=disconnected
+UMask=0077
+StandardOutput=journal
+StandardError=journal

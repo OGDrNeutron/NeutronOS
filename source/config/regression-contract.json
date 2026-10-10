@@ -1,0 +1,14 @@
+{
+  "patch": "60J",
+  "purpose": "Full integration and regression gate",
+  "requiredContracts": [
+    "Every QML app manifest resolves to an existing entry point",
+    "AppHost times out failed QML launches and returns through its opaque failure panel",
+    "Browser fullscreen support is configured through WebEngine settings",
+    "Settings Update & Recovery, Backup & Restore, Performance and Advanced surfaces are populated",
+    "Music and Gallery use canonical user media paths",
+    "Media Optimizer persists incremental scan batches",
+    "System capture saves screenshots and recordings into Gallery-indexed folders",
+    "App Store browse and updates surfaces exclude installed-app management"
+  ]
+}

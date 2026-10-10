@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+mode="RECOVERY MODE"
+reason="Developer requested a one-shot recovery boot."
+state=/run/neutronos/recovery-active.json
+if [[ -r "$state" ]]; then
+    detected=$(/usr/bin/python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("mode","RECOVERY")); print(d.get("reason","Unavailable"))' "$state" 2>/dev/null || true)
+    first=${detected%%$'\n'*}
+    [[ "$first" == SAFE ]] && mode="SAFE MODE"
+    reason=${detected#*$'\n'}
+fi
+/usr/bin/clear
+printf '\n  NEUTRONOS %s\n\n  Reason:\n  %s\n\n' "$mode" "$reason"
+printf '  Useful commands:\n'
+printf '    journalctl -b -u neutronos.service --no-pager\n'
+printf '    systemctl --failed\n'
+printf '    /usr/local/sbin/neutronos-recovery-control status\n'
+printf '    reboot    Return to normal NeutronOS startup\n\n'
+exec /sbin/agetty --noclear --keep-baud 115200,38400,9600 tty1 linux

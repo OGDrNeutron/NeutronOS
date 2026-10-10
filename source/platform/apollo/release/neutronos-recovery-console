@@ -1,0 +1,26 @@
+#!/bin/bash
+set -u
+export TERM=linux
+exec </dev/tty1 >/dev/tty1 2>&1
+clear
+while true; do
+  echo "NeutronOS Recovery"
+  echo "1) View NeutronOS boot logs"
+  echo "2) Retry NeutronOS"
+  echo "3) Retry in Safe Mode"
+  echo "4) Enable temporary SSH access"
+  echo "5) Reboot"
+  echo "6) Power off"
+  printf "> "
+  read -r choice
+  case "$choice" in
+    1) journalctl -u neutronos.service -b --no-pager -n 160; read -r -p "Press Enter to continue" _;;
+    2) systemctl reset-failed neutronos.service; systemctl restart neutronos.service; exit 0;;
+    3) mkdir -p /opt/neutronos/state/update-recovery; touch /opt/neutronos/state/update-recovery/safe-mode-next-boot; chown -R echo:echo /opt/neutronos/state/update-recovery; systemctl reset-failed neutronos.service; systemctl restart neutronos.service; exit 0;;
+    4) pass=$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-16); echo "echo:$pass" | chpasswd; usermod -U echo; ssh-keygen -A; systemctl enable --now ssh.service; echo; echo "Temporary SSH enabled"; echo "User: echo"; echo "Password: $pass"; hostname -I; read -r -p "Press Enter to continue" _;;
+    5) systemctl reboot;;
+    6) systemctl poweroff;;
+    *) echo "Invalid selection";;
+  esac
+  clear
+done

@@ -1,0 +1,459 @@
+#!/usr/bin/env python3
+"""Default-deny state helper for one-shot Recovery and shell crash safety."""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import tempfile
+import socket
+import struct
+import pwd
+import stat
+import subprocess
+import signal
+import re
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+PRODUCTION_ROOT = Path("/var/lib/neutronos/recovery")
+THRESHOLD = 3
+STABILITY_SECONDS = 90
+
+
+def state_root() -> Path:
+    override = os.environ.get("NEUTRONOS_RECOVERY_TEST_ROOT", "").strip()
+    if override:
+        return Path(override).resolve()
+    if os.geteuid() != 0:
+        raise PermissionError("root is required outside the isolated test backend")
+    return PRODUCTION_ROOT
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def atomic_json(path: Path, value: dict, *, exclusive: bool = False, mode: int = 0o600) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(value, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fchmod(handle.fileno(), mode)
+            os.fsync(handle.fileno())
+        if exclusive:
+            # Never overwrite another existing one-shot job, even in a race.
+            os.link(temporary, path)
+        else:
+            os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_DIRECTORY | os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def read_json(path: Path, fallback: dict) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else dict(fallback)
+    except (OSError, ValueError):
+        return dict(fallback)
+
+
+def prepare(root: Path, reason: str, *, boot_entry: dict | None = None) -> dict:
+    marker = root / "next-boot.json"
+    if marker.exists():
+        raise RuntimeError("a recovery boot is already prepared")
+    value = {
+        "schemaVersion": 1,
+        "mode": "RECOVERY",
+        "oneShot": True,
+        "reason": reason[:240] or "Developer requested Recovery Mode",
+        "createdUtc": now(),
+    }
+    if boot_entry is not None:
+        value["bootRendererEntry"] = boot_entry
+    atomic_json(marker, value, exclusive=boot_entry is not None)
+    return value
+
+
+def prepare_update(root: Path, transaction: str) -> dict:
+    if not __import__("re").fullmatch(r"\d+\.\d+\.\d+-[0-9a-f]{16}", transaction):
+        raise ValueError("invalid update transaction identity")
+    marker = root / "next-boot.json"
+    if marker.exists():
+        raise RuntimeError("a recovery boot is already prepared")
+    value = {
+        "schemaVersion": 1,
+        "mode": "UPDATE",
+        "oneShot": True,
+        "reason": f"Apply authenticated Mainline transaction {transaction}",
+        "transaction": transaction,
+        "createdUtc": now(),
+    }
+    atomic_json(marker, value)
+    return value
+
+
+def begin(root: Path, runtime: Path) -> dict:
+    marker = root / "next-boot.json"
+    safe = root / "safe-mode-next-boot.json"
+    selected = marker if marker.exists() else safe
+    if not selected.exists():
+        return {"active": False}
+    value = read_json(selected, {})
+    if value.get("schemaVersion") != 1 or value.get("oneShot") is not True or \
+            value.get("mode") not in ("UPDATE", "BACKUP_RESTORE", "RECOVERY", "SAFE"):
+        raise ValueError("invalid staged Recovery request")
+    value.update({"active": True, "recoveryStartedUtc": now()})
+    atomic_json(runtime / "recovery-active.json", value)
+    return value
+
+
+def record_failure(root: Path, result: str) -> dict:
+    path = root / "crash-state.json"
+    state = read_json(path, {"consecutiveFailures": 0})
+    count = max(0, int(state.get("consecutiveFailures", 0))) + 1
+    state.update({
+        "schemaVersion": 1,
+        "consecutiveFailures": count,
+        "lastFailureUtc": now(),
+        "lastResult": result[:160] or "unknown",
+        "stabilityWindowSeconds": STABILITY_SECONDS,
+    })
+    if count >= THRESHOLD:
+        state["safeModeTriggered"] = True
+        atomic_json(root / "safe-mode-next-boot.json", {
+            "schemaVersion": 1,
+            "mode": "SAFE",
+            "oneShot": True,
+            "reason": "NeutronShell failed 3 consecutive starts.",
+            "createdUtc": now(),
+        })
+    atomic_json(path, state)
+    return state
+
+
+def mark_stable(root: Path) -> dict:
+    value = {
+        "schemaVersion": 1,
+        "consecutiveFailures": 0,
+        "safeModeTriggered": False,
+        "stableUtc": now(),
+        "stabilityWindowSeconds": STABILITY_SECONDS,
+    }
+    atomic_json(root / "crash-state.json", value)
+    try:
+        (root / "safe-mode-next-boot.json").unlink()
+    except FileNotFoundError:
+        pass
+    return value
+
+
+def cancel(root: Path, *, owned_entry: dict | None = None) -> dict:
+    removed = []
+    names = ("next-boot.json",) if owned_entry is not None else ("next-boot.json", "safe-mode-next-boot.json")
+    for name in names:
+        path = root / name
+        if owned_entry is not None and read_json(path, {}) != owned_entry:
+            continue
+        if path.exists():
+            path.unlink()
+            removed.append(name)
+    return {"cancelled": removed}
+
+
+# Entry-only transport inside this existing state helper. No privileged-helper
+# actions, transaction/archive arguments, caller paths or general reboot API.
+ENTRY_REQUEST = b"prepare-recovery-entry\n"
+ENTRY_SOCKET = "/run/neutronos-recovery-entry.sock"
+RENDERER = Path("/usr/local/libexec/neutronos/NeutronBootRenderer")
+RENDERER_UNIT = "/system.slice/neutronos-boot-renderer.service"
+STATIC_PRESENTER = Path("/usr/local/libexec/neutronos/NeutronBootStatic")
+STATIC_UNIT = "/system.slice/neutronos-boot-static.service"
+ENTRY_REASON = "Triangle requested one-shot Recovery from the boot renderer"
+BOOT_UNITS = ("systemd-remount-fs.service", "systemd-udev-trigger.service",
+              "systemd-tmpfiles-setup.service", "neutronos-state-setup.service",
+              "systemd-user-sessions.service")
+
+
+def presentation_uid(name: str) -> int:
+    try:
+        return pwd.getpwnam(name).pw_uid
+    except KeyError:
+        # passwd: files does not resolve DynamicUser accounts. Authenticate
+        # against PID 1's allocated identity without changing NSS or granting
+        # the renderer access to the privileged manager socket.
+        result = subprocess.run([
+            "/usr/bin/busctl", "--address=unix:path=/run/systemd/private", "call",
+            "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+            "org.freedesktop.systemd1.Manager", "LookupDynamicUserByName",
+            "s", name],
+            check=True, timeout=0.5, capture_output=True, text=True,
+            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"})
+        match = re.fullmatch(r"u ([0-9]+)\s*", result.stdout)
+        if not match or not 61184 <= int(match[1]) <= 65519:
+            raise PermissionError("invalid PID 1 renderer identity")
+        return int(match[1])
+
+
+def entry_peer(pid: int, uid: int, installation_boot: str, *, proc_root: Path = Path("/proc"),
+               renderer: Path = RENDERER, static_presenter: Path = STATIC_PRESENTER) -> dict:
+    boot_id = proc_root.joinpath("sys/kernel/random/boot_id").read_text().strip()
+    if (not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", installation_boot) or
+            boot_id == installation_boot):
+        raise PermissionError("Recovery entry is disabled during the installation boot")
+    if uid == 0:
+        raise PermissionError("only an unprivileged boot presentation may enter Recovery")
+    proc = proc_root / str(pid)
+    groups = proc.joinpath("cgroup").read_text().splitlines()
+    units = {line.split(":", 2)[-1] for line in groups}
+    if len(units) != 1:
+        raise PermissionError("caller has no unique boot presentation service")
+    unit = units.pop()
+    identities = {
+        RENDERER_UNIT: ("neutronos-boot-renderer", renderer),
+        STATIC_UNIT: ("neutronos-boot-static", static_presenter),
+    }
+    if unit not in identities:
+        raise PermissionError("caller is outside an approved boot presentation service")
+    name, executable_path = identities[unit]
+    if presentation_uid(name) != uid:
+        raise PermissionError("caller has the wrong boot presentation identity")
+    status = dict(line.split(":", 1) for line in proc.joinpath("status").read_text().splitlines() if ":" in line)
+    if status.get("NoNewPrivs", "").strip() != "1" or int(status.get("CapEff", "1").strip(), 16) != 0:
+        raise PermissionError("renderer must have no elevated capabilities")
+    executable = proc.joinpath("exe").stat()
+    installed = executable_path.stat()
+    if (executable.st_dev, executable.st_ino) != (installed.st_dev, installed.st_ino):
+        raise PermissionError("caller is not the installed boot presentation executable")
+    for path in (executable_path, *executable_path.parents):
+        meta = path.lstat()
+        if meta.st_uid != 0 or meta.st_mode & 0o022 or stat.S_ISLNK(meta.st_mode):
+            raise PermissionError("renderer executable path is not root-controlled")
+    start = proc.joinpath("stat").read_text().rsplit(")", 1)[1].split()[19]
+    return {"bootId": boot_id, "pid": pid, "startTime": start}
+
+
+def prepare_recovery_entry(root: Path, peer: dict, reboot) -> dict:
+    """Private broker operation; peer and reboot are server-owned, not wire inputs."""
+    if (not isinstance(peer, dict) or set(peer) != {"bootId", "pid", "startTime"} or
+            not isinstance(peer["bootId"], str) or
+            not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", peer["bootId"]) or
+            type(peer["pid"]) is not int or peer["pid"] <= 0 or
+            not isinstance(peer["startTime"], str) or not peer["startTime"].isdigit()):
+        raise ValueError("invalid server-derived renderer identity")
+    marker = root / "next-boot.json"
+    existing = read_json(marker, {})
+    if (existing.get("schemaVersion") == 1 and existing.get("oneShot") is True and
+            existing.get("mode") == "RECOVERY" and existing.get("bootRendererEntry") == peer):
+        return {"entry": "accepted", "duplicate": True}
+    if marker.exists() or (root / "safe-mode-next-boot.json").exists():
+        raise RuntimeError("an unrelated one-shot Recovery job is already pending")
+    if root == PRODUCTION_ROOT and Path("/run/neutronos/recovery-active.json").exists():
+        raise RuntimeError("Recovery is already active")
+    try:
+        # Same request schema, atomic writer and prepare implementation as the
+        # existing infrastructure, plus an owner identity for private rollback.
+        value = prepare(root, ENTRY_REASON, boot_entry=peer)
+        expected = value
+        if read_json(marker, {}) != expected:
+            raise RuntimeError("prepared one-shot request did not validate")
+        reboot()
+        return {"entry": "accepted", "duplicate": False}
+    except BaseException:
+        # The legacy cancel API remains unchanged. This internal mode can
+        # remove only our exact request and never the safe-mode/unrelated job.
+        candidate = read_json(marker, {})
+        if (candidate.get("bootRendererEntry") == peer and candidate.get("mode") == "RECOVERY" and
+                candidate.get("reason") == ENTRY_REASON and candidate.get("oneShot") is True):
+            cancel(root, owned_entry=candidate)
+        raise
+
+
+def controlled_entry_reboot() -> None:
+    # Existing supported transition, reachable only after validated entry.
+    # Shutdown may stop this service immediately after PID 1 accepts reboot.
+    # Complete the bounded acknowledgement before restoring stop handling;
+    # otherwise a successful shutdown could cancel its own one-shot request.
+    previous = signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    try:
+        result = subprocess.run(["/usr/bin/systemctl", "reboot", "--no-block"],
+                                check=False, timeout=2, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"})
+    finally:
+        signal.signal(signal.SIGTERM, previous)
+    if result.returncode != 0:
+        raise RuntimeError("controlled Recovery reboot request failed")
+
+
+def handle_entry(connection, root: Path, installation_boot: str,
+                 *, runtime: Path = Path("/run/neutronos/boot")) -> None:
+    connection.settimeout(0.5)
+    try:
+        pid, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+        request = b""
+        while len(request) <= len(ENTRY_REQUEST):
+            part = connection.recv(64)
+            if not part:
+                break
+            request += part
+        if request != ENTRY_REQUEST:
+            raise ValueError("entry API accepts one fixed request only")
+        peer = entry_peer(pid, uid, installation_boot)
+        # The renderer waits for an actual acknowledged Recovery frame before
+        # issuing this action. Completed presentation is always too late.
+        if (runtime / "completed").exists():
+            raise PermissionError("boot presentation has already completed")
+        if ((runtime / "active").read_text().strip() != "recovery" or
+                (runtime / "recovery-acknowledged").read_text().strip() != str(pid)):
+            raise PermissionError("deliberate Triangle acknowledgement is required")
+        result = prepare_recovery_entry(root, peer, controlled_entry_reboot)
+        connection.sendall((json.dumps(result, sort_keys=True) + "\n").encode())
+    except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        print(f"boot Recovery entry denied: {error}", file=sys.stderr, flush=True)
+        try:
+            connection.sendall(b'{"entry":"failed"}\n')
+        except OSError:
+            pass
+
+
+def serve_boot_entry() -> int:
+    if (os.geteuid() != 0 or os.environ.get("NEUTRONOS_RECOVERY_TEST_ROOT") or
+            os.environ.get("LISTEN_PID") != str(os.getpid()) or os.environ.get("LISTEN_FDS") != "1"):
+        raise PermissionError("entry broker requires its root systemd socket; test overrides forbidden")
+    installation_boot = os.environ.get("NEUTRONOS_BOOT_INSTALLATION_BOOT_ID", "")
+    listener = socket.socket(fileno=3)
+    if listener.getsockname() != ENTRY_SOCKET or listener.type != socket.SOCK_STREAM:
+        raise PermissionError("unexpected entry socket")
+    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(SystemExit(0)))
+    root = PRODUCTION_ROOT
+    root.mkdir(parents=True, exist_ok=True)
+    metadata = root.lstat()
+    if (not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != 0 or
+            metadata.st_mode & 0o077 or root.is_symlink()):
+        raise PermissionError("unsafe existing Recovery state directory")
+    listener.settimeout(0.25)
+    while True:
+        if Path("/run/neutronos/boot/completed").exists():
+            return 0
+        try:
+            connection, _ = listener.accept()
+        except socket.timeout:
+            continue
+        with connection:
+            handle_entry(connection, root, installation_boot)
+
+
+def publish_boot_states() -> None:
+    # Preserve the renderer's exact deterministic milestones without granting
+    # its unprivileged process access to systemd's privileged message bus.
+    try:
+        result = subprocess.run(["/usr/bin/systemctl", "show", "--property=Id",
+                                 "--property=ActiveState", *BOOT_UNITS],
+                                check=True, timeout=0.5, capture_output=True, text=True,
+                                env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"})
+        values = {}
+        for block in result.stdout.strip().split("\n\n"):
+            properties = dict(line.split("=", 1) for line in block.splitlines() if "=" in line)
+            unit, state = properties.get("Id"), properties.get("ActiveState")
+            if unit in BOOT_UNITS and state in ("active", "inactive", "activating", "deactivating", "failed", "reloading"):
+                values[unit] = state
+        # Private, root-owned sibling of the writable presentation directory.
+        atomic_json(Path("/run/neutronos/boot-status/system-ready.json"), values, mode=0o640)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"optional boot milestone observation unavailable: {error}", file=sys.stderr, flush=True)
+
+
+def boot_entry_runtime() -> int:
+    if os.geteuid() != 0 or os.environ.get("NEUTRONOS_RECOVERY_TEST_ROOT"):
+        raise PermissionError("runtime initialization requires the root boot unit")
+    gid = __import__("grp").getgrnam("neutronos-shell").gr_gid
+    for directory in (Path("/run/neutronos"), Path("/run/neutronos/boot"), Path("/run/neutronos/boot-status")):
+        directory.mkdir(exist_ok=True)
+        if directory.is_symlink() or directory.stat().st_uid != 0:
+            raise ValueError("invalid boot runtime directory")
+        os.chown(directory, 0, gid)
+        os.chmod(directory, 0o2770 if directory.name == "boot" else 0o2750 if directory.name == "boot-status" else 0o3770)
+    value = False
+    for name in ("next-boot.json", "safe-mode-next-boot.json"):
+        request = read_json(PRODUCTION_ROOT / name, {})
+        if (request.get("schemaVersion") == 1 and request.get("oneShot") is True and
+                request.get("mode") in ("UPDATE", "BACKUP_RESTORE", "RECOVERY", "SAFE")):
+            value = True
+    # Read-only observation of existing Recovery state for the unprivileged
+    # presentation; never begin/consume/prepare a Recovery request here.
+    atomic_json(Path("/run/neutronos/boot-status/recovery-boot.json"), {"recoveryBoot": value}, mode=0o640)
+    return 0
+
+
+def observe_boot() -> int:
+    """Read-only optional observer, separate from the socket-activated broker."""
+    if os.geteuid() != 0 or os.environ.get("NEUTRONOS_RECOVERY_TEST_ROOT"):
+        raise PermissionError("boot observation requires its root boot unit")
+    deadline = time.monotonic() + 180
+    while time.monotonic() < deadline:
+        if Path("/run/neutronos/boot/completed").exists():
+            return 0
+        publish_boot_states()
+        time.sleep(0.25)
+    return 0
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: neutronos-recovery-control {prepare|prepare-update|begin|consume|record-failure|mark-stable|cancel|status}")
+    if sys.argv[1] in ("serve-boot-entry", "boot-entry-runtime", "observe-boot"):
+        if len(sys.argv) != 2:
+            raise ValueError("entry infrastructure accepts no arguments")
+        if sys.argv[1] == "serve-boot-entry":
+            return serve_boot_entry()
+        return observe_boot() if sys.argv[1] == "observe-boot" else boot_entry_runtime()
+    root = state_root()
+    root.mkdir(parents=True, exist_ok=True)
+    os.chmod(root, 0o700)
+    action = sys.argv[1]
+    if action == "prepare":
+        value = prepare(root, " ".join(sys.argv[2:]))
+    elif action == "prepare-update":
+        value = prepare_update(root, sys.argv[2] if len(sys.argv) == 3 else "")
+    elif action in ("begin", "consume"):
+        runtime = Path(sys.argv[2] if len(sys.argv) > 2 else "/run/neutronos").resolve()
+        value = begin(root, runtime)
+    elif action == "record-failure":
+        value = record_failure(root, " ".join(sys.argv[2:]))
+    elif action == "mark-stable":
+        value = mark_stable(root)
+    elif action == "cancel":
+        value = cancel(root)
+    elif action == "status":
+        value = {
+            "nextBoot": read_json(root / "next-boot.json", {}),
+            "safeBoot": read_json(root / "safe-mode-next-boot.json", {}),
+            "crash": read_json(root / "crash-state.json", {"consecutiveFailures": 0}),
+        }
+    else:
+        raise SystemExit("unknown recovery operation (default deny)")
+    print(json.dumps(value, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (OSError, RuntimeError, PermissionError, ValueError) as error:
+        print(f"recovery operation denied: {error}", file=sys.stderr)
+        raise SystemExit(1)

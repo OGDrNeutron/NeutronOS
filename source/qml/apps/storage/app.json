@@ -1,0 +1,22 @@
+{
+  "id": "storage",
+  "name": "Storage",
+  "subtitle": "Storage Manager",
+  "description": "Inspect every storage device, SMART health, usage, formatting, encryption, decryption, optimization review, and boot backups.",
+  "category": "System",
+  "type": "qml",
+  "qmlSource": "storage/Main.qml",
+  "entry": "Main.qml",
+  "icon": "storage",
+  "poster": "storage",
+  "version": "2.0.0",
+  "favorite": true,
+  "controllerOnly": true,
+  "fullscreen": true,
+  "permissions": [
+    "filesystem",
+    "storage",
+    "encryption",
+    "system-diagnostics"
+  ]
+}

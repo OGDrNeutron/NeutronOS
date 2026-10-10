@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# A failed shell may retry under its existing service policy. Presentation
+# never launches another display owner or changes the restart/auth policy.
+/usr/bin/logger -t neutronos-boot-failure -- 'NeutronShell startup failed; custom boot presentation remains optional'
+exit 0

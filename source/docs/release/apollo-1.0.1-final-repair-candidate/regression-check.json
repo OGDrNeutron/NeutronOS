@@ -1,0 +1,22 @@
+{
+  "root": "/mnt/NeutronMedia/NeutronOS-Apollo-RC1-Workspace/source/apollo-1.0.1-working",
+  "passes": [
+    "Canonical release identity satisfies Patch 60I-or-later prerequisite",
+    "CMake references 108 existing source files",
+    "Parsed 9 unique app manifests",
+    "Browser fullscreen setting is scoped through WebEngine settings",
+    "qml/apps/settings/Main.qml",
+    "src/MusicPlayerManager.cpp",
+    "src/MediaOptimizerManager.cpp",
+    "src/GalleryManager.cpp",
+    "src/CaptureManager.cpp",
+    "QML audit script installed"
+  ],
+  "warnings": [],
+  "errors": [
+    "qml/apps/AppHost.qml missing integration marker(s): qmlLaunchTimeoutMs: 12000",
+    "Missing qml/apps/browser/BrowserView.qml",
+    "Missing qml/apps/texteditor/Main.qml",
+    "qml/apps/appstore/Main.qml missing integration marker(s): Installed apps are managed in Settings"
+  ]
+}

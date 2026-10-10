@@ -1,0 +1,19 @@
+[Unit]
+Description=NeutronOS Controller Transport Manager
+After=bluetooth.service
+Wants=bluetooth.service
+Before=neutronos.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/sbin/neutronos-controller-transport daemon
+Restart=always
+RestartSec=1
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+
+[Install]
+WantedBy=neutronos.target

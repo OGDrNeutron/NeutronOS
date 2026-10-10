@@ -1,0 +1,6 @@
+polkit.addRule(function(action, subject) {
+    if (subject.user == "neutronos" && subject.isInGroup("neutronos-shell") &&
+        action.id == "org.freedesktop.timedate1.set-timezone") {
+        return polkit.Result.YES;
+    }
+});

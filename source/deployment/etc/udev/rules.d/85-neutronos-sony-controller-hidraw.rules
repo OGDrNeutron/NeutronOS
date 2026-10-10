@@ -1,0 +1,6 @@
+# Grant only NeutronOS's local service account access to USB Sony gamepad pairing reports.
+# No change to Bluetooth HID devices, arbitrary hidraw nodes, or other USB vendors.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", GROUP="neutronos", MODE="0660"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", GROUP="neutronos", MODE="0660"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", GROUP="neutronos", MODE="0660"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0df2", GROUP="neutronos", MODE="0660"

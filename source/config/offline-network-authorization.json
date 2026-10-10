@@ -1,0 +1,203 @@
+{
+  "applicationIdentity": "asserted-context",
+  "defaultDeny": true,
+  "disabledOperations": {
+    "auto-enable": "Automatic hotspot fallback is prohibited by Patch 71",
+    "wifi-enable": "Legacy unversioned network mutations are disabled by Patch 71"
+  },
+  "operations": {
+    "firewall.activate": {
+      "arguments": {
+        "properties": {
+          "policy": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "policy"
+        ]
+      },
+      "capability": "firewall.activate",
+      "enabled": true,
+      "permission": "firewall.activate"
+    },
+    "firewall.generate": {
+      "arguments": {
+        "properties": {
+          "policy": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "policy"
+        ]
+      },
+      "capability": "firewall.generate",
+      "enabled": true,
+      "permission": "firewall.generate"
+    },
+    "network.configure-hotspot": {
+      "arguments": {
+        "properties": {
+          "maxConnections": {
+            "maximum": 64,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "security": {
+            "enum": [
+              "wpa2",
+              "wpa3"
+            ],
+            "type": "string"
+          },
+          "ssid": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "wifi",
+              "lan"
+            ],
+            "type": "string"
+          },
+          "enable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "target",
+          "maxConnections"
+        ]
+      },
+      "capability": "network.mode.write",
+      "enabled": true,
+      "permission": "network.control"
+    },
+    "network.refresh": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "network.read",
+      "enabled": true,
+      "permission": "network.read"
+    },
+    "network.set-dns": {
+      "arguments": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "target": {
+            "enum": [
+              "wifi",
+              "lan"
+            ],
+            "type": "string"
+          },
+          "wildcard": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "target",
+          "enabled",
+          "wildcard"
+        ]
+      },
+      "capability": "network.dns.write",
+      "enabled": true,
+      "permission": "network.control"
+    },
+    "network.set-mode": {
+      "arguments": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "normal-wifi",
+              "ethernet",
+              "wifi-hotspot",
+              "lan-hotspot",
+              "offline-roku"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "capability": "network.mode.write",
+      "enabled": true,
+      "permission": "network.control"
+    },
+    "network.set-wifi-credential": {
+      "arguments": {
+        "properties": {
+          "confirmation": {
+            "maxLength": 63,
+            "minLength": 8,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 63,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "confirmation"
+        ]
+      },
+      "capability": "network.credential.write",
+      "enabled": true,
+      "permission": "network.control"
+    },
+    "network.status": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "network.read",
+      "enabled": true,
+      "permission": "network.read"
+    },
+    "protocol.info": {
+      "arguments": {
+        "properties": {},
+        "required": []
+      },
+      "capability": "ipc.negotiate",
+      "enabled": true,
+      "permission": "ipc.negotiate"
+    }
+  },
+  "roles": {
+    "authenticated-local-network-session": {
+      "capabilities": [
+        "ipc.negotiate",
+        "network.read",
+        "network.mode.write",
+        "network.dns.write",
+        "network.credential.write",
+        "firewall.generate",
+        "firewall.activate"
+      ],
+      "groups": [
+        "neutronos-shell"
+      ],
+      "permissions": [
+        "ipc.negotiate",
+        "network.read",
+        "network.control",
+        "firewall.generate",
+        "firewall.activate"
+      ]
+    }
+  },
+  "schema": 1
+}

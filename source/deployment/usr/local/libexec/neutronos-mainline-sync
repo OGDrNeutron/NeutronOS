@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Refresh the private read-only NeutronOS Mainline mirror."""
+
+from __future__ import annotations
+
+import grp
+import os
+import pwd
+import stat
+import subprocess
+import sys
+from pathlib import Path
+
+
+CONFIG = Path("/etc/neutronos/mainline-access.conf")
+STATE = Path("/var/lib/neutronos/update-mainline")
+REPOSITORY = STATE / "repository"
+KEY = STATE / "credentials/id_ed25519"
+KNOWN_HOSTS = Path("/etc/neutronos/github-known-hosts")
+PINNED_PUBLIC_KEY = Path("/etc/neutronos/keys/neutronos-release.gpg")
+GIT = Path("/usr/bin/git")
+SSH = Path("/usr/bin/ssh")
+EXPECTED_URL = "git@github.com:OGDrNeutron/NeutronOS-Mainline.git"
+RUNTIME_USER = "neutronos"
+STATE_TRAVERSE_GROUP = "neutronos-shell"
+
+
+def deny(message: str) -> None:
+    print(message, file=sys.stderr)
+    raise SystemExit(1)
+
+
+def sanitized_detail(value: str) -> str:
+    """Return one bounded diagnostic line without credential paths."""
+    detail = " ".join((value or "").split())
+    detail = detail.replace(str(KEY), "[read-only deploy key]")
+    return detail[:600]
+
+
+def runtime_identity() -> pwd.struct_passwd:
+    try:
+        identity = pwd.getpwnam(RUNTIME_USER)
+    except KeyError:
+        deny("The NeutronOS Mainline service account is unavailable.")
+    if os.geteuid() not in (0, identity.pw_uid):
+        deny("Private Mainline synchronization was requested from an unauthorized account.")
+    return identity
+
+
+def require_runtime_owned(path: Path, identity: pwd.struct_passwd, *, directory: bool) -> os.stat_result:
+    try:
+        info = path.lstat()
+    except OSError as error:
+        deny(f"Private Mainline state is unavailable: {sanitized_detail(str(error))}")
+    expected_type = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
+    if path.is_symlink() or not expected_type:
+        deny(f"Private Mainline path has an unsafe type: {path}")
+    if info.st_uid != identity.pw_uid or info.st_mode & 0o022:
+        deny(f"Private Mainline path has unsafe ownership or permissions: {path}")
+    return info
+
+
+def runtime_groups(identity: pwd.struct_passwd) -> tuple[int, ...]:
+    """Return the one release-state traversal group allowed to the Git child."""
+    try:
+        state_group = grp.getgrnam(STATE_TRAVERSE_GROUP)
+    except KeyError:
+        deny("The NeutronOS Mainline state-access group is unavailable.")
+    if identity.pw_gid != state_group.gr_gid and identity.pw_name not in state_group.gr_mem:
+        deny("The NeutronOS Mainline service account cannot access protected update state.")
+    return () if identity.pw_gid == state_group.gr_gid else (state_group.gr_gid,)
+
+
+def run_command(command: list[str], environment: dict[str, str], operation: str,
+                identity: pwd.struct_passwd) -> subprocess.CompletedProcess[str]:
+    identity_arguments = {}
+    if os.geteuid() == 0:
+        identity_arguments = {
+            "user": identity.pw_uid,
+            "group": identity.pw_gid,
+            "extra_groups": runtime_groups(identity),
+            "umask": 0o077,
+        }
+    try:
+        result = subprocess.run(
+            command, env=environment, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, check=False, timeout=120,
+            **identity_arguments,
+        )
+    except FileNotFoundError as error:
+        executable = Path(error.filename or command[0]).name
+        deny(f"Update service dependency is unavailable. {executable.capitalize()} is not installed.")
+    except subprocess.TimeoutExpired:
+        deny(f"Private Mainline {operation} timed out. Check network access and try again.")
+    except OSError as error:
+        deny(f"Private Mainline {operation} could not start: {sanitized_detail(str(error))}")
+    if result.returncode:
+        detail = sanitized_detail(result.stderr or result.stdout)
+        lowered = detail.lower()
+        if ("load key" in lowered or "identity file" in lowered) and (
+                "permission denied" in lowered or "not accessible" in lowered or "error in libcrypto" in lowered):
+            deny("Private Mainline local credential access failed. The protected deploy key is unavailable to the update service identity.")
+        if "permission denied (publickey)" in lowered or "authentication failed" in lowered:
+            deny("Private Mainline authentication failed. The installation read-only deploy key was rejected.")
+        deny(f"Private Mainline {operation} failed: {detail or f'exit status {result.returncode}'}")
+    return result
+
+
+def read_config() -> dict[str, str]:
+    values: dict[str, str] = {}
+    try:
+        for raw in CONFIG.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip()
+    except OSError as error:
+        deny(f"Private Mainline configuration is unavailable: {error}")
+    return values
+
+
+def main() -> int:
+    identity = runtime_identity()
+    if not GIT.is_file() or not os.access(GIT, os.X_OK):
+        deny("Update service dependency is unavailable. Git is not installed.")
+    if not SSH.is_file() or not os.access(SSH, os.X_OK):
+        deny("Update service dependency is unavailable. SSH is not installed.")
+    if not PINNED_PUBLIC_KEY.is_file():
+        deny("The pinned NeutronOS update verification public key is missing.")
+    values = read_config()
+    if values.get("repository") != EXPECTED_URL:
+        deny("Private Mainline repository does not match the pinned NeutronOS repository.")
+    for path in (KEY, KNOWN_HOSTS):
+        try:
+            info = path.lstat()
+        except OSError as error:
+            deny(f"Private Mainline credential material is unavailable: {error}")
+        if path.is_symlink() or not path.is_file():
+            deny(f"Private Mainline path is not a regular file: {path}")
+        if path == KEY and info.st_mode & 0o077:
+            deny("Private Mainline deploy key permissions are too broad.")
+    require_runtime_owned(STATE, identity, directory=True)
+    require_runtime_owned(KEY.parent, identity, directory=True)
+    require_runtime_owned(KEY, identity, directory=False)
+    if REPOSITORY.exists():
+        require_runtime_owned(REPOSITORY, identity, directory=True)
+    ssh_command = (
+        f"{SSH} -i {KEY} -o IdentitiesOnly=yes -o BatchMode=yes "
+        f"-o StrictHostKeyChecking=yes -o UserKnownHostsFile={KNOWN_HOSTS}"
+    )
+    environment = {
+        "HOME": identity.pw_dir,
+        "USER": identity.pw_name,
+        "LOGNAME": identity.pw_name,
+        "PATH": "/usr/bin:/bin",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_SSH_COMMAND": ssh_command,
+        "GIT_TERMINAL_PROMPT": "0",
+        "LC_ALL": "C",
+    }
+    if (REPOSITORY / ".git").is_dir():
+        origin = run_command([str(GIT), "-C", str(REPOSITORY), "remote", "get-url", "origin"],
+                             environment, "repository validation", identity)
+        if origin.stdout.strip() != EXPECTED_URL:
+            deny("Existing Mainline mirror has an unexpected origin.")
+        commands = [
+            ([str(GIT), "-C", str(REPOSITORY), "fetch", "--depth=1", "origin", "main"], "fetch"),
+            ([str(GIT), "-C", str(REPOSITORY), "reset", "--hard", "FETCH_HEAD"], "mirror reset"),
+            ([str(GIT), "-C", str(REPOSITORY), "clean", "-ffd"], "mirror cleanup"),
+        ]
+    else:
+        if REPOSITORY.exists() and any(REPOSITORY.iterdir()):
+            deny("Mainline mirror path exists and is not an initialized repository.")
+        REPOSITORY.parent.mkdir(parents=True, exist_ok=True)
+        commands = [([str(GIT), "clone", "--depth=1", "--branch", "main", EXPECTED_URL, str(REPOSITORY)], "clone")]
+    for command, operation in commands:
+        run_command(command, environment, operation, identity)
+    if not (REPOSITORY / "mainline.json").is_file() or not PINNED_PUBLIC_KEY.is_file():
+        deny("Mainline index or independently installed release public key is unavailable.")
+    # Repository-supplied replacement keys never alter trust. Each selected
+    # manifest is authenticated by the shared pinned OpenPGP verifier.
+    print("Private Mainline mirror refreshed.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

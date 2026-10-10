@@ -1,0 +1,31 @@
+{
+  "id": "neutronremotesystems",
+  "name": "Neutron Remote Systems",
+  "subtitle": "Remote Service Gatekeeper",
+  "description": "Discover, authorize, time-limit and configure remote services exposed by installed NeutronOS applications.",
+  "category": "System",
+  "type": "qml",
+  "qmlSource": "neutronremotesystems/Main.qml",
+  "entry": "Main.qml",
+  "icon": "neutronremotesystems",
+  "poster": "neutronremotesystems",
+  "version": "1.0.3",
+  "developer": "NeutronOS",
+  "favorite": false,
+  "hidden": false,
+  "developerOnly": false,
+  "controllerOnly": true,
+  "fullscreen": true,
+  "launchMode": "apphost",
+  "suspendsConsole": true,
+  "leaveRunning": false,
+  "permissions": [
+    "network",
+    "remote-service-management",
+    "package-discovery",
+    "security-audit"
+  ],
+  "systemApp": true,
+  "protected": true,
+  "systemHelper": "/usr/local/lib/neutronos/remote-systems-bridge.py"
+}

@@ -1,0 +1,2 @@
+module NeutronOS.Managers
+singleton RemoteKeyboardManager 1.0 RemoteKeyboardManager.qml

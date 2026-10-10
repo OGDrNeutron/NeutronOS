@@ -1,0 +1,8 @@
+#!/bin/sh
+# NetworkManager dispatcher: request NTP capture whenever usable networking arrives.
+case "$2" in
+    up|dhcp4-change|dhcp6-change|connectivity-change)
+        /usr/bin/systemctl --no-block start neutronos-time-sync.service >/dev/null 2>&1 || true
+        ;;
+esac
+exit 0
