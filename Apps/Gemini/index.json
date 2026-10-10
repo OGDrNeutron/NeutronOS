@@ -11,7 +11,7 @@
         "amd64"
       ],
       "category": "Games",
-      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.4.md",
+      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.5.md",
       "debianDependencies": [
         "bubblewrap",
         "fuseiso",
@@ -21,14 +21,14 @@
         "Gemini 0.5.6 R2; appstore-dependency-lifecycle API v1",
         "Qt 6.8.2; bubblewrap; fuseiso; bindfs; optional gaming runtimes require explicit approval"
       ],
-      "description": "Controller-first game installation, compatibility, supervised sessions and local patch rollback. Requires Gemini 0.5.6 R2.",
+      "description": "Controller-first Games with responsive indexing and safe interruption recovery. Requires Gemini 0.5.6 R2.",
       "developer": "NeutronOS",
       "icon": "icons/gemini-games.png",
       "id": "gemini-games",
-      "installedBytes": 4886412,
+      "installedBytes": 4942998,
       "minNeutronOS": "0.5.6",
       "name": "Games \u2014 Gemini",
-      "packageUrl": "Gemini-Games-0.1.0-review.4.napp",
+      "packageUrl": "Gemini-Games-0.1.0-review.5.napp",
       "permissions": [
         "filesystem",
         "removable-storage",
@@ -41,9 +41,9 @@
       ],
       "poster": "posters/gemini-games.png",
       "requiresDeveloperMode": false,
-      "sha256": "0142fab5bf8dbd84bf929f253f81fbb97bf1b189aa92d0a504244a0c93da5cd1",
-      "size": 3840275,
-      "version": "0.1.0-review.4",
+      "sha256": "2e4c0baef6c8b96ea705c45c0803264960dded56f5c479bcf33847af76401de1",
+      "size": 3860219,
+      "version": "0.1.0-review.5",
       "osRequirements": {
         "minimumVersion": "0.5.6",
         "capabilities": {
