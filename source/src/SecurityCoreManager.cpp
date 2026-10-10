@@ -24,6 +24,13 @@ SecurityCoreManager::SecurityCoreManager(const QString &neutronRoot,
                                          SecurityManager *authManager, QObject *parent)
     : QObject(parent), m_neutronRoot(QDir(neutronRoot).absolutePath()), m_authManager(authManager)
 {
+    m_indicatorTimer.setInterval(1000);
+    connect(&m_indicatorTimer,&QTimer::timeout,this,&SecurityCoreManager::refreshIndicator);
+    connect(&m_indicatorWatcher,&QFutureWatcher<SecurityIndicatorSnapshot>::finished,this,[this]{
+        const auto value=m_indicatorWatcher.result();
+        if(value.online!=m_indicator.online||value.score!=m_indicator.score){m_indicator=value;emit indicatorChanged();}
+    });
+    m_indicatorTimer.start();refreshIndicator();
     m_healthTimer.setInterval(5000);
     m_healthTimer.setSingleShot(false);
     connect(&m_healthTimer, &QTimer::timeout, this, &SecurityCoreManager::refresh);
@@ -494,3 +501,11 @@ bool SecurityCoreManager::setIntegrityChangeFlagged(
 }
 bool SecurityCoreManager::setManualThreatLevel(int v) { return enqueue(QStringLiteral("security.set-manual-defcon"),{{QStringLiteral("level"),v}}); }
 void SecurityCoreManager::deescalateToNormal() { enqueue(QStringLiteral("security.deescalate-normal")); }
+
+void SecurityCoreManager::refreshIndicator()
+{
+    if(m_indicatorWatcher.isRunning())return;
+    m_indicatorWatcher.setFuture(QtConcurrent::run([]{
+        return SecurityIndicatorSnapshot::read(QStringLiteral("/var/lib/neutronos/security-core/state.json"),QDateTime::currentDateTimeUtc());
+    }));
+}

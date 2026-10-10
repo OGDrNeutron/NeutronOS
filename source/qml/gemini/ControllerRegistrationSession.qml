@@ -9,6 +9,7 @@ Item {
     property var controller: null
     property var state: ({})
     property string transport: "unknown"
+    property int statusGeneration:0
     property bool polling: false
     property bool registering: false
     property string requestIssue: ""
@@ -33,10 +34,13 @@ Item {
     function refresh() {
         if(!active||polling)return
         polling=true
+        var generation=statusGeneration
+        var device=eventName
         var status=new XMLHttpRequest()
         status.timeout=4000
         status.onreadystatechange=function(){
             if(status.readyState!==4)return
+            if(generation!==statusGeneration||device!==eventName)return
             polling=false
             if(!active)return
             if(status.status===200){try{var v=JSON.parse(status.responseText);transport=v.transport==="usb"?"usb":v.transport==="bluetooth"?"bluetooth":"unknown"}catch(e){transport="unknown"}}
@@ -68,6 +72,12 @@ Item {
         xhr.setRequestHeader("X-Neutron-Controller","register-usb-v1")
         xhr.send(JSON.stringify({event:eventName}))
     }
-    onActiveChanged: if(active)refresh()
+    function invalidateConnectionStatus(){statusGeneration++;transport="unknown";polling=false;if(active)refresh()}
+    Connections {
+        target:session.controller;ignoreUnknownSignals:true
+        function onControllerDevicePathChanged(){session.invalidateConnectionStatus()}
+        function onControllerConnectedChanged(){session.invalidateConnectionStatus()}
+    }
+    onActiveChanged: invalidateConnectionStatus()
     Timer{interval:1500;repeat:true;running:session.active;onTriggered:session.refresh()}
 }

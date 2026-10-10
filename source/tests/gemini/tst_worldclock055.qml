@@ -34,8 +34,8 @@ TestCase {
  function init(){worldClockTestBackend.setLockscreenClockVisible(true);worldClockTestBackend.setLockscreenWelcomeVisible(true);host.cardArmed=false;host.lockscreenFocus="user"}
  function test_a_clock_geometry_and_world_regions(){
   var clock=find(lock,"GeminiLockClock"),earth=find(lock,"GeminiLockClockEarth"),planet=find(lock,"GeminiClockPlanetInstrument"),housing=find(lock,"GeminiClockHousing"),card=find(lock,"GeminiLockUserIcon")
-  compare(clock.x,1135);compare(clock.y,57);compare(planet.x,322);compare(planet.y,0);compare(planet.width,170);compare(earth.width,180);compare(housing.x,12);compare(housing.width,372);compare(card.width,170)
-  verify(planet.z>housing.z);verify(housing.x+housing.width>planet.x+50);verify(housing.x+housing.width<planet.x+planet.width/2)
+  compare(clock.x,1211);compare(clock.y,57);compare(planet.x,244);compare(planet.y,0);compare(planet.width,170);compare(earth.width,180);compare(housing.x,12);compare(housing.width,372*.75);compare(card.width,170)
+  verify(planet.z>housing.z);verify(housing.x+housing.width>planet.x+37.5);verify(housing.x+housing.width<planet.x+planet.width/2)
   host.lockscreenFocus="clock";verify(clock.focused)
   var zone=worldClockTestBackend.timezone;clock.returnToLocal();compare(clock.displayedTimezone,zone)
   var seen={};for(var i=0;i<worldClockTestBackend.worldClockRegions.length;i++){lock.handleClockAction("primary");seen[clock.displayedTimezone]=true;compare(clock.localTime,worldClockTestBackend.worldClockDisplay(clock.displayedTimezone,clock.now).time)}

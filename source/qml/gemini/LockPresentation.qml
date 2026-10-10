@@ -1,3 +1,5 @@
+import "../components/SecurityIndicator.js" as SecurityIndicator
+import "../dashboard/v2" as Dashboard
 import QtQuick
 import QtQuick.Shapes
 import QtQuick.Effects
@@ -64,17 +66,18 @@ Item {
             id:securityBadge;objectName:"GeminiLockSecurityBadge"
             x:43;y:189;width:417;height:75
             readonly property var backend:root.host && "loginSecurityBackend" in root.host ? root.host.loginSecurityBackend : null
-            readonly property bool known:!!backend && backend.daemonOnline===true
-            readonly property bool secure:known && root.host.loginSecurityIsSecure()
-            accent:!known?"#ffd45a":secure?"#00ff87":"#ff1735"
-            RecoveryGlyph{x:22;y:16;width:42;height:42;kind:securityBadge.secure?"secure":"unsecure";color:securityBadge.accent}
+            readonly property int score:SecurityIndicator.score(backend)
+            readonly property bool known:score>=0
+            readonly property bool secure:SecurityIndicator.label(backend)==="Secure"
+            accent:SecurityIndicator.color(backend)
+            Dashboard.SemanticStatusIcon{x:22;y:16;width:42;height:42;kind:SecurityIndicator.icon(securityBadge.backend);accent:securityBadge.accent}
             Column{x:82;y:14;spacing:3
-                Text{text:!securityBadge.known?"Security Unavailable":securityBadge.secure?"System Secure":"System Unsecure";color:securityBadge.accent;font.bold:true;font.pixelSize:22}
-                Text{text:!securityBadge.known?"Waiting for Security service":securityBadge.secure?"All Systems Operational":"Attention Required";color:"#e7efff";font.pixelSize:16}
+                Text{objectName:"GeminiLockSecurityLabel";text:SecurityIndicator.label(securityBadge.backend);color:securityBadge.accent;font.bold:true;font.pixelSize:22}
+                Text{text:securityBadge.known?"Security protection status":"Waiting for Security service";color:"#e7efff";font.pixelSize:16}
             }
         }
         LockClock055 {
-            id:worldClock;x:1135;y:57;width:495;height:166;animated:root.host.animationsEnabled;quality:renderQuality
+            id:worldClock;x:1211;y:57;width:419;height:166;animated:root.host.animationsEnabled;quality:renderQuality
             settings:root.clockBackend;visible:root.clockVisible
             focused:root.host.lockscreenFocus==="clock"&&!root.host.cardArmed
             interactionBlocked:root.host.cardArmed||root.host.loginSuccess||root.host.isLockedOut()
@@ -126,8 +129,10 @@ Item {
                 scale:root.host.unlockRippleScale;opacity:root.host.unlockRippleOpacity
             }
         }
-        ControllerRegistrationSession{id:connection;active:root.visible;registrationEnabled:false;controller:root.host.controllerBackend}
-        Text{objectName:"GeminiLockControllerConnection";x:535;y:819;width:600;text:"Controller · "+connection.connectionLabel;color:"#A7DEFF";font.pixelSize:21;horizontalAlignment:Text.AlignHCenter}
-        Text{objectName:"GeminiLockPasscodeCount";x:535;y:852;width:600;text:root.host.isLockedOut()?"SECURITY TIMER · "+root.host.formatTime(root.host.lockoutSecondsRemaining()):root.host.cardArmed?"Controller passcode · "+root.host.inputTokens.length+" inputs":"";horizontalAlignment:Text.AlignHCenter;font.pixelSize:19;color:root.feedback==="error"?"#ff4055":"#a7deff"}
+        LockControllerStatus {
+            objectName:"GeminiLockControllerPanel";x:(layout.width-width)/2;y:815;width:620;height:76
+            controller:root.host.controllerBackend;active:root.visible
+        }
+        Text{objectName:"GeminiLockPasscodeCount";x:535;y:905;width:600;text:root.host.isLockedOut()?"SECURITY TIMER · "+root.host.formatTime(root.host.lockoutSecondsRemaining()):root.host.cardArmed?"Controller passcode · "+root.host.inputTokens.length+" inputs":"";horizontalAlignment:Text.AlignHCenter;font.pixelSize:19;color:root.feedback==="error"?"#ff4055":"#a7deff"}
     }
 }

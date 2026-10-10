@@ -1,3 +1,4 @@
+import "../../components/SecurityIndicator.js" as SecurityIndicator
 import QtQuick
 import QtQuick.Controls
 import "../../components"
@@ -189,15 +190,11 @@ Item {
     }
     readonly property bool securityAttention: securityNeedsAttention()
     // NEUTRONOS_HEADER_SECURITY_SCORE_STATE_V1
-    function headerSecurityScore(){
-        if(!securityBackend || securityBackend.daemonOnline!==true || securityBackend.securityScore===undefined)return -1
-        var n=Number(securityBackend.securityScore)
-        return isNaN(n)?-1:Math.max(0,Math.min(100,Math.round(n)))
-    }
-    function headerSecurityLabel(){var n=headerSecurityScore();return n<0?"Unavailable":n>=80?"Secure":n>=55?"Weak Protection":"Unsecure"}
-    function headerSecurityStrength(){var n=headerSecurityScore();return n<0?"Unavailable":n>=80?"Secure":n>=55?"Weak":"Unsecure"}
-    function headerSecurityColor(){var n=headerSecurityScore();return n<0?theme.red:n>=80?theme.green:n>=55?"#F7D85B":theme.red}
-    function headerSecurityIcon(){return headerSecurityScore()>=55?"locked":"unlocked"}
+    function headerSecurityScore(){return SecurityIndicator.score(securityBackend)}
+    function headerSecurityLabel(){return SecurityIndicator.label(securityBackend)}
+    function headerSecurityStrength(){return SecurityIndicator.strength(securityBackend)}
+    function headerSecurityColor(){return SecurityIndicator.color(securityBackend)}
+    function headerSecurityIcon(){return SecurityIndicator.icon(securityBackend)}
     readonly property string commandTarget: zone===0 ? "dashboard" : zone===1 ? "application" : zone===2 ? "footer" : "header"
     function syncControllerContext(){
         if(activeView.item&&"controllerActive" in activeView.item)

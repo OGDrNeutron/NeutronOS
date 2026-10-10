@@ -250,52 +250,6 @@ Item {
     readonly property var loginSecurityBackend:
         (typeof securityCoreManager !== "undefined") ? securityCoreManager : null
 
-    function loginSuspiciousSecurityEvents() {
-        var backend = loginSecurityBackend
-        var src = backend && backend.events ? backend.events : []
-        var out = []
-
-        for (var i = 0; i < src.length; ++i) {
-            var event = src[i] || ({})
-            if (event.acknowledged === true)
-                continue
-
-            var severity = String(event.severityLabel || event.severity || event.status || "").toLowerCase()
-            var body = (String(event.title || event.type || event.eventType || "") + " " +
-                        String(event.message || event.description || event.detail || event.reason || "")).toLowerCase()
-
-            var suspicious = severity.indexOf("critical") >= 0 ||
-                             severity.indexOf("high") >= 0 ||
-                             severity.indexOf("severe") >= 0 ||
-                             severity.indexOf("warning") >= 0 ||
-                             severity.indexOf("attention") >= 0 ||
-                             body.indexOf("suspicious") >= 0 ||
-                             body.indexOf("blocked") >= 0 ||
-                             body.indexOf("malware") >= 0 ||
-                             body.indexOf("attack") >= 0 ||
-                             body.indexOf("intrusion") >= 0
-
-            if (suspicious)
-                out.push(event)
-        }
-
-        return out
-    }
-
-    function loginSecurityIsSecure() {
-        var backend = loginSecurityBackend
-        if (!backend || backend.daemonOnline !== true || backend.auditValid !== true)
-            return false
-        if (backend.integrityChanges && backend.integrityChanges.length > 0)
-            return false
-        if (backend.malwareFindings && backend.malwareFindings.length > 0)
-            return false
-        if (loginSuspiciousSecurityEvents().length > 0)
-            return false
-        var level = Number(backend.threatLevel)
-        return isFinite(level) && level >= 3 && level <= 5
-    }
-
     /*
         ============================================================
                             ANIMATION STATE

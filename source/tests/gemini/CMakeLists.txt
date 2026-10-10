@@ -13,7 +13,7 @@ target_link_libraries(GeminiSetupProbe PRIVATE Qt6::Core Qt6::Network)
 
 add_executable(GeminiQmlRegression ControllerReplay.h ControllerReplay.cpp "${SRC}/ControllerManager.cpp" qml_runner.cpp "${SRC}/ClockSettingsManager.cpp" "${SRC}/ClockSettingsManager.h" "${SRC}/GeminiGeometry.cpp" "${SRC}/GeminiGeometry.h")
 target_include_directories(GeminiQmlRegression PRIVATE "${SRC}")
-target_link_libraries(GeminiQmlRegression PRIVATE Qt6::QuickTest Qt6::Quick3D Qt6::Quick Qt6::DBus)
+target_link_libraries(GeminiQmlRegression PRIVATE Qt6::QuickTest Qt6::Quick3D Qt6::Quick Qt6::DBus Qt6::Network)
 
 find_package(Qt6 REQUIRED COMPONENTS Test)
 add_executable(GeminiGeometryTest geometry_test.cpp "${SRC}/GeminiGeometry.cpp" "${SRC}/GeminiGeometry.h")
@@ -27,3 +27,7 @@ target_link_libraries(GeminiRecovery054Test PRIVATE Qt6::Test Qt6::Core)
 add_executable(GeminiClockWorld055Test clock_world055_test.cpp "${SRC}/ClockSettingsManager.cpp" "${SRC}/ClockSettingsManager.h")
 target_include_directories(GeminiClockWorld055Test PRIVATE "${SRC}")
 target_link_libraries(GeminiClockWorld055Test PRIVATE Qt6::Test Qt6::Core Qt6::DBus)
+
+add_executable(GeminiSecurityIndicator057Test security_indicator057_test.cpp)
+target_include_directories(GeminiSecurityIndicator057Test PRIVATE "${SRC}")
+target_link_libraries(GeminiSecurityIndicator057Test PRIVATE Qt6::Test Qt6::Core)

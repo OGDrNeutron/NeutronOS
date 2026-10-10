@@ -55,7 +55,8 @@ Item {
     Timer{interval:1000;repeat:true;running:root.visible;onTriggered:root.now=new Date()}
     NumberAnimation on earthAngle{from:0;to:360;duration:root.earthRotationPeriodMs;loops:Animation.Infinite;running:root.visible&&root.animated;easing.type:Easing.Linear}
     Item {
-        id:housing;objectName:"GeminiClockHousing";x:12;y:20;width:372;height:126;z:1
+        id:housing;objectName:"GeminiClockHousing";x:12;y:20;width:279;height:94.5;z:1
+        Item{width:372;height:126;scale:0.75;transformOrigin:Item.TopLeft
         Shape {
             anchors.fill:parent;preferredRendererType:Shape.CurveRenderer
             ShapePath {
@@ -115,12 +116,13 @@ Item {
         Text{objectName:"GeminiLockMeridiem";x:timeText.x+timeText.width+10;y:51;text:root.localPeriod;color:"#00caff";font.pixelSize:28;visible:!root.use24Hour}
         Text{objectName:"GeminiLockLocalDate";x:32;y:91;text:root.localDate;color:"#dce8f5";font.pixelSize:18}
     }
+    }
     Item {
-        id:planet;objectName:"GeminiClockPlanetInstrument";x:322;y:0;width:170;height:170;z:2
+        id:planet;objectName:"GeminiClockPlanetInstrument";x:244;y:0;width:170;height:170;z:2
         TimezoneEarth{id:clockEarth;objectName:"GeminiLockClockEarth";anchors.centerIn:parent;width:180;height:180;quality:root.quality;animated:false;region:"Worldwide";latitude:root.selectedRegion.latitude;longitude:root.globeLongitudeTarget;spinAngle:root.earthAngle;astronomicalLighting:root.worldBackendAvailable;solarDirection:Qt.vector3d(root.solarData.x,root.solarData.y,root.solarData.z)}
     }
     Text {
-        x:30;y:155;width:285;elide:Text.ElideRight;font.pixelSize:10;color:"#96cddd"
+        x:30;y:128;width:215;elide:Text.ElideRight;font.pixelSize:10;color:"#96cddd"
         text:root.settings&&root.settings.worldClockStatus?root.settings.worldClockStatus:root.focused?"X Explore · □ Local"+(root.isLocal?"":" · △ Set Local"):""
     }
     MouseArea{anchors.fill:parent;enabled:!root.interactionBlocked;onClicked:{root.focusRequested();root.nextRegion()}}

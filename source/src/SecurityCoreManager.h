@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SecureIpcClient.h"
+#include "SecurityIndicatorSnapshot.h"
 
 #include <QObject>
 #include <QFutureWatcher>
@@ -19,6 +20,8 @@ class SecurityManager;
 class SecurityCoreManager final : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool indicatorOnline READ indicatorOnline NOTIFY indicatorChanged)
+    Q_PROPERTY(int indicatorScore READ indicatorScore NOTIFY indicatorChanged)
     Q_PROPERTY(bool daemonOnline READ daemonOnline NOTIFY stateChanged)
     Q_PROPERTY(QString daemonStatus READ daemonStatus NOTIFY stateChanged)
     Q_PROPERTY(QString lastErrorCode READ lastErrorCode NOTIFY stateChanged)
@@ -65,6 +68,9 @@ public:
                                  QObject *parent = nullptr);
     ~SecurityCoreManager() override;
 
+    bool indicatorOnline() const { return m_indicator.online; }
+    int indicatorScore() const { return m_indicator.score; }
+    Q_INVOKABLE void refreshIndicator();
     bool daemonOnline() const { return m_daemonOnline; }
     QString daemonStatus() const { return m_daemonStatus; }
     QString lastErrorCode() const { return m_lastErrorCode; }
@@ -169,6 +175,7 @@ public:
     Q_INVOKABLE void deescalateToNormal();
 
 signals:
+    void indicatorChanged();
     void stateChanged();
     void operationFinished(bool success, const QString &message);
     void securityEventRaised(const QVariantMap &event);
@@ -191,6 +198,9 @@ private:
     const QString m_socketPath = QStringLiteral("/run/neutronos/security/control.sock");
     QQueue<Request> m_requests;
     QFutureWatcher<Completion> m_watcher;
+    SecurityIndicatorSnapshot m_indicator;
+    QFutureWatcher<SecurityIndicatorSnapshot> m_indicatorWatcher;
+    QTimer m_indicatorTimer;
     QTimer m_healthTimer;
     QTimer m_secretTimer;
     bool m_refreshQueued = false;

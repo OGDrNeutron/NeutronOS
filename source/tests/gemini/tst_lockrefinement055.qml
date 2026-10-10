@@ -35,12 +35,12 @@ TestCase {
         var welcome=find(lock,"GeminiLockWelcome"),security=find(lock,"GeminiLockSecurityBadge"),clock=find(lock,"GeminiLockClock"),center=find(lock,"GeminiLockCenter")
         compare(welcome.x,43);compare(welcome.y,67);compare(welcome.width,417);compare(welcome.height,106)
         compare(security.x,welcome.x);verify(security.y>welcome.y+welcome.height)
-        compare(clock.y,57);compare(clock.x,1135);compare(clock.width,495);compare(clock.height,166)
+        compare(clock.y,57);compare(clock.x,1211);compare(clock.width,419);compare(clock.height,166)
         compare(center.x+center.width/2,836);compare(center.width,660);compare(center.height,660)
         compare(find(lock,"GeminiLockUserIcon").width,170)
         compare(clock.localTime,Qt.formatDateTime(clock.now,"h:mm AP").slice(0,-clock.localPeriod.length-1));compare(clock.localDate,Qt.formatDateTime(clock.now,"ddd, MMM d, yyyy"))
         var before=clock.now.getTime();wait(1200);verify(clock.now.getTime()>before)
-        verify(!find(lock,"GeminiLockControllerConnection").activeFocus)
+        verify(!find(lock,"GeminiLockControllerPanel").activeFocus)
         waitForRendering(lock);var capture=grabImage(test);compare(capture.width,1920);compare(capture.height,1080);capture.save("/tmp/gemini-055-lock-refined-unsecure.png")
         host.secure=true;wait(150);grabImage(test).save("/tmp/gemini-055-lock-refined-secure.png");host.secure=false
     }
@@ -100,16 +100,16 @@ TestCase {
     }
     function test_g_connected_housing_and_full_time(){
         var clock=find(lock,"GeminiLockClock"),housing=find(lock,"GeminiClockHousing"),planet=find(lock,"GeminiClockPlanetInstrument"),earth=find(lock,"GeminiLockClockEarth"),time=find(lock,"GeminiLockLocalTime"),period=find(lock,"GeminiLockMeridiem"),date=find(lock,"GeminiLockLocalDate")
-        compare(housing.x,12);compare(housing.y,20);compare(housing.width,372);compare(housing.height,126);compare(planet.width,170);compare(planet.height,170);compare(planet.x,322);compare(planet.y,0)
+        compare(housing.x,12);compare(housing.y,20);compare(housing.width,372*.75);compare(housing.height,126*.75);compare(planet.width,170);compare(planet.height,170);compare(planet.x,244);compare(planet.y,0)
         // The extended end is concealed beneath the unchanged planet, before its center.
-        verify(housing.x+housing.width>planet.x+50);verify(housing.x+housing.width<planet.x+planet.width/2);verify(planet.z>housing.z)
+        verify(housing.x+housing.width>planet.x+37.5);verify(housing.x+housing.width<planet.x+planet.width/2);verify(planet.z>housing.z)
         compare(earth.width,180);compare(earth.height,180);compare(earth.latitude,18);compare(earth.longitude,90)
-        compare(clock.x+planet.x,1457);verify(clock.x+clock.width<=1630)
+        compare(clock.x+planet.x,1455);verify(clock.x+clock.width<=1630)
         waitForRendering(lock);wait(600);grabImage(test).save("/tmp/gemini-055-r3-clock-live.png")
         clock.settings=formatFixture;formatFixture.use24Hour=false;clock.now=new Date(2026,9,9,12,59,0)
         compare(time.text,"12:59");compare(period.text,"PM");verify(date.text.length>0)
-        verify(period.x+period.width<housing.width-28);verify(date.x+date.width<housing.width-28)
-        verify(housing.x+Math.max(period.x+period.width,date.x+date.width)<planet.x-8,"Text remains clear of the stationary Earth")
+        verify((period.x+period.width)*.75<housing.width-21);verify((date.x+date.width)*.75<housing.width-21)
+        verify(housing.x+Math.max(period.x+period.width,date.x+date.width)*.75<planet.x-6,"Text remains clear of the stationary Earth")
         grabImage(test).save("/tmp/gemini-055-r3-clock-1259.png")
         var angle=clock.earthAngle;wait(200);verify(clock.earthAngle!==angle);compare(clock.earthRotationPeriodMs,60000)
         clock.now=new Date()
