@@ -11,22 +11,24 @@
         "amd64"
       ],
       "category": "Games",
-      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.3.md",
+      "changelogUrl": "https://raw.githubusercontent.com/OGDrNeutron/NeutronOS/main/Apps/Gemini/changelogs/gemini-games-0.1.0-review.4.md",
       "debianDependencies": [
-        "bubblewrap"
+        "bubblewrap",
+        "fuseiso",
+        "bindfs"
       ],
       "dependencies": [
-        "Gemini 0.5.6 shared-desktop-carousel/package-session/controller-proxy API v1",
-        "Qt 6.8.2; bubblewrap"
+        "Gemini 0.5.6 R2; appstore-dependency-lifecycle API v1",
+        "Qt 6.8.2; bubblewrap; fuseiso; bindfs; optional gaming runtimes require explicit approval"
       ],
-      "description": "Controller-first Gemini Games review with folder browsing and shared desktop integration. Requires Gemini 0.5.6; physical acceptance pending.",
+      "description": "Controller-first game installation, compatibility, supervised sessions and local patch rollback. Requires Gemini 0.5.6 R2.",
       "developer": "NeutronOS",
       "icon": "icons/gemini-games.png",
       "id": "gemini-games",
-      "installedBytes": 3895864,
+      "installedBytes": 4886412,
       "minNeutronOS": "0.5.6",
       "name": "Games \u2014 Gemini",
-      "packageUrl": "Gemini-Games-0.1.0-review.3.napp",
+      "packageUrl": "Gemini-Games-0.1.0-review.4.napp",
       "permissions": [
         "filesystem",
         "removable-storage",
@@ -39,16 +41,17 @@
       ],
       "poster": "posters/gemini-games.png",
       "requiresDeveloperMode": false,
-      "sha256": "294fe8e675e4c6c5576c9038a0971af098d42c2b1e289820a0378f07dff56d8a",
-      "size": 3516937,
-      "version": "0.1.0-review.3",
+      "sha256": "0142fab5bf8dbd84bf929f253f81fbb97bf1b189aa92d0a504244a0c93da5cd1",
+      "size": 3840275,
+      "version": "0.1.0-review.4",
       "osRequirements": {
         "minimumVersion": "0.5.6",
         "capabilities": {
           "package-session": 1,
           "controller-proxy": 1,
           "gemini-geometry": 1,
-          "shared-desktop-carousel": 1
+          "shared-desktop-carousel": 1,
+          "appstore-dependency-lifecycle": 1
         },
         "qtVersion": "6.8.2"
       }
