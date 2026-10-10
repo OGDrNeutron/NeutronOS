@@ -44,7 +44,8 @@ class GeminiGamesBackend final : public QObject {
     Q_PROPERTY(QVariantList installedRuntimes READ installedRuntimes NOTIFY changed)
     Q_PROPERTY(QVariantMap hardware READ hardware NOTIFY changed)
     Q_PROPERTY(QVariantMap preferences READ preferences NOTIFY changed)
-    Q_PROPERTY(bool scanning READ scanning NOTIFY changed)
+    Q_PROPERTY(bool scanning READ scanning NOTIFY scanStatusChanged)
+    Q_PROPERTY(int scannedEntries READ scannedEntries NOTIFY scanStatusChanged)
     Q_PROPERTY(bool gameActive READ gameActive NOTIFY sessionChanged)
     Q_PROPERTY(bool backgrounded READ backgrounded NOTIFY sessionChanged)
     Q_PROPERTY(QVariantList controllers READ controllers NOTIFY sessionChanged)
@@ -69,6 +70,8 @@ public:
     Q_INVOKABLE bool editFolder(int index,const QString &path);
     Q_INVOKABLE bool removeFolder(int index);
     Q_INVOKABLE void rescan();
+    Q_INVOKABLE void cancelIndexing() { if(ownsAccount()&&m_library)m_library->cancelScan(); }
+    int scannedEntries() const { return ownsAccount()&&m_library?m_library->scannedEntries():0; }
     Q_INVOKABLE void refreshRuntimes() { emit changed(); if(!managerBusy())managerOperation({{"action","status"}}); }
     void setManagerProgram(const QString &path) { m_managerProgram=path; }
     Q_INVOKABLE bool managerOperation(const QVariantMap &request);
@@ -100,7 +103,8 @@ public:
     Q_INVOKABLE bool controllerRelease(const QString &action);
     Q_INVOKABLE QVariantMap resourceSample() const;
     Q_INVOKABLE QString logPath() const;
-    QVariantList games() const { return ownsAccount()&&m_library?(m_artwork?m_artwork->decorate(m_library->games()):m_library->games()):QVariantList(); }
+    QVariantList games() const { return ownsAccount()?m_presentedGames:QVariantList(); }
+    Q_INVOKABLE QVariantList gameSnapshot() const { return games(); }
     QVariantList artworkFiles()const{return ownsAccount()&&m_artwork?m_artwork->files():QVariantList();}
     QString artworkDirectory()const{return ownsAccount()&&m_artwork?m_artwork->directory():QString();}
     QStringList artworkFormats()const{return ownsAccount()&&m_artwork?m_artwork->formats():QStringList();}
@@ -121,6 +125,7 @@ public:
     void setMenuSource(const QString &value) { m_menuSource=value;emit sessionChanged(); }
     int controllerCount()const{return ownsAccount()?m_controllerCount:0;}
 signals:
+    void scanStatusChanged();
     void managerChanged();
     void managerFinished(QString action,bool success,QVariantMap result);
     void runtimeMissing(QString gameId,QString runtime);
@@ -133,6 +138,8 @@ signals:
     void messagePublished(QString message,bool critical);
     void restoreRequested();
 private:
+    void refreshGamePresentation();
+    QVariantList m_presentedGames;
     QPointer<QObject> m_identity;
     QPointer<GameLibrary> m_library;
     QPointer<GameArtwork> m_artwork;

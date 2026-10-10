@@ -7,11 +7,15 @@
 #include "GeminiGamesBackend.h"
 #include <QCoreApplication>
 #include <signal.h>
+#include <sys/stat.h>
 #include <QTest>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
 using namespace GeminiGames;
 static void write(const QString &path,const QByteArray &data,bool exec=false){QDir().mkpath(QFileInfo(path).absolutePath());QFile f(path);QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(data),qint64(data.size()));f.close();if(exec)f.setPermissions(f.permissions()|QFileDevice::ExeOwner);}
 class Tests:public QObject{
@@ -20,7 +24,7 @@ private slots:
 void folderBrowserAndPersistence(){
     QTemporaryDir d;QString root=d.path()+"/Library",nested=root+"/Subfolder";
     QVERIFY(QDir().mkpath(nested));
-    GameLibrary library(d.path());
+    GameLibrary library(d.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);
     auto locations=library.browseFolders("");QVERIFY(locations.value("ok").toBool());QVERIFY(!locations.value("entries").toList().isEmpty());
     auto listing=library.browseFolders(root);QVERIFY(listing.value("ok").toBool());QCOMPARE(listing.value("entries").toList().size(),1);
     QCOMPARE(listing.value("entries").toList().first().toMap().value("path").toString(),nested);
@@ -28,12 +32,49 @@ void folderBrowserAndPersistence(){
     QVERIFY(!library.browseFolders(d.path()+"/missing").value("ok").toBool());
     QVERIFY(QFile::link("/etc",d.path()+"/protected-link"));QVERIFY(!library.browseFolders(d.path()+"/protected-link").value("ok").toBool());
     QVERIFY(library.addRoot(root));QVERIFY(!library.addRoot(root));QVERIFY(!library.addRoot(nested));
-    {GameLibrary restored(d.path());QCOMPARE(restored.roots().size(),library.roots().size());QCOMPARE(restored.roots().last().toMap().value("path").toString(),root);}
+    {GameLibrary restored(d.path());QTRY_VERIFY_WITH_TIMEOUT(restored.initialized(),10000);QCOMPARE(restored.roots().size(),library.roots().size());QCOMPARE(restored.roots().last().toMap().value("path").toString(),root);}
     const auto previous=library.roots();QString other=d.path()+"/Other";QVERIFY(QDir().mkpath(other));
     const QString state=d.path()+"/apps/gemini-games/library.json";QVERIFY(QFile::rename(state,state+".test-original"));QVERIFY(QDir().mkpath(state));
     QVERIFY(!library.addRoot(other));QCOMPARE(library.roots(),previous);
     QVERIFY(!library.removeRoot(1));QCOMPARE(library.roots(),previous);
     QVERIFY(!library.editRoot(1,other));QCOMPARE(library.roots(),previous);
+}
+void largeIndexRemainsResponsiveAndReopens(){
+    QTemporaryDir d;const int count=700;
+    const QByteArray rom=QByteArray("NES\x1a",4)+QByteArray(64,0);
+    for(int i=0;i<count;++i)write(d.path()+"/Games/"+QString::number(i)+".nes",rom);
+    qint64 maximumGap=0;int ticks=0;QElapsedTimer clock;clock.start();qint64 last=clock.elapsed();
+    QTimer heartbeat;heartbeat.setInterval(10);
+    connect(&heartbeat,&QTimer::timeout,this,[&]{auto now=clock.elapsed();maximumGap=qMax(maximumGap,now-last);last=now;++ticks;});heartbeat.start();
+    {
+        GameLibrary library(d.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);library.rescan();
+        QTRY_VERIFY_WITH_TIMEOUT(library.games().size()==count&&!library.scanning(),30000);
+        const auto game=library.games().first().toMap();
+        QVERIFY(library.update(game.value("id").toString(),{{"favorite",true}}));
+        qInfo()<<"index heartbeat maximum gap ms"<<maximumGap<<"ticks"<<ticks<<"state bytes"<<QFileInfo(library.stateDirectory()+"/library.json").size();
+        QVERIFY2(maximumGap<250,"GUI event loop starved while merging scan results");
+        QVERIFY2(QFileInfo(library.stateDirectory()+"/library.json").size()<16*1024*1024,"Index grows beyond its own startup read limit");
+        QVERIFY2(game.value("possibleDuplicates").toStringList().size()<=32,"Duplicate candidates must stay bounded for large groups");
+    }
+    GameLibrary reopened(d.path());QTRY_VERIFY_WITH_TIMEOUT(reopened.initialized(),10000);
+    QCOMPARE(reopened.games().size(),count);
+    QVERIFY(QFileInfo::exists(d.path()+"/Games/0.nes"));
+}
+void interruptedIndexPreservesLibraryAndRequiresRetry(){
+    QTemporaryDir d;const QString game=d.path()+"/Games/kept.nes";write(game,QByteArray("NES\x1a",4)+QByteArray(64,0));
+    QString id;
+    {GameLibrary lib(d.path());QTRY_VERIFY_WITH_TIMEOUT(lib.initialized(),10000);lib.rescan();QTRY_VERIFY_WITH_TIMEOUT(!lib.scanning()&&lib.games().size()==1,10000);id=lib.games().first().toMap().value("id").toString();QVERIFY(lib.update(id,{{"favorite",true}}));}
+    const QString marker=d.path()+"/apps/gemini-games/index-in-progress.json";write(marker,"{}");
+    GameLibrary restored(d.path());QTRY_VERIFY_WITH_TIMEOUT(restored.initialized(),10000);QVERIFY(restored.recoveryRequired());QTest::qWait(900);QVERIFY(!restored.scanning());QCOMPARE(restored.games().size(),1);QVERIFY(restored.find(id).value("favorite").toBool());QVERIFY(QFileInfo::exists(marker));
+    restored.rescan();QTRY_VERIFY_WITH_TIMEOUT(!restored.scanning()&&!QFileInfo::exists(marker),10000);QVERIFY(restored.find(id).value("favorite").toBool());QVERIFY(QFileInfo::exists(game));
+}
+void corruptIndexIsNeverOverwritten(){
+    QTemporaryDir d;const QString state=d.path()+"/apps/gemini-games/library.json";const QByteArray original="{interrupted write must remain recoverable";write(state,original);write(d.path()+"/Games/kept.nes",QByteArray("NES\x1a",4)+QByteArray(64,0));
+    GameLibrary lib(d.path());QTRY_VERIFY_WITH_TIMEOUT(lib.initialized(),10000);lib.rescan();QTest::qWait(900);QVERIFY(!lib.scanning());QVERIFY(!lib.save());QFile f(state);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),original);
+}
+void symlinkCycleAndFifoMetadataAreBounded(){
+    QTemporaryDir d;const QString root=d.path()+"/Games",game=root+"/kept.nes";write(game,QByteArray("NES\x1a",4)+QByteArray(64,0));QVERIFY(QFile::link(root,root+"/cycle"));const auto fifo=QFile::encodeName(game+".metadata.json");QCOMPARE(mkfifo(fifo.constData(),0600),0);
+    GameLibrary lib(d.path());QTRY_VERIFY_WITH_TIMEOUT(lib.initialized(),10000);lib.rescan();QTRY_VERIFY_WITH_TIMEOUT(!lib.scanning()&&lib.games().size()==1,10000);QCOMPARE(lib.games().first().toMap().value("path").toString(),game);QVERIFY(QFileInfo::exists(game));
 }
 void detection(){QTemporaryDir d;auto path=[&](QString p){return d.path()+"/"+p;};QByteArray elf(64,0);elf.replace(0,4,QByteArray("\x7f" "ELF",4));elf[5]=1;elf[18]=62;write(path("native"),elf,true);QCOMPARE(GameLibrary::recognize(path("native")).value("kind").toString(),QString("linux"));
 QByteArray pe(128,0);pe.replace(0,2,"MZ");pe[60]=64;pe.replace(64,4,QByteArray("PE\0\0",4));pe[68]=char(0x64);pe[69]=char(0x86);write(path("windows.exe"),pe);QCOMPARE(GameLibrary::recognize(path("windows.exe")).value("architecture").toString(),QString("amd64"));write(path("fake.exe"),"not an exe");QVERIFY(GameLibrary::recognize(path("fake.exe")).isEmpty());
@@ -48,13 +89,13 @@ write(path("android.apk"),QByteArray::fromHex("504b0304")+QByteArray(64,0)+QByte
 write(path("stream.game.json"),"{\"provider\":\"remote\",\"client\":\"moonlight\",\"host\":\"192.0.2.1\",\"app\":\"Game\"}");QCOMPARE(GameLibrary::recognize(path("stream.game.json")).value("kind").toString(),QString("remote"));write(path("bad.game.json"),"{\"provider\":\"cloud\",\"url\":\"file:///etc/passwd\"}");QVERIFY(GameLibrary::recognize(path("bad.game.json")).isEmpty());
 }
 void librarySafety(){QTemporaryDir d;QString root=d.path()+"/external",game=root+"/fixture.nes";write(game,QByteArray("NES\x1a",4)+QByteArray(64,0));QString id;
-{GameLibrary library(d.path());QVERIFY(library.addRoot(root));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(!library.games().isEmpty(),10000);id=library.games().first().toMap().value("id").toString();QVERIFY(library.update(id,{{"favorite",true}}));QVERIFY(library.removeRoot(1));QVERIFY(QFileInfo::exists(game));QVERIFY(!library.find(id).value("online").toBool());}
-{GameLibrary library(d.path());QVERIFY(library.find(id).value("favorite").toBool());QVERIFY(library.addRoot(root));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(library.find(id).value("online").toBool(),10000);QVERIFY(QDir().rename(root,root+"-offline"));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(!library.find(id).value("online").toBool(),10000);QVERIFY(!library.find(id).isEmpty());QVERIFY(QDir().rename(root+"-offline",root));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(library.find(id).value("online").toBool(),10000);}
+{GameLibrary library(d.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);QVERIFY(library.addRoot(root));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(!library.games().isEmpty(),10000);id=library.games().first().toMap().value("id").toString();QVERIFY(library.update(id,{{"favorite",true}}));QVERIFY(library.removeRoot(1));QVERIFY(QFileInfo::exists(game));QVERIFY(!library.find(id).value("online").toBool());}
+{GameLibrary library(d.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);QVERIFY(library.find(id).value("favorite").toBool());QVERIFY(library.addRoot(root));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(library.find(id).value("online").toBool(),10000);QVERIFY(QDir().rename(root,root+"-offline"));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(!library.find(id).value("online").toBool(),10000);QVERIFY(!library.find(id).isEmpty());QVERIFY(QDir().rename(root+"-offline",root));library.rescan();QTRY_VERIFY_WITH_TIMEOUT(library.find(id).value("online").toBool(),10000);}
 }
-void incrementalAndDuplicates(){QTemporaryDir d;QString folder=d.path()+"/Games";QByteArray rom=QByteArray("NES\x1a",4)+QByteArray(64,0);write(folder+"/one.nes",rom);write(folder+"/two.nes",rom);GameLibrary library(d.path());library.rescan();QTRY_COMPARE_WITH_TIMEOUT(library.games().size(),2,10000);auto first=library.games().first().toMap();QVERIFY(!first.value("possibleDuplicates").toStringList().isEmpty());QString id=first.value("id").toString(),path=first.value("path").toString(),signature=first.value("signature").toString();QVERIFY(library.update(id,{{"favorite",true},{"chosenKind","nes"}}));write(path,rom+"changed");library.rescan(folder);QTRY_VERIFY_WITH_TIMEOUT(library.find(id).value("signature").toString()!=signature,10000);QVERIFY(library.find(id).value("favorite").toBool());QCOMPARE(library.find(id).value("chosenKind").toString(),QString("nes"));QVERIFY(library.find(id).value("possibleDuplicates").toStringList().isEmpty());QVERIFY(QFileInfo::exists(folder+"/two.nes"));library.setQuiescent(true);write(folder+"/three.nes",rom+"three");library.rescan(folder);QTest::qWait(500);QCOMPARE(library.games().size(),2);library.setQuiescent(false);QTRY_COMPARE_WITH_TIMEOUT(library.games().size(),3,10000);}
+void incrementalAndDuplicates(){QTemporaryDir d;QString folder=d.path()+"/Games";QByteArray rom=QByteArray("NES\x1a",4)+QByteArray(64,0);write(folder+"/one.nes",rom);write(folder+"/two.nes",rom);GameLibrary library(d.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);library.rescan();QTRY_COMPARE_WITH_TIMEOUT(library.games().size(),2,10000);auto first=library.games().first().toMap();QVERIFY(!first.value("possibleDuplicates").toStringList().isEmpty());QString id=first.value("id").toString(),path=first.value("path").toString(),signature=first.value("signature").toString();QVERIFY(library.update(id,{{"favorite",true},{"chosenKind","nes"}}));write(path,rom+"changed");library.rescan(folder);QTRY_VERIFY_WITH_TIMEOUT(library.find(id).value("signature").toString()!=signature,10000);QVERIFY(library.find(id).value("favorite").toBool());QCOMPARE(library.find(id).value("chosenKind").toString(),QString("nes"));QVERIFY(library.find(id).value("possibleDuplicates").toStringList().isEmpty());QVERIFY(QFileInfo::exists(folder+"/two.nes"));library.setQuiescent(true);write(folder+"/three.nes",rom+"three");library.rescan(folder);QTest::qWait(500);QCOMPARE(library.games().size(),2);library.setQuiescent(false);QTRY_COMPARE_WITH_TIMEOUT(library.games().size(),3,10000);}
 void artworkMatching(){QTemporaryDir one,two;GameArtwork art(one.path()),other(two.path());QVERIFY(art.valid());QCOMPARE(art.directory(),one.path()+"/apps/gemini-games/artwork");QImage image(100,150,QImage::Format_RGB32);image.fill(Qt::blue);QString exact=art.directory()+"/Super Mario Deluxe.PNG";QVERIFY(image.save(exact,"PNG"));QTRY_COMPARE_WITH_TIMEOUT(art.files().size(),1,10000);QVariantMap game{{"id","fixture"},{"title","Super Mario Deluxe"},{"artwork","metadata-fallback.png"}};auto decorated=[&](QVariantMap g){return art.decorate({g}).first().toMap();};QCOMPARE(decorated(game).value("artworkFile").toString(),exact);QVERIFY(decorated(game).value("artworkDisplay").toString().contains("artwork-cache"));auto similar=game;similar["title"]="Super Mario Deluxe 2";QCOMPARE(decorated(similar).value("artworkDisplay").toString(),QString("metadata-fallback.png"));auto normalized=game;normalized["title"]="super_mario-deluxe";QCOMPARE(decorated(normalized).value("artworkFile").toString(),exact);
 QString second=art.directory()+"/Super Mario Deluxe.png";image.fill(Qt::red);QVERIFY(image.save(second,"PNG"));QTRY_COMPARE_WITH_TIMEOUT(art.files().size(),2,10000);QVERIFY(decorated(game).value("artworkSelectionRequired").toBool());game["artworkOverride"]=QUrl::fromLocalFile(exact).toString();QCOMPARE(decorated(game).value("artworkFile").toString(),exact);QString before=decorated(game).value("artworkDisplay").toString();QTest::qWait(10);image.fill(Qt::green);QVERIFY(image.save(exact,"PNG"));QTRY_VERIFY_WITH_TIMEOUT(decorated(game).value("artworkDisplay").toString()!=before,10000);QImage thumbnail(QUrl(decorated(game).value("artworkDisplay").toString()).toLocalFile());QVERIFY(!thumbnail.isNull());QVERIFY(thumbnail.pixelColor(20,20).green()>200);QVERIFY(QFileInfo::exists(exact));QVERIFY(other.decorate({game}).first().toMap().value("manualArtworkMissing").toBool());QCOMPARE(other.files().size(),0);
-{GameLibrary library(one.path());write(one.path()+"/Games/fixture.nes",QByteArray("NES\x1a",4)+QByteArray(64,0));library.rescan();QTRY_COMPARE_WITH_TIMEOUT(library.games().size(),1,10000);QString id=library.games().first().toMap().value("id").toString();QVERIFY(library.update(id,{{"artworkOverride",game.value("artworkOverride")}}));}{GameLibrary library(one.path());QCOMPARE(library.games().first().toMap().value("artworkOverride"),game.value("artworkOverride"));}
+{GameLibrary library(one.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);write(one.path()+"/Games/fixture.nes",QByteArray("NES\x1a",4)+QByteArray(64,0));library.rescan();QTRY_COMPARE_WITH_TIMEOUT(library.games().size(),1,10000);QString id=library.games().first().toMap().value("id").toString();QVERIFY(library.update(id,{{"artworkOverride",game.value("artworkOverride")}}));}{GameLibrary library(one.path());QTRY_VERIFY_WITH_TIMEOUT(library.initialized(),10000);QCOMPARE(library.games().first().toMap().value("artworkOverride"),game.value("artworkOverride"));}
 QVERIFY(QFile::remove(exact));QTRY_COMPARE_WITH_TIMEOUT(art.files().size(),1,10000);QVERIFY(decorated(game).value("manualArtworkMissing").toBool());QCOMPARE(decorated(game).value("artworkDisplay").toString(),QString("metadata-fallback.png"));game["artworkOverride"]="";QCOMPARE(decorated(game).value("artworkFile").toString(),second);QVERIFY(QFile::link(second,other.directory()+"/Other.png"));other.refresh();QTest::qWait(700);QCOMPARE(other.files().size(),0);
 }
 void artworkFormats(){QTemporaryDir d;GameArtwork art(d.path());QImage image(80,100,QImage::Format_RGB32);image.fill(QColor(10,30,250));int count=0;for(const auto &format:QStringList{"png","jpeg","webp"}){if(!art.formats().contains(format)){qInfo()<<"Image plugin unavailable:"<<format;continue;}QString path=art.directory()+"/format."+format.toUpper();QVERIFY(image.save(path,format.toLatin1().constData()));count++;}QVERIFY(count>=1);art.refresh();QTRY_COMPARE_WITH_TIMEOUT(art.files().size(),count,10000);for(const auto &value:art.files()){auto f=value.toMap();QImage thumb(QUrl(f.value("thumbnail").toString()).toLocalFile());QVERIFY(!thumb.isNull());QVERIFY(thumb.pixelColor(20,20).blue()>200);QVERIFY(QFileInfo::exists(f.value("path").toString()));}}

@@ -1,4 +1,8 @@
-# Gemini Games 0.1.0-review.4
+# 0.1.0-review.5
+
+Fix GUI starvation and oversized duplicate indexes. Load and reconcile libraries in workers, preserve existing records, report indexing progress, support cancellation, and pause interrupted indexing until explicit retry.
+
+# Gemini Games 0.1.0-review.5
 
 Requires NeutronOS Gemini **0.5.6 candidate R2** and its `appstore-dependency-lifecycle:1` capability. R1 rejects this package safely. Physical hardware acceptance remains pending.
 

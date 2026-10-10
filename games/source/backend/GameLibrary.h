@@ -6,6 +6,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QSet>
+#include <atomic>
+#include <memory>
 
 namespace GeminiGames {
 class GameLibrary final : public QObject {
@@ -17,7 +19,11 @@ public:
     QVariantList roots() const;
     QString home() const { return m_home; }
     QString stateDirectory() const { return m_state; }
-    bool scanning() const { return m_scan.isRunning(); }
+    bool initialized() const { return !m_loading; }
+    bool scanning() const { return m_loading || m_busy; }
+    bool recoveryRequired() const { return m_recoveryRequired; }
+    int scannedEntries() const { return m_progress->load(); }
+    void cancelScan();
     bool addRoot(const QString &path);
     QVariantMap browseFolders(const QString &path) const;
     bool permittedFolder(const QString &path) const;
@@ -37,17 +43,28 @@ public:
 signals:
     void changed();
     void error(QString message);
+    void scanStatusChanged();
 private:
-    struct ScanResult { QVariantList entries; QStringList directories; QString target; bool complete=true; };
+    struct ScanResult { QVariantList entries, games; QStringList directories, files; QString target, issue; QByteArray serialized; quint64 generation=0; bool complete=true,retryRequired=false,unavailable=false; };
+    struct LoadResult { QVariantList games; QStringList roots; bool automatic=true,valid=true; QString issue; };
     QString m_home,m_state;
     QVariantList m_games;
     QStringList m_roots;
     QFileSystemWatcher m_watch;
     QFutureWatcher<ScanResult> m_scan;
-    QTimer m_debounce,m_presence;
+    QFutureWatcher<LoadResult> m_load;
+    std::shared_ptr<std::atomic_bool> m_cancel=std::make_shared<std::atomic_bool>(false);
+    std::shared_ptr<std::atomic_int> m_progress=std::make_shared<std::atomic_int>(0);
+    quint64 m_generation=0;
+    bool m_loading=true,m_busy=false,m_recoveryRequired=false,m_persistenceValid=true;
+    QSet<QString> m_watched;
+    QStringList m_watchQueue;
+    QTimer m_debounce,m_presence,m_status,m_watchTimer;
     QSet<QString> m_pending;
     bool m_automatic=true,m_quiescent=false,m_destroying=false;
-    static ScanResult scan(const QString &root);
+    static ScanResult scan(const QString &root,const QString &state,const std::shared_ptr<std::atomic_bool> &cancel,const std::shared_ptr<std::atomic_int> &progress);
+    static ScanResult prepare(ScanResult result,const QVariantList &previous,const QStringList &roots,bool automatic,quint64 generation);
+    void queueScan(const QString &target);
     void next();
     void merge();
     void observe();

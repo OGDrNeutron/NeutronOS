@@ -38,16 +38,17 @@ GameArtwork::GameArtwork(const QString &home,QObject *parent):QObject(parent),m_
     });
     m_watch.addPath(m_directory);m_presence.start();refresh();
 }
-GameArtwork::~GameArtwork(){m_destroying=true;disconnect(&m_scan,nullptr,this,nullptr);m_scan.waitForFinished();}
+GameArtwork::~GameArtwork(){m_destroying=true;m_cancel->store(true);disconnect(&m_scan,nullptr,this,nullptr);}
 void GameArtwork::refresh(){if(!m_valid||m_destroying)return;m_pending=true;if(!m_quiescent)m_debounce.start();}
 void GameArtwork::setQuiescent(bool value){m_quiescent=value;if(value){m_debounce.stop();m_presence.stop();}else{m_presence.start();if(m_pending)m_debounce.start();}}
-void GameArtwork::start(){if(!m_pending||m_scan.isRunning()||m_quiescent)return;m_pending=false;auto directory=m_directory,cache=m_cache;auto formats=m_formats;auto previous=m_files;auto dirty=m_dirty;m_dirty.clear();m_scan.setFuture(QtConcurrent::run([directory,cache,formats,previous,dirty]{return scan(directory,cache,formats,previous,dirty);}));}
-GameArtwork::Result GameArtwork::scan(const QString &directory,const QString &cache,const QStringList &formats,const QVariantList &previous,const QSet<QString> &dirty){
+void GameArtwork::start(){if(!m_pending||m_scan.isRunning()||m_quiescent)return;m_pending=false;auto directory=m_directory,cache=m_cache;auto formats=m_formats;auto previous=m_files;auto dirty=m_dirty;auto cancel=m_cancel;m_dirty.clear();m_scan.setFuture(QtConcurrent::run([directory,cache,formats,previous,dirty,cancel]{return scan(directory,cache,formats,previous,dirty,cancel);}));}
+GameArtwork::Result GameArtwork::scan(const QString &directory,const QString &cache,const QStringList &formats,const QVariantList &previous,const QSet<QString> &dirty,const std::shared_ptr<std::atomic_bool> &cancel){
     Result result;QHash<QString,QVariantMap> prior;for(const auto &v:previous){auto f=v.toMap();prior.insert(f.value("path").toString(),f);}
     // Recheck after watchers fire: an artwork directory replaced with a symlink is not trusted.
     for(const auto &path:QStringList{directory,cache})if(QFileInfo(path).isSymLink()||QFileInfo(path).canonicalFilePath()!=path)return result;
     QDir dir(directory);int count=0;
     for(const auto &file:dir.entryInfoList(QDir::Files|QDir::NoSymLinks,QDir::Name)){
+        if(cancel->load())break;
         if(++count>10000){result.errors<<"Artwork index reached its safe file limit.";break;}
         if(!formats.contains(file.suffix().toLower())||file.size()>64*1024*1024||file.canonicalFilePath()!=file.absoluteFilePath())continue;
         auto old=prior.value(file.absoluteFilePath());

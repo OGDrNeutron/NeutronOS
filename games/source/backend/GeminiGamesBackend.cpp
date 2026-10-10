@@ -61,14 +61,16 @@ bool GeminiGamesBackend::initialize(){
     if(gameActive()||managerBusy()){notify("Finish the current game or installer before changing accounts.",true);return false;}
     if(m_library) delete m_library;
     if(m_artwork) delete m_artwork;
-    m_preferences.clear();m_uiState.clear();m_messages.clear();m_current.clear();m_managerState.clear();m_runtimeChoices.clear();
+    m_presentedGames.clear();m_preferences.clear();m_uiState.clear();m_messages.clear();m_current.clear();m_managerState.clear();m_runtimeChoices.clear();
     m_home=home;m_artwork=new GameArtwork(home,this);m_library=new GameLibrary(home,this);
-    connect(m_artwork,&GameArtwork::changed,this,&GeminiGamesBackend::changed);connect(m_artwork,&GameArtwork::error,this,[this](const QString &e){notify(e);});
+    connect(m_library,&GameLibrary::scanStatusChanged,this,&GeminiGamesBackend::scanStatusChanged);
+    connect(m_artwork,&GameArtwork::changed,this,&GeminiGamesBackend::refreshGamePresentation);connect(m_artwork,&GameArtwork::error,this,[this](const QString &e){notify(e);});
     if(!m_artwork->valid())notify("Personal artwork directory is unavailable or redirected.",true);
-    connect(m_library,&GameLibrary::changed,this,[this]{if(m_artwork)m_artwork->refresh();emit changed();});connect(m_library,&GameLibrary::error,this,[this](const QString &e){notify(e,true);});
+    connect(m_library,&GameLibrary::changed,this,[this]{if(m_artwork)m_artwork->refresh();refreshGamePresentation();});connect(m_library,&GameLibrary::error,this,[this](const QString &e){notify(e,true);});
     QFile prefs(m_library->stateDirectory()+"/preferences.json");if(prefs.open(QIODevice::ReadOnly))m_preferences=QJsonDocument::fromJson(prefs.readAll()).object().toVariantMap();
-    m_uiState=m_preferences.value("uiState").toMap();if(m_library->automatic())m_library->rescan();emit changed();return true;
+    m_uiState=m_preferences.value("uiState").toMap();/* Library schedules automatic work after asynchronous loading and recovery checks. */emit changed();return true;
 }
+void GeminiGamesBackend::refreshGamePresentation(){m_presentedGames=m_library?(m_artwork?m_artwork->decorate(m_library->games()):m_library->games()):QVariantList();emit changed();}
 void GeminiGamesBackend::refreshArtwork(){if(ownsAccount()&&m_artwork)m_artwork->refresh();}
 bool GeminiGamesBackend::setArtworkAssignment(const QString &id,const QString &path){if(!ownsAccount()||!m_artwork||!m_library)return false;QString local=path.startsWith("file:")?QUrl(path).toLocalFile():path;if(!local.isEmpty()&&!m_artwork->contains(local)){notify("Select an available image from your Games artwork directory.",true);return false;}return m_library->update(id,{{"artworkOverride",local.isEmpty()?QString():QUrl::fromLocalFile(local).toString()}});}
 QVariantMap GeminiGamesBackend::browseFolders(const QString &path) const {return ownsAccount()&&m_library?m_library->browseFolders(path):QVariantMap{{"ok",false},{"error","Sign in to browse your Games folders."}};}

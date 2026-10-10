@@ -14,31 +14,64 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <QStorageInfo>
+#include <QDeadlineTimer>
+#include <fcntl.h>
 
 namespace GeminiGames {
 namespace {
-QByteArray bytes(const QString &path,qint64 limit=65536) { QFile f(path); return f.open(QIODevice::ReadOnly)?f.read(limit):QByteArray(); }
+// Metadata may be a FIFO, device, or symlink. Never wait for a writer.
+QByteArray bytes(const QString &path,qint64 limit=65536) {
+    int fd=::open(QFile::encodeName(path).constData(),O_RDONLY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC);
+    if(fd<0)return {};
+    struct stat st{};if(fstat(fd,&st)!=0||!S_ISREG(st.st_mode)){::close(fd);return {};}
+    QFile f;if(!f.open(fd,QIODevice::ReadOnly,QFileDevice::AutoCloseHandle)){::close(fd);return {};}
+    return f.read(limit);
+}
 QString hash(const QByteArray &b) { return QString::fromLatin1(QCryptographicHash::hash(b,QCryptographicHash::Sha256).toHex()); }
 QString vdf(const QString &s,const QString &key) { return QRegularExpression("\""+QRegularExpression::escape(key)+"\"\\s*\"([^\"]*)\"").match(s).captured(1); }
 bool inside(const QString &p,const QString &root) { return p==root || p.startsWith(root+"/"); }
 }
 GameLibrary::GameLibrary(const QString &home,QObject *parent):QObject(parent),m_home(QDir::cleanPath(home)),m_state(m_home+"/apps/gemini-games") {
     QDir().mkpath(m_state);
-    auto doc=QJsonDocument::fromJson(bytes(m_state+"/library.json",16*1024*1024)).object();
-    m_games=doc.value("games").toArray().toVariantList();
-    for(const auto &v:doc.value("roots").toArray()) if(v.isString()) m_roots.append(v.toString());
-    m_automatic=doc.value("automatic").toBool(true);
-    if(m_roots.isEmpty()) m_roots.append(m_home+"/Games");
+    m_roots.append(m_home+"/Games");
+    m_recoveryRequired=QFileInfo::exists(m_state+"/index-in-progress.json");
+    connect(&m_load,&QFutureWatcher<LoadResult>::finished,this,[this]{
+        auto loaded=m_load.result();m_loading=false;m_persistenceValid=loaded.valid;
+        m_games=loaded.games;if(!loaded.roots.isEmpty())m_roots=loaded.roots;m_automatic=loaded.automatic;
+        if(!loaded.issue.isEmpty())emit error(loaded.issue);
+        if(m_recoveryRequired)emit error("Previous indexing was interrupted. Existing games are retained; select Rescan to retry or leave automatic indexing paused.");
+        observe();emit changed();emit scanStatusChanged();if(!m_pending.isEmpty()&&!m_quiescent)m_debounce.start();
+    });
+    const QString libraryPath=m_state+"/library.json";
+    m_load.setFuture(QtConcurrent::run([libraryPath]{
+        LoadResult result;if(!QFileInfo::exists(libraryPath))return result;
+        if(!QFileInfo(libraryPath).isFile()||QFileInfo(libraryPath).isSymLink()||QFileInfo(libraryPath).size()>256LL*1024*1024){result.valid=false;result.issue="Library cannot be loaded safely. Original library data is retained; automatic indexing is paused.";return result;}
+        const auto data=bytes(libraryPath,256LL*1024*1024);QJsonParseError error;
+        const auto document=QJsonDocument::fromJson(data,&error);
+        if(error.error!=QJsonParseError::NoError||!document.isObject()||!document.object().value("games").isArray()){result.valid=false;result.issue="Library could not be read. Original library data is retained; automatic indexing is paused.";return result;}
+        const auto doc=document.object();result.games=doc.value("games").toArray().toVariantList();
+        // Old indexes can contain quadratic duplicate lists. Keep their records,
+        // while bounding presentation data before exposing it to QML.
+        for(auto &v:result.games){auto g=v.toMap();auto ids=g.value("possibleDuplicates").toStringList();g["possibleDuplicateCount"]=ids.size();if(ids.size()>32)ids=ids.mid(0,32);g["possibleDuplicates"]=ids;v=g;}
+        for(const auto &v:doc.value("roots").toArray())if(v.isString())result.roots.append(v.toString());
+        result.automatic=doc.value("automatic").toBool(true);return result;
+    }));
     m_debounce.setInterval(350);m_debounce.setSingleShot(true);
     m_presence.setInterval(15000);
     connect(&m_debounce,&QTimer::timeout,this,&GameLibrary::next);
-    connect(&m_watch,&QFileSystemWatcher::directoryChanged,this,[this](const QString &p){if(m_automatic)rescan(p);});
-    connect(&m_watch,&QFileSystemWatcher::fileChanged,this,[this](const QString &p){if(m_automatic)rescan(QFileInfo(p).absolutePath());});
+    connect(&m_watch,&QFileSystemWatcher::directoryChanged,this,[this](const QString &p){if(m_automatic&&!m_recoveryRequired)queueScan(p);});
+    connect(&m_watch,&QFileSystemWatcher::fileChanged,this,[this](const QString &p){if(m_automatic&&!m_recoveryRequired)queueScan(QFileInfo(p).absolutePath());});
     connect(&m_scan,&QFutureWatcher<ScanResult>::finished,this,&GameLibrary::merge);
     connect(&m_presence,&QTimer::timeout,this,[this]{observe();});
-    m_presence.start();observe();
+    m_status.setInterval(100);connect(&m_status,&QTimer::timeout,this,&GameLibrary::scanStatusChanged);
+    m_watchTimer.setInterval(0);connect(&m_watchTimer,&QTimer::timeout,this,[this]{
+        // Watch registration is GUI-owned, but each event gets a small batch.
+        for(int n=0;n<16&&!m_watchQueue.isEmpty();++n){const auto path=m_watchQueue.takeLast();if(m_watched.size()<8000&&!m_watched.contains(path)&&m_watch.addPath(path))m_watched.insert(path);}
+        if(m_watchQueue.isEmpty())m_watchTimer.stop();
+    });
+    m_presence.start();
 }
-GameLibrary::~GameLibrary(){m_destroying=true;disconnect(&m_scan,nullptr,this,nullptr);m_scan.waitForFinished();}
+GameLibrary::~GameLibrary(){m_destroying=true;m_cancel->store(true);disconnect(&m_scan,nullptr,this,nullptr);disconnect(&m_load,nullptr,this,nullptr);/* Workers own value snapshots only; do not wait on the GUI thread. */}
 QVariantList GameLibrary::roots() const { QVariantList out; for(const auto &p:m_roots) out.append(QVariantMap{{"path",p},{"online",QFileInfo(p).isDir()}});return out; }
 bool GameLibrary::permittedFolder(const QString &path) const {
     const QString canonical=QFileInfo(path).canonicalFilePath();
@@ -84,6 +117,7 @@ QVariantMap GameLibrary::browseFolders(const QString &path) const {
     return {{"ok",true},{"path",canonical},{"parent",parent},{"entries",entries}};
 }
 bool GameLibrary::addRoot(const QString &path) {
+    if(m_loading||!m_persistenceValid){emit error("Wait for the existing library to load before changing folders.");return false;}
     QFileInfo f(path);QString p=f.canonicalFilePath();
     if(!f.isDir()||p.isEmpty()||!permittedFolder(path)||::access(QFile::encodeName(p).constData(),R_OK|X_OK)!=0){emit error("Choose an existing, readable folder in Home or an authorized volume.");return false;}
     if(m_roots.contains(p)){emit error("This folder is already in the Games library.");return false;}
@@ -105,9 +139,10 @@ bool GameLibrary::editRoot(int i,const QString &path){
 bool GameLibrary::removeRoot(int i){if(i<0||i>=m_roots.size())return false;const auto previousRoots=m_roots;const auto previousGames=m_games;QString p=m_roots.takeAt(i);for(auto &v:m_games){auto g=v.toMap();if(g.value("root")==p){g["managed"]=false;g["online"]=false;v=g;}}if(!save()){m_roots=previousRoots;m_games=previousGames;return false;}m_pending.remove(p);emit changed();return true;}
 void GameLibrary::setAutomatic(bool enabled){m_automatic=enabled;save();emit changed();}
 void GameLibrary::setQuiescent(bool enabled){m_quiescent=enabled;if(enabled){m_presence.stop();m_debounce.stop();}else{m_presence.start();observe();if(!m_pending.isEmpty())m_debounce.start();}}
-void GameLibrary::observe(){bool delta=false;for(auto &v:m_games){auto g=v.toMap();bool online=(m_roots.contains(g.value("root").toString())||g.contains("installation"))&&QFileInfo::exists(g.value("path").toString());if(g.value("online").toBool()!=online){g["online"]=online;v=g;delta=true;}}
-    for(const auto &p:m_roots){if(QFileInfo(p).isDir()&&!m_watch.directories().contains(p)){m_watch.addPath(p);if(m_automatic)rescan(p);}}
-    if(delta) {save();emit changed();}
+void GameLibrary::observe(){
+    if(m_loading||m_busy||m_quiescent||!m_persistenceValid||m_recoveryRequired)return;
+    // Presence and recognition both run in the worker; no per-game stat loop here.
+    for(const auto &p:m_roots){if(!m_watch.directories().contains(p)&&QFileInfo(p).isDir()){if(m_watch.addPath(p))m_watched.insert(p);if(m_automatic)queueScan(p);}}
 }
 QString GameLibrary::materialSignature(const QString &p){QFileInfo f(p);return hash(bytes(p)+QByteArray::number(f.size())+QByteArray::number(f.lastModified().toMSecsSinceEpoch()));}
 QVariantMap GameLibrary::recognize(const QString &path){
@@ -173,43 +208,82 @@ QVariantMap GameLibrary::recognize(const QString &path){
     if(kind=="wiiu"){out["updatePresent"]=QDir(folder+"/../../update").exists();out["dlcPresent"]=QDir(folder+"/../../dlc").exists();}
     return out;
 }
-GameLibrary::ScanResult GameLibrary::scan(const QString &root){ScanResult result;result.target=root;
-    if(!QFileInfo(root).isDir()){result.complete=false;return result;}
-    result.directories<<root;
-    QDirIterator it(root,QDir::AllEntries|QDir::NoDotAndDotDot|QDir::NoSymLinks,QDirIterator::Subdirectories);
-    int count=0;while(it.hasNext()) {QString p=it.next();auto f=it.fileInfo();if(++count>200000){result.complete=false;break;}
-        if(f.isDir()){if(result.directories.size()<8000)result.directories<<p;continue;}
-        const QString e=f.suffix().toLower();
-        if(!f.isExecutable()&&!QStringList{"exe","acf","rpx","iso","gcm","n64","z64","v64","apk","swf","nes","gb","gbc","cue","sfc","smc","gba","chd","pbp","zip","7z","json","x86_64","bin"}.contains(e))continue;
-        auto g=recognize(p);if(!g.isEmpty())result.entries.append(g);
+GameLibrary::ScanResult GameLibrary::scan(const QString &root,const QString &state,const std::shared_ptr<std::atomic_bool> &cancel,const std::shared_ptr<std::atomic_int> &progress){
+    ScanResult result;result.target=root;QStringList pending{root};QDeadlineTimer deadline(30000);int count=0;
+    while(!pending.isEmpty()){
+        if(cancel->load()||deadline.hasExpired()){result.complete=false;result.retryRequired=true;result.issue=cancel->load()?"Index cancelled; existing games retained. Select Rescan to retry.":"Index time limit reached; existing games retained. Select Rescan to retry.";break;}
+        const QString directory=pending.takeLast();
+        if(inside(directory,state))continue;
+        if(!QFileInfo(directory).isDir()||::access(QFile::encodeName(directory).constData(),R_OK|X_OK)!=0){result.complete=false;result.unavailable=directory==root&&!QFileInfo(root).isDir();result.issue="An indexed folder is inaccessible; existing games retained.";continue;}
+        if(result.directories.size()<8000)result.directories<<directory;
+        QDirIterator it(directory,QDir::AllEntries|QDir::NoDotAndDotDot|QDir::NoSymLinks);
+        while(it.hasNext()){
+            if(cancel->load()||deadline.hasExpired()||++count>200000){result.complete=false;result.retryRequired=true;result.issue="Index stopped safely; existing games retained. Select Rescan to retry.";pending.clear();break;}
+            const QString path=it.next();const auto f=it.fileInfo();progress->store(count);
+            if(f.isDir()){if(!inside(path,state))pending.append(path);continue;}
+            if(!f.isFile())continue;
+            const QString e=f.suffix().toLower();
+            if(!f.isExecutable()&&!QStringList{"exe","acf","rpx","iso","gcm","n64","z64","v64","apk","swf","nes","gb","gbc","cue","sfc","smc","gba","chd","pbp","zip","7z","json","x86_64","bin"}.contains(e))continue;
+            auto g=recognize(path);if(!g.isEmpty()){result.entries.append(g);if(result.files.size()<8000)result.files<<path;}
+        }
     }return result;
 }
-void GameLibrary::rescan(const QString &target){if(m_destroying)return;QString p=QDir::cleanPath(target);if(target.isEmpty()){for(const auto &root:m_roots)m_pending.insert(root);}else for(const auto &root:m_roots)if(inside(p,root)){m_pending.insert(p);break;}
-    // Coalesce child changes beneath an already queued ancestor.
+GameLibrary::ScanResult GameLibrary::prepare(ScanResult result,const QVariantList &previous,const QStringList &roots,bool automatic,quint64 generation){
+    QString owner;for(const auto &root:roots)if(inside(result.target,root)){owner=root;break;}
+    result.games=previous;result.generation=generation;if(owner.isEmpty())return result;
+    QHash<QString,int> byId,byPath;QSet<QString> seen;
+    for(int i=0;i<result.games.size();++i){const auto g=result.games[i].toMap();byId.insert(g.value("id").toString(),i);byPath.insert(g.value("path").toString(),i);}
+    for(const auto &v:result.entries){auto entry=v.toMap();const QString id=entry.value("id").toString();seen.insert(id);entry["root"]=owner;
+        const int found=byId.value(id,byPath.value(entry.value("path").toString(),-1));
+        if(found>=0){const auto old=result.games[found].toMap();if(old.contains("installation")){entry["id"]=old.value("id");seen.insert(old.value("id").toString());entry["root"]=old.value("root");}
+            for(const QString &k:{QString("favorite"),QString("lastPlayed"),QString("playCount"),QString("configuration"),QString("chosenKind"),QString("controllerProfile"),QString("titleOverride"),QString("artworkOverride"),QString("installation"),QString("installationPending")})if(old.contains(k))entry[k]=old[k];
+            result.games[found]=entry;
+        }else{byId.insert(id,result.games.size());byPath.insert(entry.value("path").toString(),result.games.size());result.games.append(entry);}
+    }
+    struct DuplicateGroup{QStringList sample;int count=0;};QHash<QString,DuplicateGroup> groups;
+    for(auto &v:result.games){auto g=v.toMap();if((result.complete||result.unavailable)&&inside(g.value("path").toString(),result.target)&&!seen.contains(g.value("id").toString()))g["online"]=false;
+        const auto signature=g.value("contentSignature").toString();if(!signature.isEmpty()){auto &group=groups[signature];++group.count;if(group.sample.size()<33)group.sample.append(g.value("id").toString());}v=g;
+    }
+    for(auto &v:result.games){auto g=v.toMap();const auto group=groups.value(g.value("contentSignature").toString());auto ids=group.sample;ids.removeAll(g.value("id").toString());if(ids.size()>32)ids=ids.mid(0,32);g["possibleDuplicates"]=ids;g["possibleDuplicateCount"]=qMax(0,group.count-1);v=g;}
+    result.serialized=QJsonDocument(QJsonObject{{"schema",1},{"roots",QJsonArray::fromStringList(roots)},{"games",QJsonArray::fromVariantList(result.games)},{"automatic",automatic}}).toJson(QJsonDocument::Compact);
+    return result;
+}
+void GameLibrary::rescan(const QString &target){if(m_destroying||!m_persistenceValid)return;m_recoveryRequired=false;queueScan(target);}
+void GameLibrary::queueScan(const QString &target){
+    if(m_destroying||m_recoveryRequired||!m_persistenceValid)return;QString p=QDir::cleanPath(target);
+    if(target.isEmpty()){for(const auto &root:m_roots)m_pending.insert(root);}else for(const auto &root:m_roots)if(inside(p,root)){m_pending.insert(p);break;}
     const auto pending=m_pending.values();for(const auto &a:pending)for(const auto &b:pending)if(a!=b&&inside(b,a))m_pending.remove(b);
     if(!m_quiescent)m_debounce.start();
 }
-void GameLibrary::next(){if(m_quiescent||m_scan.isRunning()||m_pending.isEmpty())return;QString p=*m_pending.begin();m_pending.remove(p);m_scan.setFuture(QtConcurrent::run([p]{return scan(p);}));emit changed();}
-void GameLibrary::merge(){auto result=m_scan.result();QString owner;for(const auto &root:m_roots)if(inside(result.target,root)){owner=root;break;}
-    if(!owner.isEmpty()){
-        QSet<QString> seen;
-        for(auto value:result.entries){auto entry=value.toMap();QString id=entry.value("id").toString();seen.insert(id);entry["root"]=owner;
-            int found=-1;for(int i=0;i<m_games.size();i++)if((m_games[i].toMap().value("id")==id||m_games[i].toMap().value("path")==entry.value("path"))){found=i;break;}
-            if(found>=0){auto old=m_games[found].toMap();if(old.contains("installation")){entry["id"]=old.value("id");seen.insert(old.value("id").toString());entry["root"]=old.value("root");}for(const QString &k:{QString("favorite"),QString("lastPlayed"),QString("playCount"),QString("configuration"),QString("chosenKind"),QString("controllerProfile"),QString("titleOverride"),QString("artworkOverride"),QString("installation"),QString("installationPending")})if(old.contains(k))entry[k]=old[k];m_games[found]=entry;}
-            else m_games.append(entry);
-            QString p=entry.value("path").toString();if(!m_watch.files().contains(p)&&m_watch.files().size()<8000)m_watch.addPath(p);
-        }
-        for(auto &v:m_games){auto g=v.toMap();if(inside(g.value("path").toString(),result.target)&&!seen.contains(g.value("id").toString())&&(result.complete||!QFileInfo(result.target).isDir())){g["online"]=false;v=g;}}
-        if(!result.complete)emit error("Scan incomplete or storage unavailable; existing entries retained.");
-        for(const auto &p:result.directories)if(!m_watch.directories().contains(p))m_watch.addPath(p);
-        QHash<QString,QStringList> duplicates;for(const auto &v:m_games){auto g=v.toMap();duplicates[g.value("contentSignature").toString()].append(g.value("id").toString());}
-        for(auto &v:m_games){auto g=v.toMap();auto ids=duplicates.value(g.value("contentSignature").toString());ids.removeAll(g.value("id").toString());g["possibleDuplicates"]=ids;v=g;}
-        save();
-    }emit changed();next();
+void GameLibrary::cancelScan(){m_cancel->store(true);m_pending.clear();m_recoveryRequired=true;emit scanStatusChanged();}
+void GameLibrary::next(){
+    if(m_loading||m_quiescent||m_busy||m_pending.isEmpty()||m_recoveryRequired||!m_persistenceValid)return;
+    const QString p=*m_pending.begin();m_pending.remove(p);
+    QSaveFile marker(m_state+"/index-in-progress.json");if(!marker.open(QIODevice::WriteOnly)||marker.write(QJsonDocument(QJsonObject{{"target",p}}).toJson())<0||!marker.commit()){emit error("Cannot record indexing recovery state. Existing library retained.");return;}
+    m_cancel=std::make_shared<std::atomic_bool>(false);m_progress->store(0);m_busy=true;m_status.start();
+    const auto previous=m_games;const auto roots=m_roots;const bool automatic=m_automatic;const auto generation=m_generation;const auto state=m_state;const auto cancel=m_cancel;const auto progress=m_progress;
+    m_scan.setFuture(QtConcurrent::run([=]{return prepare(scan(p,state,cancel,progress),previous,roots,automatic,generation);}));emit scanStatusChanged();
+}
+void GameLibrary::merge(){
+    auto result=m_scan.result();
+    // Edits made while scanning take precedence. Reconcile again off-thread
+    // against the latest snapshot, without repeating filesystem traversal.
+    if(result.generation!=m_generation){const auto previous=m_games;const auto roots=m_roots;const auto generation=m_generation;const bool automatic=m_automatic;m_scan.setFuture(QtConcurrent::run([=]{return prepare(result,previous,roots,automatic,generation);}));return;}
+    bool saved=false;
+    if(!m_cancel->load()&&!result.serialized.isEmpty()){
+        QSaveFile file(m_state+"/library.json");saved=file.open(QIODevice::WriteOnly)&&file.write(result.serialized)==result.serialized.size()&&file.commit();
+        if(saved){m_games=result.games;++m_generation;m_watchQueue=result.directories+result.files;m_watchTimer.start();}
+        else emit error("Index could not be saved. Existing library retained; select Rescan to retry.");
+    }
+    m_busy=false;m_status.stop();
+    if(!result.retryRequired&&saved&&!m_cancel->load()){QFile::remove(m_state+"/index-in-progress.json");m_recoveryRequired=false;}
+    else{m_recoveryRequired=true;m_pending.clear();emit error(result.issue.isEmpty()?"Index interrupted. Existing library retained; select Rescan to retry.":result.issue);}
+    if(!result.complete&&!result.issue.isEmpty()&&!m_recoveryRequired)emit error(result.issue);
+    emit changed();emit scanStatusChanged();if(!m_pending.isEmpty())m_debounce.start();
 }
 QVariantMap GameLibrary::find(const QString &id)const{for(const auto &v:m_games)if(v.toMap().value("id")==id)return v.toMap();return {};}
 bool GameLibrary::update(const QString &id,const QVariantMap &metadata){static const QStringList permitted={"favorite","lastPlayed","playCount","configuration","chosenKind","controllerProfile","titleOverride","artworkOverride"};for(auto &v:m_games){auto g=v.toMap();if(g.value("id")!=id)continue;for(auto it=metadata.begin();it!=metadata.end();++it)if(permitted.contains(it.key()))g[it.key()]=it.value();v=g;bool ok=save();emit changed();return ok;}return false;}
-bool GameLibrary::save(){QSaveFile f(m_state+"/library.json");if(!f.open(QIODevice::WriteOnly)){emit error("Unable to persist library: "+f.errorString());return false;}f.write(QJsonDocument(QJsonObject{{"schema",1},{"roots",QJsonArray::fromStringList(m_roots)},{"games",QJsonArray::fromVariantList(m_games)},{"automatic",m_automatic}}).toJson());if(!f.commit()){emit error("Library save failed: "+f.errorString());return false;}return true;}
+bool GameLibrary::save(){if(m_loading||!m_persistenceValid)return false;++m_generation;QSaveFile f(m_state+"/library.json");if(!f.open(QIODevice::WriteOnly)){emit error("Unable to persist library: "+f.errorString());return false;}f.write(QJsonDocument(QJsonObject{{"schema",1},{"roots",QJsonArray::fromStringList(m_roots)},{"games",QJsonArray::fromVariantList(m_games)},{"automatic",m_automatic}}).toJson(QJsonDocument::Compact));if(!f.commit()){emit error("Library save failed: "+f.errorString());return false;}return true;}
 bool GameLibrary::registerInstallation(const QVariantMap &record){
     const QString id=record.value("id").toString(),path=record.value("path").toString(),root=record.value("root").toString();
     if(!QRegularExpression("^[a-f0-9]{64}$").match(id).hasMatch()||!permittedFolder(root)||!permittedFolder(path))return false;

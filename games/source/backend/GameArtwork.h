@@ -6,6 +6,8 @@
 #include <QVariantList>
 #include <QHash>
 #include <QSet>
+#include <atomic>
+#include <memory>
 
 namespace GeminiGames {
 class GameArtwork final : public QObject {
@@ -36,8 +38,9 @@ private:
     QFutureWatcher<Result> m_scan;
     QTimer m_debounce,m_presence;
     QSet<QString> m_dirty;
+    std::shared_ptr<std::atomic_bool> m_cancel=std::make_shared<std::atomic_bool>(false);
     bool m_valid=false,m_quiescent=false,m_pending=false,m_destroying=false;
-    static Result scan(const QString &directory,const QString &cache,const QStringList &formats,const QVariantList &previous,const QSet<QString> &dirty);
+    static Result scan(const QString &directory,const QString &cache,const QStringList &formats,const QVariantList &previous,const QSet<QString> &dirty,const std::shared_ptr<std::atomic_bool> &cancel);
     void start();
     void merge();
 };

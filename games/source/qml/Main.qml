@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
-import "native/review4" as Native
+import "native/review5" as Native
 import "../../components" as Shared
 
 FocusScope {
@@ -69,7 +69,10 @@ FocusScope {
     readonly property var running: applications ? applications.runningApps.filter(function(a){return a.canFocus === true}) : []
     readonly property var installed: applications ? applications.apps.filter(function(a){return a.id !== "gemini-games" && a.hidden !== true && a.id !== "games" && (!a.platforms || a.platforms.indexOf("gemini") >= 0)}) : []
     readonly property var gameItems: {
-        var list=backend.games.slice()
+        // Observe the property signal once; a returned sequence is a value copy.
+        // Slicing a C++ reference sequence can call its getter for every item.
+        var observed=backend.games
+        var list=backend.gameSnapshot ? backend.gameSnapshot() : observed.slice()
         list=list.filter(function(g){
             if(g.managed===false)return false
             if(page===3 && !g.favorite)return false
@@ -93,7 +96,7 @@ FocusScope {
     readonly property var pendingMessages: backend.messages.map(function(m,i){return {text:m.text,critical:m.critical,acknowledged:m.acknowledged,index:i}}).filter(function(m){return !m.acknowledged})
     readonly property var settingRows: {
         switch(settingsTab) {
-        case 0:return ["Add Folder", "Edit Selected Folder", "Remove Selected Folder", "Rescan Library", "Automatic Scanning", "Exit Games"]
+        case 0:return ["Add Folder", "Edit Selected Folder", "Remove Selected Folder", backend.scanning?"Cancel Indexing":"Rescan Library", "Automatic Scanning", "Exit Games"]
         case 1:return ["Low-resource Gaming Session", "Measured CPU / RAM / GPU", "PC Power Policy Availability"]
         case 2:return backend.installedRuntimes.map(function(r){return r.id+"  ·  "+(r.installed?"Installed":"Not installed")})
         case 3:return ["Display / GPU Diagnostics", "Runtime Fullscreen Capabilities"]
@@ -176,7 +179,7 @@ FocusScope {
     }
     function settingsAction() {
         var row=settingsRow
-        if(settingsTab===0){if(row===0)showDialog("folder");else if(row===1)showDialog("folder-edit");else if(row===2)showDialog("folder-remove");else if(row===3)backend.rescan();else if(row===4)backend.setPreference("automaticScan",backend.preferences.automaticScan===false);else openExit()}
+        if(settingsTab===0){if(row===0)showDialog("folder");else if(row===1)showDialog("folder-edit");else if(row===2)showDialog("folder-remove");else if(row===3){if(backend.scanning)backend.cancelIndexing();else backend.rescan();}else if(row===4)backend.setPreference("automaticScan",backend.preferences.automaticScan===false);else openExit()}
         else if(settingsTab===1){if(row===0)backend.setPreference("lowResource",backend.preferences.lowResource===false);else if(row===1)backend.notify(JSON.stringify(backend.resourceSample()));else backend.notify("PC clock/power controls are unavailable until a supported Gemini policy service is verified. No hardware settings changed.")}
         else if(settingsTab===2){var r=backend.installedRuntimes[row];if(!r.installed&&r.capabilities.launch)reviewRuntime(r.id);else backend.notify(r.installed ? r.id+" is installed. Configure per game; runtime availability does not guarantee compatibility." : r.id+" has no supported Gemini launch adapter yet.")}
         else if(settingsTab===3)backend.notify(row===0?JSON.stringify(backend.hardware):"Fullscreen is requested only through supported runtime flags; arbitrary GPU/scaling/FPS overrides are not applied.")
@@ -368,7 +371,7 @@ FocusScope {
             x: 253*root.scaleFactor; y: 77*root.scaleFactor; width: parent.width-x-16*root.scaleFactor; height: parent.height-y-105*root.scaleFactor
             radius: 18
             Text { x: 28; y: 17; text: root.navigation[root.page]+(root.platformFilter?" / "+root.platformFilter:""); color: "white"; font.pixelSize: 34*root.scaleFactor; font.bold: true }
-            Text { anchors.right: parent.right; anchors.rightMargin: 26; y: 29; text: backend.scanning ? "INDEXING…" : backend.games.length+" DISCOVERED  ·  L1 FILTER"; color: "#66c8ed"; font.pixelSize: 13 }
+            Text { anchors.right: parent.right; anchors.rightMargin: 26; y: 29; text: backend.scanning ? "INDEXING · "+backend.scannedEntries+" CHECKED" : backend.games.length+" DISCOVERED  ·  L1 FILTER"; color: "#66c8ed"; font.pixelSize: 13 }
             Item {
                 id: libraryBody
                 anchors { left: parent.left; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 16; topMargin: 75 }

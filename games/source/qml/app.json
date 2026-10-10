@@ -1,7 +1,7 @@
 {
   "id": "gemini-games",
   "name": "Games \u2014 Gemini",
-  "version": "0.1.0-review.4",
+  "version": "0.1.0-review.5",
   "type": "qml",
   "entry": "Main.qml",
   "platforms": [
@@ -18,8 +18,8 @@
     "graphics",
     "network"
   ],
-  "icon": "gemini-games-review4",
-  "poster": "gemini-games-review4",
+  "icon": "gemini-games-review5",
+  "poster": "gemini-games-review5",
   "category": "Games",
   "osRequirements": {
     "minimumVersion": "0.5.6",
