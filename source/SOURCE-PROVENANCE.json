@@ -12,6 +12,14 @@
   "buildJobsMaximum": 2,
   "developmentRuntimeCopiedIntoRelease": false,
   "historicalProvenancePreserved": "../manifests/inherited-source-provenance-R2.json",
+  "incrementalRelease058": {
+    "approvedSecurityPolicy": "complete v2",
+    "backendPrerequisite": "Gemini-Security-Update-Support-0.5.8.r1.napp",
+    "backendPrerequisiteSHA256": "0898dd626fe627c265b8012af6ac6446696dea44fad487ab418dbf24451fd396",
+    "fullImageBuilt": false,
+    "installedBaseline": "0.5.7 R6",
+    "previousSourceCommit": "0007e4612892f3697008cfdab8d4024595204fa9"
+  },
   "prior057SourceCommit": "9e268e1d99ceaed209b2e1e7410d079bdcc6eb15",
   "product": "NeutronOS Gemini",
   "recoveryImageProtocol": 1,

@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import "SecurityIndicator.js" as SecurityIndicator
 
 Rectangle {
     id: root
@@ -12,12 +13,12 @@ Rectangle {
     property bool menuFocused: false
     // NEUTRONOS_REFERENCE_HEADER_SECURITY_SCORE_V1
     property var securityBackend: (typeof securityCoreManager !== "undefined") ? securityCoreManager : null
-    readonly property int securityScoreValue: securityBackend && securityBackend.daemonOnline===true && securityBackend.securityScore!==undefined ? Math.max(0,Math.min(100,Math.round(Number(securityBackend.securityScore)))) : -1
+    readonly property int securityScoreValue: SecurityIndicator.score(securityBackend)
     readonly property bool primaryIsSecurityState: {
         var s=String(primaryStatus||"").toLowerCase()
         return s==="secure" || s==="attention" || s==="unsecure" || s==="weak" || s==="weak protection"
     }
-    readonly property string effectivePrimaryStatus: primaryIsSecurityState && securityScoreValue>=0 ? (securityScoreValue>=80?"Secure":securityScoreValue>=55?"Weak":"Attention") : primaryStatus
+    readonly property string effectivePrimaryStatus: primaryIsSecurityState ? SecurityIndicator.label(securityBackend) : primaryStatus
     readonly property string effectivePrimaryTone: primaryIsSecurityState && securityScoreValue>=0 ? (securityScoreValue>=80?"success":securityScoreValue>=55?"warning":"danger") : primaryTone
     // Kept for source compatibility. The reference chrome intentionally uses the
     // same fixed dimensions as the approved Security app instead of scaling up/down.

@@ -5,10 +5,10 @@ Rectangle {
     property bool secure: true
     // NEUTRONOS_SECURITY_APP_HEADER_SCORE_STATE_V1
     property int securityScore: -1
-    readonly property string protectionState: securityScore < 0 ? (secure ? "secure" : "attention") : securityScore >= 80 ? "secure" : securityScore >= 55 ? "weak" : "attention"
+    readonly property string protectionState: securityScore < 0 ? "unavailable" : securityScore >= 80 ? "secure" : securityScore >= 55 ? "weak" : "attention"
     readonly property color protectionColor: protectionState === "secure" ? "#42E69C" : protectionState === "weak" ? "#F7D85B" : "#FF4D63"
     readonly property color protectionFill: protectionState === "secure" ? "#0A241A" : protectionState === "weak" ? "#2A2410" : "#2A1015"
-    readonly property string protectionText: protectionState === "secure" ? "SECURE" : protectionState === "weak" ? "WEAK" : "ATTENTION"
+    readonly property string protectionText: protectionState === "secure" ? "SECURE" : protectionState === "weak" ? "WEAK PROTECTION" : protectionState === "unavailable" ? "UNAVAILABLE" : "UNSECURE"
     property bool menuFocused: false
     signal menuRequested()
 

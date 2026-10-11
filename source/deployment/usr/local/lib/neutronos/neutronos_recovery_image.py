@@ -84,6 +84,54 @@ def inspect_gpt(handle,raw_bytes,expected):
     return parts
 
 
+
+def inspect_boot_identities(handle):
+    """Read GPT partition and filesystem identities without modifying the image."""
+    import uuid
+    handle.seek(512);header=handle.read(512)
+    # Preserve the generic flasher's support for non-GPT third-party images.
+    if header[:8]!=b'EFI PART':return {'uuid':set(),'partuuid':set()}
+    size=struct.unpack_from('<I',header,12)[0]
+    if not 92<=size<=512:raise ValueError('Invalid GPT boot identity header')
+    check=bytearray(header[:size]);check[16:20]=b'\0'*4
+    if zlib.crc32(check)&0xffffffff!=struct.unpack_from('<I',header,16)[0]:raise ValueError('Invalid GPT boot identity checksum')
+    start,count,width,crc=struct.unpack_from('<QIII',header,72)
+    if count<1 or count>1024 or width!=128:raise ValueError('Unsupported GPT boot identity table')
+    handle.seek(start*512);entries=handle.read(count*width)
+    if len(entries)!=count*width or zlib.crc32(entries)&0xffffffff!=crc:raise ValueError('Invalid GPT boot identity table checksum')
+    result={'uuid':set(),'partuuid':set()}
+    partitions=[]
+    for offset in range(0,len(entries),width):
+        row=entries[offset:offset+width]
+        if row[:16]==b'\0'*16:continue
+        result['partuuid'].add(str(uuid.UUID(bytes_le=row[16:32])).lower())
+        partitions.append(struct.unpack_from('<Q',row,32)[0])
+    for first in sorted(partitions):
+        handle.seek(first*512);sample=handle.read(2048)
+        if len(sample)!=2048:raise ValueError('Truncated filesystem identity sample')
+        if sample[1080:1082]==b'\x53\xef':
+            result['uuid'].add(str(uuid.UUID(bytes=sample[1128:1144])).lower())
+        elif sample[82:87]==b'FAT32' or sample[54:59]==b'FAT16':
+            offset=67 if sample[82:87]==b'FAT32' else 39
+            serial=struct.unpack_from('<I',sample,offset)[0]
+            result['uuid'].add(f'{serial>>16:04x}-{serial&65535:04x}')
+    return result
+
+
+def reject_boot_identity_collisions(identities,nodes,target):
+    """Fail before disk writes if another connected installation shares an ID."""
+    def visit(rows,excluded=False):
+        for row in rows:
+            skip=excluded or os.path.realpath(str(row.get('path','')))==os.path.realpath(target)
+            if not skip:
+                for kind in ('uuid','partuuid'):
+                    value=str(row.get(kind) or '').strip().lower()
+                    if value and value in identities[kind]:
+                        raise ValueError('Duplicate boot '+kind.upper()+' on another connected disk; refusing an ambiguous clone. A separately authorized unique-identity installation is required. No disk identifiers were changed.')
+            visit(row.get('children') or [],skip)
+    visit(nodes)
+
+
 def iter_decoded(handle,expected_bytes,expected_sha):
     decoder=lzma.LZMADecompressor(format=lzma.FORMAT_XZ,memlimit=256*1024**2)
     digest=hashlib.sha256();count=0;deadline=time.monotonic()+3600
@@ -297,6 +345,10 @@ class ImageRecovery:
         selected=next((row for row in self.target_rows(m) if row['path']==target and row['fingerprint']==fingerprint),None)
         if selected is None:self.deny('Target is active, mounted, nonblank, incompatible or its identity changed')
         folder,_,_=self.paths(m);journal=folder/'installation.json'
+        with lzma.open(raw,'rb') as image:
+            identities=inspect_boot_identities(image)
+        devices=json.loads(subprocess.run(['/usr/bin/lsblk','--json','--paths','--output','PATH,UUID,PARTUUID'],capture_output=True,text=True,check=True,timeout=15).stdout)
+        reject_boot_identity_collisions(identities,devices.get('blockdevices',[]),target)
         with raw.open('rb') as source:
             descriptor=os.open(target,os.O_RDWR|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC)
             try:

@@ -1,4 +1,5 @@
 import QtQuick
+import "../../components/SecurityIndicator.js" as SecurityIndicator
 
 Item {
     id: root
@@ -104,15 +105,8 @@ Item {
         return backend && backend.stats ? backend.stats : ({})
     }
 
-    function securityScore() {
-        return clamp(Number(backend ? backend.securityScore : 0), 0, 100)
-    }
-
-    function securityScoreAvailable() {
-        return backend && backend.daemonOnline === true &&
-               backend.securityScore !== undefined &&
-               !isNaN(Number(backend.securityScore))
-    }
+    function securityScore() { return SecurityIndicator.score(backend) }
+    function securityScoreAvailable() { return securityScore() >= 0 }
 
     function events() {
         return backend && backend.events ? backend.events : []
@@ -455,10 +449,7 @@ Item {
         return "CRITICAL"
     }
 
-    function securityStrength() {
-        var score = securityScore()
-        return score >= 80 ? "Secure" : score >= 55 ? "Weak" : "Unsecure"
-    }
+    function securityStrength() { return SecurityIndicator.label(backend) }
 
     function scoreColor() {
         // NEUTRONOS_SECURITY_SCORE_COLOR_THRESHOLDS_V2

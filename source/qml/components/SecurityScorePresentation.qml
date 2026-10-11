@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import "SecurityIndicator.js" as SecurityIndicator
 
 Item {
     id: root
@@ -8,17 +9,8 @@ Item {
     property real labelPixelSize: 24
     property real barHeight: 10
 
-    readonly property int score: {
-        if (!backend || backend.daemonOnline !== true ||
-                backend.securityScore === undefined)
-            return -1
-        var value = Number(backend.securityScore)
-        return isNaN(value) ? -1 : Math.max(0, Math.min(100, Math.round(value)))
-    }
-    readonly property string strength: score < 0 ? "Unavailable"
-                                               : score >= 80 ? "Secure"
-                                               : score >= 55 ? "Weak"
-                                               : "Unsecure"
+    readonly property int score: SecurityIndicator.score(backend)
+    readonly property string strength: SecurityIndicator.label(backend)
     readonly property color statusColor: score < 0 ? "#FF3048"
                                                     : score >= 80 ? "#22FF88"
                                                     : score >= 55 ? "#F7D85B"

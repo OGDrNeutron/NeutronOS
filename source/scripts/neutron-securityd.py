@@ -263,6 +263,7 @@ class SecurityCore:
         self.audit_valid, self.audit_head = self.verify_audit()
         self.migrate_existing_authentication_events()
         self.migrate_expected_listener_events()
+        self.migrate_security_score_policy_v2_events()
         self.append_audit("daemon_started", {
             "learningMode": self.config.get("learningMode", True),
             "enforcementEnabled": self.config.get("enforcementEnabled", False),
@@ -3922,25 +3923,273 @@ fs.protected_regular = 2
         self.write_state()
         return {"success": success, "message": message, **extra}
 
-    def calculate_score(self) -> int:
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-        penalty = 0
+    def commissioning_cutoff(self) -> datetime | None:
+        # NEUTRONOS_SECURITY_COMMISSION_CUTOFF_V4
+        path = self.state_dir / "commissioning.json"
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                return None
+            return parse_time(str(value.get("notBefore", "")))
+        except (FileNotFoundError, OSError, json.JSONDecodeError, TypeError, ValueError):
+            return None
+
+    # NEUTRONOS_SECURITY_SCORE_POLICY_V2
+    # Security score = 100 - posture - integrity - active security events.
+    # Acknowledging a notification is presentation state only and NEVER changes score.
+    # Integrity is scored from the authoritative live integrity change set so restoring
+    # or accepting a baseline is what removes its penalty.
+    SCORE_EVENT_PENALTIES = {1: 1, 2: 2, 3: 4, 4: 8, 5: 15}
+    SCORE_INTEGRITY_PENALTIES = {1: 2, 2: 4, 3: 7, 4: 11, 5: 15}
+    SCORE_EVENT_DECAY_SECONDS = {1: 15 * 60, 2: 60 * 60, 3: 6 * 60 * 60, 4: 24 * 60 * 60}
+
+    @staticmethod
+    def score_event_resolved(event: dict[str, Any]) -> bool:
+        if event.get("resolved") is True:
+            return True
+        status = str(event.get("status", "")).strip().lower()
+        return status in {"resolved", "cleared", "closed", "restored", "remediated", "neutralized"}
+
+    def authentication_score_severity(self, event: dict[str, Any]) -> int:
+        try:
+            attempts = max(1, int(event.get("attempts", 1)))
+        except (TypeError, ValueError):
+            attempts = 1
+        if attempts >= 25:
+            severity = 5
+        elif attempts >= 15:
+            severity = 4
+        elif attempts >= 5:
+            severity = 3
+        elif attempts >= 2:
+            severity = 2
+        else:
+            severity = 1
+        # A failed privileged authentication is one step more serious than a
+        # normal incorrect login, while a single normal incorrect login is L1.
+        if str(event.get("category", "")).lower() == "privilege":
+            severity = min(5, severity + 1)
+        if event.get("enforced"):
+            severity = max(4, severity)
+        return severity
+
+    def event_score_severity(self, event: dict[str, Any]) -> int:
+        category = str(event.get("category", "")).lower()
+        if category in {"authentication", "privilege"}:
+            return self.authentication_score_severity(event)
+        try:
+            return max(1, min(5, int(event.get("severity", 1))))
+        except (TypeError, ValueError):
+            return 1
+
+    @staticmethod
+    def integrity_score_severity(change: dict[str, Any]) -> int:
+        change_type = str(change.get("change", change.get("type", "changed"))).strip().lower()
+        # Reads/accesses are meaningful but non-destructive. Any actual protected
+        # file content/presence change is critical.
+        if change_type in {"read", "accessed", "access", "opened"}:
+            return 3
+        if change_type in {"modified", "removed", "added", "changed", "replaced", "written", "write"}:
+            return 5
+        try:
+            return max(1, min(5, int(change.get("severity", 4))))
+        except (TypeError, ValueError):
+            return 4
+
+    @staticmethod
+    def integrity_incident_key(change: dict[str, Any]) -> str:
+        raw = str(change.get("path", "")).strip()
+        if not raw:
+            return "integrity:unknown"
+        path = Path(raw)
+        parts = path.parts
+        # Group a single NeutronOS update/change-set by its major project area.
+        if "NeutronOS" in parts:
+            idx = parts.index("NeutronOS")
+            area = parts[idx + 1] if len(parts) > idx + 1 else "root"
+            return f"neutronos:{area}"
+        # Group conventional system trees tightly enough to avoid counting a
+        # package transaction as hundreds of incidents while still separating
+        # distinct areas of the OS.
+        if len(parts) >= 3 and parts[1] in {"usr", "etc", "var", "opt", "boot"}:
+            return "/".join(parts[:3])
+        if len(parts) >= 2 and parts[1] in {"bin", "sbin", "lib", "lib64"}:
+            return "/".join(parts[:2])
+        parent = str(path.parent)
+        return parent if parent and parent != "." else raw
+
+    def scoring_integrity_incidents(self) -> list[dict[str, Any]]:
+        grouped: dict[str, dict[str, Any]] = {}
+        for change in self.integrity_changes:
+            if not isinstance(change, dict):
+                continue
+            key = self.integrity_incident_key(change)
+            severity = self.integrity_score_severity(change)
+            item = grouped.get(key)
+            if item is None:
+                item = {"key": key, "severity": severity, "changes": 0}
+                grouped[key] = item
+            item["severity"] = max(int(item.get("severity", 1)), severity)
+            item["changes"] = int(item.get("changes", 0)) + 1
+        return list(grouped.values())
+
+    @staticmethod
+    def event_scoring_incident_key(event: dict[str, Any]) -> str:
+        # Score incidents, not duplicate notification records. Existing correlated
+        # authentication incidents already carry incidentKey; other categories use
+        # their most stable subject identifier.
+        incident_key = str(event.get("incidentKey", "")).strip()
+        if incident_key:
+            return "incident:" + incident_key
+        category = str(event.get("category", "unknown")).strip().lower()
+        source = str(event.get("source", "")).strip().lower()
+        title = str(event.get("title", "")).strip().lower()
+        stable_fields: list[str] = []
+        for key in ("deviceId", "path", "unit", "sourceAddress", "username", "processName", "protocol", "findingId", "quarantineId"):
+            value = str(event.get(key, "")).strip().lower()
+            if value:
+                stable_fields.append(f"{key}={value}")
+        if stable_fields:
+            # For network listeners, process+protocol is intentionally the incident
+            # identity; ephemeral port changes across boots must not multiply score.
+            if category == "network" and event.get("processName"):
+                stable_fields = [field for field in stable_fields if not field.startswith("unit=")]
+            return "|".join([category, source, title] + stable_fields)
+        message = str(event.get("message", "")).strip().lower()
+        return "|".join([category, source, title, message])
+
+    def event_is_currently_scoring(self, event: dict[str, Any], now: datetime, commissioned_after: datetime | None) -> tuple[bool, int]:
+        if not isinstance(event, dict):
+            return False, 1
+        if self.score_event_resolved(event) or event.get("expected") is True:
+            return False, self.event_score_severity(event)
+        # File-integrity change notifications mirror self.integrity_changes and
+        # are deliberately excluded here to prevent double-scoring. A future
+        # integrity READ event remains scoreable because it is not a change event.
+        if (str(event.get("category", "")).lower() == "integrity" and
+                str(event.get("source", "")).lower() == "file-integrity" and
+                str(event.get("title", "")).lower() == "protected file changed"):
+            return False, self.event_score_severity(event)
+
+        severity = self.event_score_severity(event)
+        stamp = parse_time(str(event.get("lastSeen", event.get("timestamp", ""))))
+        if commissioned_after is not None and stamp is not None and stamp < commissioned_after:
+            return False, severity
+        if severity < 5:
+            ttl = self.SCORE_EVENT_DECAY_SECONDS.get(severity, 0)
+            if stamp is not None and ttl > 0 and (now - stamp).total_seconds() > ttl:
+                return False, severity
+        # Severity 5 intentionally has no automatic age-out. It remains until
+        # the underlying condition is marked resolved/cleared.
+        return True, severity
+
+    def calculate_score_breakdown(self) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        commissioned_after = self.commissioning_cutoff()
+
+        posture_items = {
+            "enforcementOff": 15 if not self.config.get("enforcementEnabled", False) else 0,
+            "learningModeOn": 5 if self.config.get("learningMode", True) else 0,
+            "recoveryUnavailable": 10 if not self.recovery_configured() else 0,
+        }
+        posture_raw = sum(posture_items.values())
+        posture_penalty = min(30, posture_raw)
+
+        integrity_incidents = self.scoring_integrity_incidents()
+        integrity_raw = sum(
+            self.SCORE_INTEGRITY_PENALTIES.get(int(item.get("severity", 1)), 2)
+            for item in integrity_incidents
+        )
+        integrity_penalty = min(60, integrity_raw)
+
+        event_raw = 0
+        event_counts = {str(level): 0 for level in range(1, 6)}
+        scoring_event_ids: list[str] = []
+        scoring_incidents: dict[str, dict[str, Any]] = {}
         for event in self.events:
-            stamp = parse_time(str(event.get("timestamp", "")))
-            if stamp is not None and stamp < cutoff:
+            active, severity = self.event_is_currently_scoring(event, now, commissioned_after)
+            if not active:
                 continue
-            if event.get("acknowledged"):
-                continue
-            severity = int(event.get("severity", 1))
-            penalty += {1: 0, 2: 2, 3: 5, 4: 12, 5: 25}.get(severity, 1)
-        if self.failed_services:
-            penalty += min(10, len(self.failed_services) * 2)
+            key = self.event_scoring_incident_key(event)
+            existing = scoring_incidents.get(key)
+            if existing is None or severity > int(existing.get("severity", 1)):
+                scoring_incidents[key] = {
+                    "severity": severity,
+                    "eventId": str(event.get("id", "")),
+                }
+        for incident in scoring_incidents.values():
+            severity = int(incident.get("severity", 1))
+            event_raw += self.SCORE_EVENT_PENALTIES.get(severity, 1)
+            event_counts[str(severity)] = event_counts.get(str(severity), 0) + 1
+            if len(scoring_event_ids) < 100:
+                scoring_event_ids.append(str(incident.get("eventId", "")))
+
+        # Firewall protection is an active security condition, not a notification.
+        # Keep it authoritative even if its notification has already aged out.
         firewall_state = str(self.firewall_health.get("protectionState", "CRITICAL")).upper()
+        firewall_penalty = 0
         if firewall_state == "CRITICAL":
-            penalty += 50
+            firewall_penalty = self.SCORE_EVENT_PENALTIES[5]
         elif firewall_state == "DEGRADED":
-            penalty += 15
-        return max(0, min(100, 100 - penalty))
+            firewall_penalty = self.SCORE_EVENT_PENALTIES[4]
+        event_raw += firewall_penalty
+        event_penalty = min(40, event_raw)
+
+        total_penalty = posture_penalty + integrity_penalty + event_penalty
+        score = max(0, min(100, 100 - total_penalty))
+        return {
+            "policyVersion": 2,
+            "base": 100,
+            "score": score,
+            "totalPenalty": total_penalty,
+            "posturePenalty": posture_penalty,
+            "integrityPenalty": integrity_penalty,
+            "eventPenalty": event_penalty,
+            "posture": posture_items,
+            "integrity": {
+                "changeCount": len(self.integrity_changes),
+                "incidentCount": len(integrity_incidents),
+                "rawPenalty": integrity_raw,
+                "cappedPenalty": integrity_penalty,
+                "incidents": integrity_incidents[:100],
+            },
+            "events": {
+                "rawPenalty": event_raw,
+                "cappedPenalty": event_penalty,
+                "countBySeverity": event_counts,
+                "incidentCount": len(scoring_incidents),
+                "scoringEventIds": scoring_event_ids,
+                "firewallState": firewall_state,
+                "firewallPenalty": firewall_penalty,
+            },
+        }
+
+    def calculate_score(self) -> int:
+        return int(self.calculate_score_breakdown()["score"])
+
+    def migrate_security_score_policy_v2_events(self) -> None:
+        if int(self.config.get("securityScorePolicyVersion", 0)) >= 2:
+            return
+        changed = False
+        for event in self.events:
+            if not isinstance(event, dict):
+                continue
+            category = str(event.get("category", "")).lower()
+            source = str(event.get("source", "")).lower()
+            title = str(event.get("title", "")).lower()
+            desired = None
+            if category in {"authentication", "privilege"}:
+                desired = self.authentication_score_severity(event)
+            elif category == "integrity" and source == "file-integrity" and title == "protected file changed":
+                desired = 5
+            if desired is not None and int(event.get("severity", 1)) != desired:
+                event["severity"] = desired
+                changed = True
+        self.config["securityScorePolicyVersion"] = 2
+        self.save_config()
+        if changed:
+            self.save_events()
+            self.append_audit("security_score_policy_v2_migrated", {"eventsReclassified": True})
 
     def write_state(self) -> None:
         self.refresh_firewall_health(record_event=False)
@@ -3957,7 +4206,8 @@ fs.protected_regular = 2
                     high += 1
             if event.get("acknowledged"):
                 acknowledged += 1
-        score = self.calculate_score()
+        score_breakdown = self.calculate_score_breakdown()
+        score = int(score_breakdown["score"])
         authentication_failures = sum(
             int(event.get("attempts", 1)) for event in recent
             if event.get("category") == "authentication"
@@ -4008,6 +4258,7 @@ fs.protected_regular = 2
             "vaultLastError": self.vault_last_error,
             "vaultEntries": [{"id": str(item.get("id", "")), "name": str(item.get("name", "Credential")), "username": str(item.get("username", "")), "createdAt": str(item.get("createdAt", "")), "updatedAt": str(item.get("updatedAt", ""))} for item in self.vault_entries] if self.vault_unlocked() else [],
             "securityScore": score,
+            "securityScoreBreakdown": score_breakdown,
             "lastScan": self.last_scan,
             "auditValid": self.audit_valid,
             "auditHead": self.audit_head,
@@ -4099,6 +4350,11 @@ fs.protected_regular = 2
             },
         }
         atomic_json(self.state_path, state, 0o644)
+        # Only this non-sensitive projection is readable before login. Keep the
+        # full state directory, recovery material and authenticated IPC protected.
+        atomic_json(Path("/run/neutronos/security/indicator.json"), {
+            "schema": 1, "heartbeat": state["heartbeat"], "securityScore": score,
+        }, 0o644)
 
     def scan(self) -> None:
         self.refresh_firewall_health(record_event=True)

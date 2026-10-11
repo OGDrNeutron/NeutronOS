@@ -74,7 +74,7 @@ public:
     bool daemonOnline() const { return m_daemonOnline; }
     QString daemonStatus() const { return m_daemonStatus; }
     QString lastErrorCode() const { return m_lastErrorCode; }
-    int securityScore() const { return m_securityScore; }
+    int securityScore() const { return m_indicator.online ? m_indicator.score : -1; }
     int threatLevel() const { return m_threatLevel; }
     QString threatLabel() const { return m_threatLabel; }
     QString suggestedThreatReason() const { return m_suggestedThreatReason; }

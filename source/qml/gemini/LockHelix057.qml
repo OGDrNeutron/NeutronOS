@@ -3,8 +3,8 @@ import QtQuick3D
 import QtQuick3D.Effects
 import NeutronGemini 1.0
 
-// Static 3D tubular strands share one orbit, with actual depth at every crossing.
-// Only their parent transform animates; accepted inputs own independent transient arcs.
+// Independent backbone transforms keep the orbital center stationary.
+// GPU-deformed molecular rungs remain attached to both moving strands.
 Item {
     id: root
     objectName: "GeminiLockHelix"
@@ -12,6 +12,8 @@ Item {
     property bool armed: false
     property bool animated: true
     readonly property bool running: visible && armed && animated
+    readonly property real blueTurn: -turn
+    readonly property real redTurn: turn + 18
     readonly property int activePulseCount: pulses.count
     property int acceptedPulseCount: 0
     property int nextPulseId: 0
@@ -60,15 +62,38 @@ Item {
         GeminiHelixGeometry{id:molecules;structure:3}
         GeminiHelixGeometry{id:core;tubeRadius:.65}
         Node {
-            eulerRotation.z:-root.turn
+            objectName: "GeminiHelixBlueStrand"
+            eulerRotation.z: root.blueTurn
             Model{geometry:tube;materials:PrincipledMaterial{baseColor:"#006bdd";metalness:.55;roughness:.23;emissiveFactor:Qt.vector3d(.005,.9,3.5);clearcoatAmount:1}}
-            Model{geometry:tube;eulerRotation.z:18;materials:PrincipledMaterial{baseColor:"#e80024";metalness:.55;roughness:.23;emissiveFactor:Qt.vector3d(3.5,.008,.08);clearcoatAmount:1}}
-            Model{geometry:blueRungs;materials:PrincipledMaterial{baseColor:"#0754a1";metalness:.7;roughness:.2;emissiveFactor:Qt.vector3d(.005,.2,.65);clearcoatAmount:1}}
-            Model{geometry:redRungs;materials:PrincipledMaterial{baseColor:"#ae0627";metalness:.7;roughness:.2;emissiveFactor:Qt.vector3d(.65,.003,.05);clearcoatAmount:1}}
             Model{geometry:molecules;materials:PrincipledMaterial{baseColor:"#0064c8";metalness:.4;roughness:.16;emissiveFactor:Qt.vector3d(.005,.5,1.9);clearcoatAmount:1}}
-            Model{geometry:molecules;eulerRotation.z:18;materials:PrincipledMaterial{baseColor:"#dc062b";metalness:.4;roughness:.16;emissiveFactor:Qt.vector3d(1.9,.004,.08);clearcoatAmount:1}}
             Model{geometry:core;materials:PrincipledMaterial{baseColor:"#d6f5ff";emissiveFactor:Qt.vector3d(.6,2.7,5.)}}
-            Model{geometry:core;eulerRotation.z:18;materials:PrincipledMaterial{baseColor:"#ffe5ed";emissiveFactor:Qt.vector3d(5.,.6,1.2)}}
+        }
+        Node {
+            objectName: "GeminiHelixRedStrand"
+            eulerRotation.z: root.redTurn
+            Model{geometry:tube;materials:PrincipledMaterial{baseColor:"#e80024";metalness:.55;roughness:.23;emissiveFactor:Qt.vector3d(3.5,.008,.08);clearcoatAmount:1}}
+            Model{geometry:molecules;materials:PrincipledMaterial{baseColor:"#dc062b";metalness:.4;roughness:.16;emissiveFactor:Qt.vector3d(1.9,.004,.08);clearcoatAmount:1}}
+            Model{geometry:core;materials:PrincipledMaterial{baseColor:"#ffe5ed";emissiveFactor:Qt.vector3d(5.,.6,1.2)}}
+        }
+        Model {
+            geometry: blueRungs
+            materials: CustomMaterial {
+                property real turnRadians: root.turn * Math.PI / 180
+                property vector3d rungColor: Qt.vector3d(.027,.329,.631)
+                property vector3d rungEmission: Qt.vector3d(.005,.2,.65)
+                vertexShader: "shaders/lock-helix-rungs058.vert"
+                fragmentShader: "shaders/lock-helix-rungs058.frag"
+            }
+        }
+        Model {
+            geometry: redRungs
+            materials: CustomMaterial {
+                property real turnRadians: root.turn * Math.PI / 180
+                property vector3d rungColor: Qt.vector3d(.682,.024,.153)
+                property vector3d rungEmission: Qt.vector3d(.65,.003,.05)
+                vertexShader: "shaders/lock-helix-rungs058.vert"
+                fragmentShader: "shaders/lock-helix-rungs058.frag"
+            }
         }
     }
     Repeater {
@@ -87,7 +112,8 @@ Item {
             opacity: Math.pow(1-travel, .75)
             ShaderEffect {
                 anchors.fill:parent
-                property real flowAngle:pulse.angle-root.turn*Math.PI/180
+                property real flowAngle:pulse.angle
+                property real strandPhase:root.turn*Math.PI/180
                 property vector2d extent:Qt.vector2d(pulse.width/root.width,pulse.height/root.height)
                 fragmentShader:Qt.resolvedUrl("shaders/lock-helix-pulse057.frag.qsb")
             }

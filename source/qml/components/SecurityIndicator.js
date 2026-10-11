@@ -6,7 +6,7 @@ function score(backend) {
     var value=backend.indicatorScore!==undefined?backend.indicatorScore:backend.securityScore
     if(online!==true||value===undefined)return -1
     var n=Number(value)
-    return isNaN(n)?-1:Math.max(0,Math.min(100,Math.round(n)))
+    return !isFinite(n)||n<0||n>100?-1:Math.round(n)
 }
 function label(backend){var n=score(backend);return n<0?"Unavailable":n>=80?"Secure":n>=55?"Weak Protection":"Unsecure"}
 function strength(backend){var n=score(backend);return n<0?"Unavailable":n>=80?"Secure":n>=55?"Weak":"Unsecure"}

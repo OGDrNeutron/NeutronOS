@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <cmath>
 
-// Read-only presentation of securityd's existing protected snapshot. No
+// Read-only presentation of securityd's root-owned, minimal public projection. No
 // authentication, scoring, enforcement, or privileged state is implemented here.
 struct SecurityIndicatorSnapshot {
     bool online=false;

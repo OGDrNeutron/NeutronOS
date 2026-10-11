@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(
     NeutronOS
-    VERSION 0.5.7
+    VERSION 0.5.8
     DESCRIPTION "NeutronOS Gemini Controller-First QML Shell"
     LANGUAGES CXX
 )

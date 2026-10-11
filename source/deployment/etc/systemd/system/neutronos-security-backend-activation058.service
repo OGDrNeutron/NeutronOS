@@ -1,0 +1,12 @@
+[Unit]
+Description=Activate signed Gemini Security Policy v2 update support
+After=local-fs.target
+ConditionPathExists=!/var/lib/neutronos/update-recovery/backend-migrations/security058/complete.json
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/security-update058-r1/neutronos-security-backend-activate058.py
+TimeoutStartSec=60
+[Install]
+WantedBy=multi-user.target

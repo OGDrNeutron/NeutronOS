@@ -48,7 +48,7 @@ def run(command: list[str], check: bool = True, timeout: int = 60) -> subprocess
 def lsblk() -> dict:
     result = run([
         "lsblk", "-J", "-b", "-o",
-        "NAME,PATH,TYPE,PKNAME,MOUNTPOINTS,SIZE,RO,RM,MODEL,SERIAL,FSTYPE,LABEL"
+        "NAME,PATH,TYPE,PKNAME,MOUNTPOINTS,SIZE,RO,RM,MODEL,SERIAL,FSTYPE,LABEL,UUID,PARTUUID"
     ])
     return json.loads(result.stdout or "{}")
 
@@ -508,6 +508,16 @@ def main() -> int:
             source_disk = source_disk_for_file(source, tree)
             if source_disk and os.path.realpath(source_disk) == target:
                 raise RuntimeError("The image file is stored on the target device. Move it elsewhere before flashing.")
+        # Shared source-backed guard: never create an ambiguous Gemini clone
+        # while a disk with the same boot identities remains connected.
+        sys.path.insert(0, '/usr/local/lib/neutronos')
+        from neutronos_recovery_image import inspect_boot_identities, reject_boot_identity_collisions
+        image = open_image(source, int(args.expected_size or 0))
+        try:
+            identities = inspect_boot_identities(image.stream)
+        finally:
+            image.close()
+        reject_boot_identity_collisions(identities, tree, target)
         unmount_target(target, tree)
         written, digest = write_image(source, target, target_size, int(args.expected_size or 0))
         customize_target(target, config)

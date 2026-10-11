@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../../components" as Shared
+import "../../components/SecurityIndicator.js" as SecurityIndicator
 import "components"
 
 Item {
@@ -16,6 +17,7 @@ Item {
     property var backend: (typeof securityCoreManager !== "undefined") ? securityCoreManager : null
     property var authBackend: (typeof securityManager !== "undefined") ? securityManager : null
     property var controllerBackend: (typeof controllerManager !== "undefined") ? controllerManager : null
+    readonly property int authoritativeSecurityScore: SecurityIndicator.score(backend)
     signal exitRequested()
     signal backgroundRequested()
 
@@ -577,7 +579,7 @@ Item {
     }
     function dedicatedRows() {
         if(activeNavLabel==="Security Status") return [
-            {t:"Security Strength",d:"Composite score calculated from the active protection state",v:String(backend?backend.securityScore:0)+" / 100",tone:statusColor(backend?backend.threatLevel:5)},
+            {t:"Security Strength",d:"Composite score calculated from the active protection state",v:(root.authoritativeSecurityScore<0?"Unavailable":String(root.authoritativeSecurityScore))+" / 100",tone:statusColor(backend?backend.threatLevel:5)},
             {t:"Security Service",d:"Core security daemon availability",v:backend&&backend.daemonOnline?"ONLINE":"OFFLINE",tone:backend&&backend.daemonOnline?green:red},
             {t:"Readiness",d:String(backend?backend.suggestedThreatReason||"Current defensive readiness":"Service unavailable"),v:backend?String(backend.threatLabel||("DEFCON "+backend.threatLevel)):"DEFCON 5",tone:statusColor(backend?backend.threatLevel:5)},
             {t:"Response Engine",d:"Automated containment and response",v:backend&&backend.responseEngineEnabled?"ENABLED":"DISABLED",tone:backend&&backend.responseEngineEnabled?green:yellow},
@@ -968,7 +970,7 @@ Item {
         height: 54
         z: 50
         secure: !root.overallNeedsAttention() && Number(backend?backend.threatLevel||5:5) > 2
-        securityScore: backend && backend.securityScore!==undefined ? Math.max(0,Math.min(100,Math.round(Number(backend.securityScore)))) : -1
+        securityScore: root.authoritativeSecurityScore
         menuFocused: root.headerFocused && !root.exitMenuOpen
         onMenuRequested: { root.exitMenuOpen = true; referenceExitModal.openModal(root) }
     }
@@ -1091,7 +1093,7 @@ Item {
                     anchors.centerIn: parent; spacing: 0
                     Text { anchors.horizontalCenter: parent.horizontalCenter; text: "SECURITY SCORE"; color: "#D2D8D5"; font.pixelSize: 20; font.bold: true; font.letterSpacing: 1.0 }
                     Row { anchors.horizontalCenter: parent.horizontalCenter; spacing: 7
-                        Text { text: String(backend?backend.securityScore:0); color: securityScoreColor(backend?backend.securityScore:0); font.pixelSize: 48; font.bold: true }
+                        Text { text: (root.authoritativeSecurityScore<0?"Unavailable":String(root.authoritativeSecurityScore)); color: securityScoreColor(root.authoritativeSecurityScore); font.pixelSize: 48; font.bold: true }
                         Text { anchors.baseline: parent.children[0].baseline; text: "/ 100"; color: "#AEB4B2"; font.pixelSize: 19; font.bold: true }
                     }
                 }
@@ -1108,7 +1110,7 @@ Item {
                     width: appScoreFill.width + 12
                     height: 21
                     radius: 11
-                    color: securityScoreColor(backend?backend.securityScore:0)
+                    color: securityScoreColor(root.authoritativeSecurityScore)
                     property real pulseOpacity: 0.10
                     opacity: appScoreFill.width > 0 ? pulseOpacity : 0
                     SequentialAnimation on pulseOpacity {
@@ -1126,7 +1128,7 @@ Item {
                     width: appScoreFill.width + 4
                     height: 15
                     radius: 8
-                    color: securityScoreColor(backend?backend.securityScore:0)
+                    color: securityScoreColor(root.authoritativeSecurityScore)
                     opacity: appScoreFill.width > 0 ? 0.22 : 0
                 }
                 Rectangle {
@@ -1138,8 +1140,8 @@ Item {
                     id: appScoreFill
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width*Math.max(0,Math.min(100,backend?backend.securityScore:0))/100
-                    height: 9; radius: 5; color: securityScoreColor(backend?backend.securityScore:0)
+                    width: parent.width*Math.max(0,Math.min(100,root.authoritativeSecurityScore))/100
+                    height: 9; radius: 5; color: securityScoreColor(root.authoritativeSecurityScore)
                     Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
                     Behavior on color { ColorAnimation { duration: 180 } }
                 }
@@ -1151,7 +1153,7 @@ Item {
                     readonly property real perimeter: Math.max(1,2*(barW+barH))
                     readonly property real distance: phase*perimeter
                     width: 7; height: 7; radius: 4
-                    color: { var n=Number(backend?backend.securityScore:0); return n>=80?"#C8FFE3":n>=55?"#FFF7A6":"#FFC0CA" }
+                    color: { var n=Number(root.authoritativeSecurityScore); return n>=80?"#C8FFE3":n>=55?"#FFF7A6":"#FFC0CA" }
                     border.width: 1; border.color: "white"
                     opacity: barW>24 ? 0.98 : 0
                     x: { var d=distance,w=barW,h=barH;if(d<w)return appScoreFill.x+d-width/2;if(d<w+h)return appScoreFill.x+w-width/2;if(d<2*w+h)return appScoreFill.x+w-(d-w-h)-width/2;return appScoreFill.x-width/2 }

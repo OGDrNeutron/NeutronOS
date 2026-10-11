@@ -31,6 +31,7 @@ MAX_METADATA = 1024 * 1024
 MAX_FILES = 256
 UPDATE_PROTOCOL = 2
 SYSTEM_DESTINATIONS = {
+    "/usr/local/lib/neutronos/neutron-securityd.py": "deployment/usr/local/lib/neutronos/neutron-securityd.py",
     "/usr/lib/systemd/system-generators/neutronos-recovery-generator": "scripts/neutronos-recovery-generator",
     "/usr/local/sbin/neutronos-recovery-control": "scripts/neutronos-recovery-control",
     "/etc/neutronos/version.json": "config/version.json",

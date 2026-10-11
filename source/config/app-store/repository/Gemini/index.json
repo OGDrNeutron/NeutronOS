@@ -59,8 +59,8 @@
     {
       "id": "gemini-update-recovery",
       "name": "Update & Recovery Support",
-      "version": "0.5.7",
-      "description": "Signed backend prerequisite for the complete Gemini 0.5.7 upgrade. Install this first, then use OS Update.",
+      "version": "0.5.8",
+      "description": "Signed exact-allowlist Security Policy v2 backend prerequisite. Install this before Gemini 0.5.8 in Settings Update.",
       "developer": "NeutronOS",
       "platforms": [
         "gemini"
@@ -75,14 +75,14 @@
       ],
       "category": "System",
       "requiresDeveloperMode": false,
-      "minNeutronOS": "0.5.6",
+      "minNeutronOS": "0.5.7",
       "osRequirements": {
-        "minimumVersion": "0.5.6"
+        "minimumVersion": "0.5.7"
       },
-      "packageUrl": "Gemini-Update-Recovery-0.5.7.r3.napp",
-      "size": 26368,
-      "installedBytes": 89566,
-      "sha256": "e18d59263a2e2b5f6cb93333dd84c5bef0eb2a6034c16d6e207f6637a6c9da75"
+      "packageUrl": "Gemini-Security-Update-Support-0.5.8.r1.napp",
+      "size": 18393,
+      "installedBytes": 66019,
+      "sha256": "0898dd626fe627c265b8012af6ac6446696dea44fad487ab418dbf24451fd396"
     }
   ]
 }
