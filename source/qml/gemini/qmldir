@@ -20,3 +20,4 @@ RecoveryGlyph RecoveryGlyph.qml
 RecoveryStage RecoveryStage.qml
 LockRing055 LockRing055.qml
 LockClock055 LockClock055.qml
+LockHelix057 LockHelix057.qml

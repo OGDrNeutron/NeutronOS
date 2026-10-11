@@ -52,6 +52,20 @@ private slots:
   QFileInfo file(qEnvironmentVariable("NEUTRONOS_ROOT")+"/state/settings/clock.json");QVERIFY(file.exists());QVERIFY(!(file.permissions()&(QFileDevice::WriteGroup|QFileDevice::WriteOther|QFileDevice::ReadGroup|QFileDevice::ReadOther)));
   const QString bad=directory.path()+"/not-a-directory";QFile blocker(bad);QVERIFY(blocker.open(QIODevice::WriteOnly));blocker.close();qputenv("NEUTRONOS_ROOT",bad.toUtf8());ClockSettingsManager blocked;QVERIFY(!blocked.setLockscreenClockVisible(false));QVERIFY(blocked.lockscreenClockVisible());
  }
+ void detailsVisibilityPersistenceAndFailure(){
+  { ClockSettingsManager manager; QVERIFY(manager.lockscreenDetailsVisible());
+    QSignalSpy changed(&manager,&ClockSettingsManager::lockscreenDetailsVisibleChanged);
+    QVERIFY(manager.setLockscreenDetailsVisible(false)); QCOMPARE(changed.size(),1);
+    QVERIFY(manager.setLockscreenDetailsVisible(false)); QCOMPARE(changed.size(),1);
+    QVERIFY(manager.setLockscreenWelcomeVisible(false)); }
+  { ClockSettingsManager reloaded; QVERIFY(!reloaded.lockscreenDetailsVisible());
+    QVERIFY(reloaded.setLockscreenDetailsVisible(true)); }
+  ClockSettingsManager visibleAgain; QVERIFY(visibleAgain.lockscreenDetailsVisible());
+  const QString bad=directory.path()+"/details-blocker"; QFile blocker(bad);
+  QVERIFY(blocker.open(QIODevice::WriteOnly)); blocker.close(); qputenv("NEUTRONOS_ROOT",bad.toUtf8());
+  ClockSettingsManager blocked; QSignalSpy changed(&blocked,&ClockSettingsManager::lockscreenDetailsVisibleChanged);
+  QVERIFY(!blocked.setLockscreenDetailsVisible(false)); QVERIFY(blocked.lockscreenDetailsVisible()); QCOMPARE(changed.size(),0);
+ }
  void untrustedVisibilityFileIgnored(){
   ClockSettingsManager manager;QVERIFY(manager.setLockscreenClockVisible(false));QString path=qEnvironmentVariable("NEUTRONOS_ROOT")+"/state/settings/clock.json";QVERIFY(QFile::setPermissions(path,QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::WriteOther));ClockSettingsManager reloaded;QVERIFY(reloaded.lockscreenClockVisible());
  }

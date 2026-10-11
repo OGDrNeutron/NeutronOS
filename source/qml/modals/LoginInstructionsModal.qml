@@ -91,6 +91,11 @@ Item {
                 }
             }
             Text { width: parent.width; text: "Your combination is verified as a salted Argon2id hash. This guide never displays or logs it."; color: root.green; font.pixelSize: 16; font.bold: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Text {
+                width: parent.width
+                text: "Press Start/Options while the lockscreen is not armed to hide or show the clock, Earth, and controller information. Your preference is saved automatically."
+                color: root.textPrimary; font.pixelSize: 17; wrapMode: Text.WordWrap
+            }
             Item { width: 1; height: 2 }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter

@@ -1000,6 +1000,7 @@ void ClockSettingsManager::loadPreferences()
 #ifdef Q_OS_UNIX
     trustedOwner = trustedOwner && (preferenceInfo.ownerId()==static_cast<uint>(geteuid()) || preferenceInfo.ownerId()==0);
 #endif
+    m_lockscreenDetailsVisible = trustedOwner?object.value(QStringLiteral("lockscreenDetailsVisible")).toBool(true):true;
     m_lockscreenClockVisible = trustedOwner?object.value(QStringLiteral("lockscreenClockVisible")).toBool(true):true;
     m_lockscreenWelcomeVisible = trustedOwner?object.value(QStringLiteral("lockscreenWelcomeVisible")).toBool(true):true;
     m_use24Hour =
@@ -1079,6 +1080,7 @@ bool ClockSettingsManager::savePreferences() const
             .toString(Qt::ISODateWithMs)
     );
 
+    object.insert(QStringLiteral("lockscreenDetailsVisible"), m_lockscreenDetailsVisible);
     object.insert(QStringLiteral("lockscreenClockVisible"), m_lockscreenClockVisible);
     object.insert(QStringLiteral("lockscreenWelcomeVisible"), m_lockscreenWelcomeVisible);
     QSaveFile file(path);
@@ -2239,6 +2241,21 @@ QHash<QString,QPointF> worldClockCoordinates()
     }
     return result;
 }
+}
+
+bool ClockSettingsManager::setLockscreenDetailsVisible(bool visible)
+{
+    if (visible == m_lockscreenDetailsVisible) return true;
+    const bool previous = m_lockscreenDetailsVisible;
+    m_lockscreenDetailsVisible = visible;
+    if (!savePreferences()) {
+        m_lockscreenDetailsVisible = previous;
+        setLastError(QStringLiteral("Lockscreen visibility could not be saved"));
+        return false;
+    }
+    emit lockscreenDetailsVisibleChanged();
+    emit settingsChanged();
+    return true;
 }
 
 bool ClockSettingsManager::setLockscreenClockVisible(bool visible)

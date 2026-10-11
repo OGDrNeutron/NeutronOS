@@ -161,6 +161,7 @@ class ClockSettingsManager final : public QObject
                READ currentDateTime
                NOTIFY currentDateTimeChanged)
 
+    Q_PROPERTY(bool lockscreenDetailsVisible READ lockscreenDetailsVisible WRITE setLockscreenDetailsVisible NOTIFY lockscreenDetailsVisibleChanged)
     Q_PROPERTY(bool lockscreenClockVisible READ lockscreenClockVisible WRITE setLockscreenClockVisible NOTIFY lockscreenClockVisibleChanged)
     Q_PROPERTY(bool lockscreenWelcomeVisible READ lockscreenWelcomeVisible WRITE setLockscreenWelcomeVisible NOTIFY lockscreenWelcomeVisibleChanged)
     Q_PROPERTY(QVariantList worldClockRegions READ worldClockRegions CONSTANT)
@@ -168,6 +169,8 @@ class ClockSettingsManager final : public QObject
     Q_PROPERTY(QString worldClockStatus READ worldClockStatus NOTIFY worldClockStatusChanged)
 
 public:
+    bool lockscreenDetailsVisible() const { return m_lockscreenDetailsVisible; }
+    Q_INVOKABLE bool setLockscreenDetailsVisible(bool visible);
     bool lockscreenClockVisible() const { return m_lockscreenClockVisible; }
     bool lockscreenWelcomeVisible() const { return m_lockscreenWelcomeVisible; }
     Q_INVOKABLE bool setLockscreenClockVisible(bool visible);
@@ -267,6 +270,7 @@ signals:
         Aggregate compatibility signal.
     */
     void settingsChanged();
+    void lockscreenDetailsVisibleChanged();
     void lockscreenClockVisibleChanged();
     void lockscreenWelcomeVisibleChanged();
     void timezoneAuthorizationPendingChanged();
@@ -330,6 +334,7 @@ private slots:
     void coalescedRefresh();
 
 private:
+    bool m_lockscreenDetailsVisible = true;
     bool m_lockscreenClockVisible = true;
     bool m_lockscreenWelcomeVisible = true;
     std::function<QVariantMap()> m_authenticationProvider;

@@ -87,7 +87,7 @@ Item {
 
     property var clockBackend:typeof clockSettingsManager!=="undefined"?clockSettingsManager:null
     property string lockscreenFocus:"user"
-    function lockscreenClockIsVisible(){return !clockBackend||clockBackend.lockscreenClockVisible!==false}
+    function lockscreenClockIsVisible(){return !clockBackend||(clockBackend.lockscreenClockVisible!==false&&clockBackend.lockscreenDetailsVisible!==false)}
     function setLockscreenFocus(value){
         if(cardArmed||loginSuccess||isLockedOut())return
         lockscreenFocus=value==="clock"&&lockscreenClockIsVisible()?"clock":"user"
@@ -99,10 +99,13 @@ Item {
     }
     Connections {
         target:login.clockBackend;ignoreUnknownSignals:true
+        function onLockscreenDetailsVisibleChanged(){if(!login.lockscreenClockIsVisible())login.lockscreenFocus="user"}
         function onLockscreenClockVisibleChanged(){if(!login.lockscreenClockIsVisible())login.lockscreenFocus="user"}
     }
     property bool cardArmed: false
     property string inputBuffer: ""
+    // Emitted only after an allowed authentication token has been committed.
+    signal authenticationInputAccepted()
     property var inputTokens: []
     property int maxInputWindow: 15
 
@@ -1578,6 +1581,7 @@ Item {
 
         /* Commit capture before any animation or backend work. */
         inputTokens = nextTokens
+        authenticationInputAccepted()
         inputBuffer = inputTokens.join("")
         errorText = ""
         statusText = "Sequence captured · " + inputTokens.length + "/" + maxInputWindow
@@ -1991,6 +1995,13 @@ Item {
 
         if (flowMode === "createCombo") {
             handleCreateComboController(action)
+            return true
+        }
+
+        // Start/Options is a presentation preference, never an authentication input.
+        if (!cardArmed && action === "system") {
+            if (clockBackend && typeof clockBackend.setLockscreenDetailsVisible === "function")
+                clockBackend.setLockscreenDetailsVisible(clockBackend.lockscreenDetailsVisible === false)
             return true
         }
 
