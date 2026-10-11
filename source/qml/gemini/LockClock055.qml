@@ -65,14 +65,6 @@ Item {
     }
     Item {
         id:planet;objectName:"GeminiClockPlanetInstrument";x:205;y:0;width:184;height:206;z:2
-        Item {
-            anchors.centerIn:parent;width:204;height:204;rotation:root.earthAngle
-            Rectangle{anchors.fill:parent;radius:width/2;color:"transparent";border.width:1.3;border.color:"#54baff";opacity:.8}
-            Repeater{model:2;delegate:Item{required property int index;anchors.centerIn:parent;width:204;height:204;rotation:index*180+24
-                Rectangle{x:width/2-8;y:-8;width:16;height:16;radius:8;color:index===0?"#55ff1645":"#5500cfff"}
-                Rectangle{x:width/2-4;y:-4;width:8;height:8;radius:4;color:index===0?"#ff3257":"#45eaff"}
-            }}
-        }
         TimezoneEarth{id:clockEarth;objectName:"GeminiLockClockEarth";anchors.centerIn:parent;width:180;height:180;quality:root.quality;animated:false;region:"Worldwide";latitude:root.selectedRegion.latitude;longitude:root.globeLongitudeTarget;spinAngle:root.earthAngle;astronomicalLighting:root.worldBackendAvailable;solarDirection:Qt.vector3d(root.solarData.x,root.solarData.y,root.solarData.z)}
     }
     Text {

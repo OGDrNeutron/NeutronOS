@@ -121,6 +121,5 @@ Item {
             objectName:"GeminiLockControllerPanel";x:(layout.width-width)/2;y:824;width:426;height:84
             controller:root.host.controllerBackend;visible:root.detailsVisible;active:root.visible&&visible
         }
-        Text{objectName:"GeminiLockPasscodeCount";x:535;y:905;width:600;text:root.host.isLockedOut()?"SECURITY TIMER · "+root.host.formatTime(root.host.lockoutSecondsRemaining()):root.host.cardArmed?"Controller passcode · "+root.host.inputTokens.length+" inputs":"";horizontalAlignment:Text.AlignHCenter;font.pixelSize:19;color:root.feedback==="error"?"#ff4055":"#a7deff"}
     }
 }

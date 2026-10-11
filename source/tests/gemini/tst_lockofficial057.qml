@@ -20,12 +20,12 @@ TestCase {
  Shell.LoginScreen{id:login;visible:false;active:false;clockBackend:worldClockTestBackend;securityBackend:null;userBackend:null;setupBackend:null;controllerBackend:null}
  SignalSpy{id:accepted;target:login;signalName:"authenticationInputAccepted"}
  function find(item,name){if(item.objectName===name)return item;for(var c of item.children||[]){var hit=find(c,name);if(hit)return hit}return null}
- function capture(item,name){waitForRendering(item);wait(120);grabImage(item).save("/gemini/validation/screenshots/"+name+"-validated.png")}
+ function capture(item,name){waitForRendering(item);wait(120);grabImage(item).save("/gemini/validation/screenshots/"+name+"-final.png")}
  function init(){host.cardArmed=false;host.animationsEnabled=true;lock.visible=true;desktop.visible=false;worldClockTestBackend.setLockscreenDetailsVisible(true);worldClockTestBackend.setLockscreenClockVisible(true)}
  function test_a_reference_layout_and_security(){
   var welcome=find(lock,"GeminiLockWelcome"),clock=find(lock,"GeminiLockClock"),panel=find(lock,"GeminiLockControllerPanel"),label=find(lock,"GeminiLockSecurityLabel")
   compare(welcome.y,47);compare(welcome.height,114);compare(clock.x,1255);compare(panel.width,426);compare(panel.x+panel.width/2,836)
-  verify(!find(lock,"GeminiLockSecurityBadge"));verify(welcome.visible)
+  verify(!find(lock,"GeminiLockSecurityBadge"));verify(welcome.visible);verify(!find(lock,"GeminiLockPasscodeCount"));verify(!find(panel,"GeminiLockControllerTransport"))
   for(var n of [92,65,20]){security.indicatorScore=n;compare(label.text,desktop.headerSecurityLabel());verify(welcome.accent===lock.securityColor)}
   security.indicatorOnline=false;compare(label.text,"Unavailable");security.indicatorOnline=true;security.indicatorScore=92
   wait(300);capture(test,"057-r3-official-lock-secure");capture(panel,"057-r3-controller-closeup")
@@ -37,7 +37,7 @@ TestCase {
   host.cardArmed=true;verify(ring.running);var count=ring.acceptedPulseCount,turn=ring.turn
   for(var n=0;n<15;n++)host.authenticationInputAccepted()
   compare(ring.acceptedPulseCount,count+15);compare(ring.activePulseCount,15)
-  wait(120);verify(ring.turn>turn);capture(test,"057-r3-armed-purple-input-pulses")
+  tryVerify(function(){return ring.turn>turn},2000);capture(test,"057-r3-armed-purple-input-pulses")
   tryCompare(ring,"activePulseCount",0,2500)
   host.authenticationInputAccepted();compare(ring.activePulseCount,1);host.cardArmed=false;compare(ring.activePulseCount,0);verify(!ring.running)
   host.cardArmed=true;host.authenticationInputAccepted();lock.visible=false;compare(ring.activePulseCount,0);verify(!ring.running)
@@ -60,4 +60,14 @@ TestCase {
   login.comboInputWindowSealed=true;login.appendComboToken("secondary");compare(accepted.count,1)
   login.cardArmed=false;login.active=false
  }
+ function test_e_controller_transport_symbols_and_battery(){
+  var panel=find(lock,"GeminiLockControllerPanel"),icon=find(lock,"GeminiLockControllerTransportIcon")
+  verify(panel.dualSense);compare(panel.controllerName,"DualSense");tryCompare(panel,"connectionLabel","Bluetooth",6000);verify(icon.visible)
+  pad.controllerDevicePath="/dev/input/event57";tryCompare(panel,"connectionLabel","Wired",6000);verify(icon.visible);pad.controllerBatteryPercent=31;compare(panel.battery,31);capture(panel,"057-r4-controller-usb")
+  pad.controllerBatteryAvailable=false;compare(panel.battery,-1);capture(panel,"057-r4-controller-battery-unknown")
+  pad.controllerConnected=false;compare(panel.connectionLabel,"Disconnected");verify(!icon.visible);compare(panel.battery,-1)
+  pad.controllerConnected=true;pad.controllerBatteryAvailable=true;pad.controllerBatteryPercent=72;pad.controllerDevicePath="/dev/input/event58";tryCompare(panel,"connectionLabel","Bluetooth",6000)
+  capture(panel,"057-r4-controller-bluetooth")
+ }
+
 }

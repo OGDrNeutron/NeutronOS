@@ -1,7 +1,7 @@
 import QtQuick
 
-// Static luminous strands are painted once. Scene-graph rotation supplies flow;
-// accepted authentication inputs each own an independent, short-lived pulse.
+// A single GPU shader renders a coherent double helix; only its periodic phase
+// animates. Each accepted authentication input owns an independent pulse.
 Item {
     id: root
     objectName: "GeminiLockHelix"
@@ -29,38 +29,10 @@ Item {
         from: 0; to: 360; duration: 14000; loops: Animation.Infinite
         running: root.running; easing.type: Easing.Linear
     }
-    Canvas {
-        id: strands
-        anchors.fill: parent
-        rotation: root.turn
-        renderTarget: Canvas.Image
-        onPaint: {
-            var ctx=getContext("2d"), cx=width/2, cy=height/2, radius=width*.435
-            ctx.clearRect(0,0,width,height)
-            var colors=["#00cfff","#ff164c","#743dff","#58efff","#ff3e75","#147bff"]
-            for(var strand=0;strand<24;strand++) {
-                ctx.beginPath()
-                for(var i=0;i<=240;i++) {
-                    var a=i/240*Math.PI*2
-                    var r=radius + Math.sin(a*3+strand*Math.PI/3)*width*.038 + Math.sin(a*7+strand)*width*.007 + Math.sin(a*29+strand)*width*.0018
-                    var x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r
-                    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)
-                }
-                ctx.strokeStyle=colors[strand%6]
-                // Explicit soft halos are portable across Qt Canvas renderers.
-                ctx.globalAlpha=.055;ctx.lineWidth=18;ctx.stroke()
-                ctx.globalAlpha=.12;ctx.lineWidth=9;ctx.stroke()
-                ctx.globalAlpha=strand<12?.8:.4;ctx.lineWidth=strand<12?2.1:1;ctx.stroke()
-                if(strand%3===0){ctx.strokeStyle="#c8faff";ctx.globalAlpha=.65;ctx.lineWidth=.7;ctx.stroke()}
-
-            }
-            // Small highlights give depth without a live particle simulation.
-            for(var n=0;n<72;n++) {
-                var t=n/72*Math.PI*2, rr=radius+Math.sin(t*3+n%3)*width*.035
-                ctx.beginPath();ctx.arc(cx+Math.cos(t)*rr,cy+Math.sin(t)*rr,n%9===0?2.8:1.1,0,Math.PI*2)
-                ctx.fillStyle=colors[n%6];ctx.globalAlpha=.8;ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=12;ctx.fill()
-            }
-        }
+    ShaderEffect {
+        anchors.fill:parent
+        property real phase:root.turn/360
+        fragmentShader:Qt.resolvedUrl("shaders/lock-helix057.frag.qsb")
     }
     Repeater {
         model: pulses
@@ -70,7 +42,7 @@ Item {
             required property real origin
             property real travel: 0
             readonly property real angle: (origin+travel*310)*Math.PI/180
-            readonly property real radius: root.width*.435 + Math.sin(angle*3)*root.width*.025
+            readonly property real radius: root.width*(.425 + Math.sin((angle-root.turn*Math.PI/180)*6)*.019)
             x: root.width/2+Math.cos(angle)*radius-width/2
             y: root.height/2+Math.sin(angle)*radius-height/2
             width: 52; height: 52
