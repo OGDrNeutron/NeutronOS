@@ -63,7 +63,7 @@ Item {
             EnergyAtom{x:-20;y:-10;width:135;height:135;animated:root.host.animationsEnabled;quality:renderQuality}
             Column{x:125;y:14;spacing:0
                 Text{text:"Neutron<font color='#ff1735'>OS</font>";textFormat:Text.RichText;color:"#f6faff";font.bold:true;font.pixelSize:54}
-                Text{text:"G E M I N I";color:"#00ffdb";font.bold:true;font.pixelSize:37}
+                Text{objectName:"GeminiLockWordmark";text:"G E M I N I";color:"#39FF14";font.bold:true;font.pixelSize:37}
             }
         }
         LockClock055 {
@@ -82,7 +82,7 @@ Item {
                 armed:root.host.cardArmed&&!root.host.loginSuccess&&!root.host.isLockedOut()
                 animated:root.visible&&root.host.animationsEnabled
             }
-            EnergyAtom{x:45;y:45;width:570;height:570;nucleusVisible:false;visible:!root.host.cardArmed;animated:root.visible&&visible&&root.host.animationsEnabled;feedback:root.feedback;quality:renderQuality}
+            EnergyAtom{objectName:"GeminiLockInnerAtom";x:45;y:45;width:570;height:570;nucleusVisible:false;animated:root.visible&&root.host.animationsEnabled;feedback:root.feedback;quality:renderQuality}
             Rectangle {
                 id:userCard;objectName:"GeminiLockUserIcon"
                 anchors.centerIn:parent;width:170;height:170;radius:85;color:"#ef020817"

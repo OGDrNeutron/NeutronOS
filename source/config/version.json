@@ -3,15 +3,15 @@
   "product": "NeutronOS",
   "codename": "Gemini",
   "version": "0.5.7",
-  "build": 4,
+  "build": 6,
   "channel": "candidate",
-  "releaseId": "NeutronOS-Gemini-0.5.7-candidate.r4",
+  "releaseId": "NeutronOS-Gemini-0.5.7-candidate.r6",
   "releaseDate": "2026-10-10",
   "baseDistribution": "Debian GNU/Linux 13 (trixie)",
   "architecture": "amd64",
   "minimumUpdaterVersion": "0.5.0",
   "updateFormatVersion": 3,
-  "displayName": "NeutronOS Gemini 0.5.7 candidate R4",
+  "displayName": "NeutronOS Gemini 0.5.7 candidate R6",
   "updateBackendProtocol": 2,
   "recoveryImageProtocol": 1
 }

@@ -30,6 +30,7 @@ public slots:
     }
     void applicationAvailable() {
         qmlRegisterType<GeminiRingGeometry>("NeutronGemini",1,0,"GeminiRingGeometry");
+        qmlRegisterType<GeminiHelixGeometry>("NeutronGemini",1,0,"GeminiHelixGeometry");
         qmlRegisterType<GeminiFractureGeometry>("NeutronGemini",1,0,"GeminiFractureGeometry");
     }
 };

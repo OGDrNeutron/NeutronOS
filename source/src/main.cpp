@@ -460,6 +460,7 @@ int main(int argc, char *argv[])
 
     qmlRegisterType<NeutronSyntaxHighlighter>("NeutronOS", 1, 0, "NeutronSyntaxHighlighter");
     qmlRegisterType<GeminiRingGeometry>("NeutronGemini", 1, 0, "GeminiRingGeometry");
+        qmlRegisterType<GeminiHelixGeometry>("NeutronGemini",1,0,"GeminiHelixGeometry");
     qmlRegisterType<GeminiFractureGeometry>("NeutronGemini", 1, 0, "GeminiFractureGeometry");
     qmlRegisterType<FractureEffect>("NeutronEffects", 1, 0, "FractureEffect");
 

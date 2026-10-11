@@ -1,7 +1,10 @@
 import QtQuick
+import QtQuick3D
+import QtQuick3D.Effects
+import NeutronGemini 1.0
 
-// A single GPU shader renders a coherent double helix; only its periodic phase
-// animates. Each accepted authentication input owns an independent pulse.
+// Static 3D tubular strands share one orbit, with actual depth at every crossing.
+// Only their parent transform animates; accepted inputs own independent transient arcs.
 Item {
     id: root
     objectName: "GeminiLockHelix"
@@ -29,10 +32,44 @@ Item {
         from: 0; to: 360; duration: 14000; loops: Animation.Infinite
         running: root.running; easing.type: Easing.Linear
     }
+    // One inexpensive annular pass supplies soft plasma emission around the real tubes.
     ShaderEffect {
         anchors.fill:parent
         property real phase:root.turn/360
         fragmentShader:Qt.resolvedUrl("shaders/lock-helix057.frag.qsb")
+    }
+    View3D {
+        id:helixView
+        objectName:"GeminiLockHelix3D"
+        anchors.fill:parent
+        environment:SceneEnvironment {
+            backgroundMode:SceneEnvironment.Transparent
+            antialiasingMode:SceneEnvironment.MSAA
+            antialiasingQuality:SceneEnvironment.Medium
+            lightProbe:Texture{source:"assets/atom-studio.jpg"}
+            probeExposure:1.1
+            effects:root.quality&&!root.quality.bloom?[]:[helixBloom]
+        }
+        HDRBloomTonemap{id:helixBloom;bloomThreshold:1.0;exposure:0;blurFalloff:1.6}
+        OrthographicCamera{z:500;clipNear:1;clipFar:1000;horizontalMagnification:Math.max(.001,root.width/660);verticalMagnification:Math.max(.001,root.height/660)}
+        DirectionalLight{eulerRotation:Qt.vector3d(-35,-25,0);brightness:1.8;color:"#e2ecff"}
+        PointLight{x:-180;y:180;z:160;brightness:18;quadraticFade:.08;color:"#75c9ff"}
+        GeminiHelixGeometry{id:tube;tubeRadius:3.8}
+        GeminiHelixGeometry{id:blueRungs;structure:1}
+        GeminiHelixGeometry{id:redRungs;structure:2}
+        GeminiHelixGeometry{id:molecules;structure:3}
+        GeminiHelixGeometry{id:core;tubeRadius:.65}
+        Node {
+            eulerRotation.z:-root.turn
+            Model{geometry:tube;materials:PrincipledMaterial{baseColor:"#006bdd";metalness:.55;roughness:.23;emissiveFactor:Qt.vector3d(.005,.9,3.5);clearcoatAmount:1}}
+            Model{geometry:tube;eulerRotation.z:18;materials:PrincipledMaterial{baseColor:"#e80024";metalness:.55;roughness:.23;emissiveFactor:Qt.vector3d(3.5,.008,.08);clearcoatAmount:1}}
+            Model{geometry:blueRungs;materials:PrincipledMaterial{baseColor:"#0754a1";metalness:.7;roughness:.2;emissiveFactor:Qt.vector3d(.005,.2,.65);clearcoatAmount:1}}
+            Model{geometry:redRungs;materials:PrincipledMaterial{baseColor:"#ae0627";metalness:.7;roughness:.2;emissiveFactor:Qt.vector3d(.65,.003,.05);clearcoatAmount:1}}
+            Model{geometry:molecules;materials:PrincipledMaterial{baseColor:"#0064c8";metalness:.4;roughness:.16;emissiveFactor:Qt.vector3d(.005,.5,1.9);clearcoatAmount:1}}
+            Model{geometry:molecules;eulerRotation.z:18;materials:PrincipledMaterial{baseColor:"#dc062b";metalness:.4;roughness:.16;emissiveFactor:Qt.vector3d(1.9,.004,.08);clearcoatAmount:1}}
+            Model{geometry:core;materials:PrincipledMaterial{baseColor:"#d6f5ff";emissiveFactor:Qt.vector3d(.6,2.7,5.)}}
+            Model{geometry:core;eulerRotation.z:18;materials:PrincipledMaterial{baseColor:"#ffe5ed";emissiveFactor:Qt.vector3d(5.,.6,1.2)}}
+        }
     }
     Repeater {
         model: pulses
@@ -42,20 +79,17 @@ Item {
             required property real origin
             property real travel: 0
             readonly property real angle: (origin+travel*310)*Math.PI/180
-            readonly property real radius: root.width*(.425 + Math.sin((angle-root.turn*Math.PI/180)*6)*.019)
-            x: root.width/2+Math.cos(angle)*radius-width/2
-            y: root.height/2+Math.sin(angle)*radius-height/2
-            width: 52; height: 52
+            // A small tangential shader lights both strands along an arc; no dot sprites.
+            x: root.width/2+Math.cos(angle)*root.width*(260/660)-width/2
+            y: root.height/2+Math.sin(angle)*root.height*(260/660)-height/2
+            width: 128; height: 120
+            rotation: angle*180/Math.PI
             opacity: Math.pow(1-travel, .75)
-            Canvas {
+            ShaderEffect {
                 anchors.fill:parent
-                onPaint: {
-                    var ctx=getContext("2d"),r=width/2,g=ctx.createRadialGradient(r,r,0,r,r,r)
-                    g.addColorStop(0,"#fff1ff");g.addColorStop(.12,"#edc3ff")
-                    g.addColorStop(.27,"#db72ff");g.addColorStop(.48,"#b946ff")
-                    g.addColorStop(.72,"#55a000ff");g.addColorStop(1,"#00000000")
-                    ctx.fillStyle=g;ctx.fillRect(0,0,width,height)
-                }
+                property real flowAngle:pulse.angle-root.turn*Math.PI/180
+                property vector2d extent:Qt.vector2d(pulse.width/root.width,pulse.height/root.height)
+                fragmentShader:Qt.resolvedUrl("shaders/lock-helix-pulse057.frag.qsb")
             }
             NumberAnimation on travel {
                 from: 0; to: 1; duration: 1800; running: root.running
