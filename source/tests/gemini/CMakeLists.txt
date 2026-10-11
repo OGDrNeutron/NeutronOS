@@ -31,3 +31,7 @@ target_link_libraries(GeminiClockWorld055Test PRIVATE Qt6::Test Qt6::Core Qt6::D
 add_executable(GeminiSecurityIndicator057Test security_indicator057_test.cpp)
 target_include_directories(GeminiSecurityIndicator057Test PRIVATE "${SRC}")
 target_link_libraries(GeminiSecurityIndicator057Test PRIVATE Qt6::Test Qt6::Core)
+
+add_executable(GeminiRecoveryImages057Test recovery_images057_test.cpp "${SRC}/RecoveryModeManager.cpp" "${SRC}/RecoveryModeManager.h")
+target_include_directories(GeminiRecoveryImages057Test PRIVATE "${SRC}")
+target_link_libraries(GeminiRecoveryImages057Test PRIVATE Qt6::Test Qt6::Core)

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import fcntl
 import json
 import os
 import platform
@@ -28,6 +29,18 @@ PUBLIC_KEY = Path("/etc/neutronos/keys/neutronos-release.gpg")
 ALLOWED_ROOTS = (NEUTRON_ROOT,)
 MAX_METADATA = 1024 * 1024
 MAX_FILES = 256
+UPDATE_PROTOCOL = 2
+SYSTEM_DESTINATIONS = {
+    "/usr/lib/systemd/system-generators/neutronos-recovery-generator": "scripts/neutronos-recovery-generator",
+    "/usr/local/sbin/neutronos-recovery-control": "scripts/neutronos-recovery-control",
+    "/etc/neutronos/version.json": "config/version.json",
+    "/etc/os-release": "config/distribution/os-release",
+    "/etc/issue": "config/distribution/issue",
+    "/etc/issue.net": "config/distribution/issue.net",
+    "/etc/sudoers.d/neutronos-recovery-images": "deployment/etc/sudoers.d/neutronos-recovery-images",
+    "/usr/local/lib/neutronos/neutronos-update-recovery": "deployment/usr/local/lib/neutronos/neutronos-update-recovery",
+    "/usr/local/lib/neutronos/neutronos_recovery_image.py": "deployment/usr/local/lib/neutronos/neutronos_recovery_image.py",
+}
 MAX_EXPANDED = 256 * 1024 * 1024
 RECOVERY_POINT_COMPONENTS = ("CMakeLists.txt", "src", "qml", "config", "scripts", "systemd", "themes", "services", "build/NeutronShell")
 RECOVERY_POINT_EXCLUDES = ("qml/apps/games/roms/", "qml/apps/games/cards/", "themes/Default/users/", "state/", "backups/")
@@ -200,6 +213,8 @@ def verify_release(package: Path, envelope: Path, expected_version: str, current
         raise Denied("Authenticated package size is invalid.") from error
     if expected_size != package.stat().st_size:
         raise Denied("Package byte size does not match authenticated metadata.")
+    if metadata.get("minimumUpdateProtocol", 1) not in (1, UPDATE_PROTOCOL):
+        raise Denied("This release requires a newer signed Update/Recovery prerequisite.")
     verify_transition(metadata, current_version)
     return metadata
 
@@ -469,7 +484,7 @@ def validate_zip_package(package: Path, destination: Path) -> tuple[dict, list[d
             raise Denied("Update ZIP manifests do not share one package root.")
         manifest = json.loads(archive.read(manifests[0]))
         declared = manifest.get("files")
-        if (manifest.get("schema") != 1 or not isinstance(declared, list) or not declared or
+        if (manifest.get("schema") not in (1, 2) or not isinstance(declared, list) or not declared or
                 len(declared) > MAX_FILES or any(not isinstance(item, str) for item in declared)):
             raise Denied("The Gemini ZIP package manifest is invalid.")
 
@@ -506,6 +521,10 @@ def validate_zip_package(package: Path, destination: Path) -> tuple[dict, list[d
             target = destination / "payload" / relative
             atomic_bytes(target, data, unix_mode)
             normalized.append({"path": relative, "sha256": digest, "mode": unix_mode})
+        if manifest.get("schema") == 2 and (manifest.get("minimumUpdateProtocol") != UPDATE_PROTOCOL or not manifest.get("systemFiles")):
+            raise Denied("Complete ZIP requires the signed backend prerequisite and system deployment inventory.")
+        if manifest.get("schema") == 1 and manifest.get("systemFiles"):
+            raise Denied("System deployment requires complete ZIP schema 2.")
         manifest = dict(manifest)
         manifest["packageFormat"] = "apollo-zip-v1"
         return manifest, normalized
@@ -519,6 +538,118 @@ def production_paths(require_root: bool = True) -> tuple[Path, Path, Path]:
     if require_root and os.geteuid() != 0:
         raise Denied("Root is required at the privileged update boundary.")
     return NEUTRON_ROOT, STATE_ROOT, RECOVERY_ROOT
+
+
+def validate_version_payload(manifest: dict, payload: Path, version: str) -> None:
+    if not manifest.get("systemFiles"):
+        return
+    if json.loads((payload / "config/version.json").read_text()).get("version") != version:
+        raise Denied("Payload OS version does not match authenticated target version.")
+    text = (payload / "config/distribution/os-release").read_text()
+    if not re.search(r'^VERSION_ID="?' + re.escape(version) + r'"?$', text, re.MULTILINE):
+        raise Denied("Payload distribution version does not match authenticated target version.")
+    for name in ("issue", "issue.net"):
+        if version not in (payload / "config/distribution" / name).read_text():
+            raise Denied("Payload login banner does not match authenticated target version.")
+
+
+def system_root() -> Path:
+    override = os.environ.get("NEUTRONOS_UPDATE_TEST_ROOT", "").strip()
+    return Path(override).resolve() if override else Path("/")
+
+
+def checked_destination(root: Path, relative: str) -> Path:
+    if not safe_member(relative) or relative in (".", ""):
+        raise Denied("Invalid deployment destination.")
+    destination = root / relative
+    # Do not follow an existing symlink at any component, including the leaf.
+    current = root
+    for part in Path(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise Denied(f"Deployment destination contains a symlink: {relative}")
+    if root.resolve() not in (destination.parent.resolve(), *destination.parent.resolve().parents):
+        raise Denied(f"Deployment destination leaves its managed root: {relative}")
+    if destination.exists() and not destination.is_file():
+        raise Denied(f"Deployment destination is not a regular file: {relative}")
+    return destination
+
+
+def deployment_key(destination: Path, neutron_root: Path) -> str:
+    if destination.is_relative_to(neutron_root):
+        return "opt/neutronos/" + str(destination.relative_to(neutron_root))
+    return str(destination.relative_to(system_root()))
+
+
+def deployment_files(manifest: dict, files: list[dict], metadata: dict, neutron_root: Path) -> list[dict]:
+    result = [{**item, "destination": str(checked_destination(neutron_root, item["path"]))}
+              for item in files]
+    system_files = manifest.get("systemFiles", [])
+    if not isinstance(system_files, list):
+        raise Denied("System file declarations must be an array.")
+    if system_files:
+        if (metadata.get("minimumUpdateProtocol") != UPDATE_PROTOCOL or
+                manifest.get("minimumUpdateProtocol") != UPDATE_PROTOCOL or
+                manifest.get("product") != "NeutronOS" or manifest.get("codename") != "Gemini" or
+                manifest.get("architecture") != ("amd64" if platform.machine() == "x86_64" else platform.machine()) or
+                manifest.get("version") != metadata.get("version")):
+            raise Denied("System deployment requires authenticated Gemini update protocol 2.")
+        if len(system_files) > len(SYSTEM_DESTINATIONS):
+            raise Denied("Too many system file declarations.")
+    known = {item["path"]: item for item in files}
+    seen = set()
+    for row in system_files:
+        if not isinstance(row, dict):
+            raise Denied("Invalid system file declaration.")
+        destination, source = row.get("destination"), row.get("source")
+        if (destination not in SYSTEM_DESTINATIONS or SYSTEM_DESTINATIONS[destination] != source or
+                source not in known or destination in seen):
+            raise Denied("System deployment destination is outside the exact allowlist.")
+        seen.add(destination)
+        item = known[source]
+        expected_mode = 0o755 if destination.endswith(("neutronos-update-recovery", "neutronos-recovery-generator", "neutronos-recovery-control")) else (0o440 if "/sudoers.d/" in destination else 0o644)
+        if item["mode"] != expected_mode:
+            raise Denied("Invalid system file deployment mode.")
+        result.append({**item, "destination": str(checked_destination(system_root(), destination.lstrip("/")))})
+    if system_files and not set(("/etc/neutronos/version.json", "/etc/os-release", "/etc/issue", "/etc/issue.net")).issubset(seen):
+        raise Denied("A complete OS upgrade must include all authoritative version/distribution files.")
+    # A protocol-2 release must match the exact preserved R2 preimages. Absence is
+    # explicit for new files; locally modified code is never silently overwritten.
+    if metadata.get("minimumUpdateProtocol") == UPDATE_PROTOCOL:
+        preimages = manifest.get("baselineFiles")
+        if not isinstance(preimages, dict) or set(preimages) != {deployment_key(Path(item["destination"]), neutron_root) for item in result}:
+            raise Denied("Complete update preimage inventory is missing or inconsistent.")
+        for item in result:
+            path = Path(item["destination"])
+            expected = preimages[deployment_key(path, neutron_root)]
+            actual = sha256(path) if path.exists() else None
+            if expected != actual:
+                raise Denied(f"Installed file differs from the required baseline: {path.name}")
+    return result
+
+
+def rollback_journal(transaction_root: Path) -> None:
+    journal_path = transaction_root / "apply-journal.json"
+    journal = json.loads(journal_path.read_text())
+    neutron_root, _, _ = production_paths()
+    for row in reversed(journal["prepared"]):
+        destination = Path(row["destination"])
+        absolute = "/" + str(destination.relative_to(system_root()))
+        if destination.is_relative_to(neutron_root):
+            checked_destination(neutron_root, str(destination.relative_to(neutron_root)))
+        elif absolute in SYSTEM_DESTINATIONS:
+            checked_destination(system_root(), absolute.lstrip("/"))
+        else:
+            raise Denied("Rollback journal destination is outside the deployment allowlist.")
+        snapshot = transaction_root / "rollback" / str(row["index"])
+        if row["existed"]:
+            if sha256(snapshot) != row["oldSha256"]:
+                raise Denied("Rollback snapshot integrity check failed.")
+            atomic_install(snapshot, destination, row["oldMode"])
+        else:
+            destination.unlink(missing_ok=True)
+    journal["status"] = "ROLLED_BACK"
+    atomic_json(journal_path, journal)
 
 
 def stage_update(package: Path, envelope: Path, version: str) -> None:
@@ -539,13 +670,15 @@ def stage_update(package: Path, envelope: Path, version: str) -> None:
         shutil.copy2(package, temporary / package.name)
         shutil.copy2(envelope, temporary / "metadata-envelope.json")
         package_manifest, files = validate_package(temporary / package.name, version, temporary / "expanded")
-        for field in ("updateClass", "minimumSupportedVersion", "maximumSupportedVersion", "requiredBaseline", "supersedes", "packageScope", "recoveryCapable"):
+        for field in ("updateClass", "minimumSupportedVersion", "maximumSupportedVersion", "requiredBaseline", "supersedes", "packageScope", "recoveryCapable", "minimumUpdateProtocol"):
             if field in package_manifest and package_manifest.get(field) != metadata.get(field):
                 raise Denied(f"Package and authenticated compatibility metadata disagree: {field}")
+        validate_version_payload(package_manifest, temporary / "expanded/payload", version)
+        deployment_files(package_manifest, files, metadata, neutron_root)
         transaction = {
             "schemaVersion": 1, "status": "STAGED", "createdUtc": now(),
             "id": transaction_id, "version": version, "package": package.name,
-            "packageSha256": metadata["sha256"], "files": files,
+            "packageSha256": metadata["sha256"], "files": files, "previousVersion": current_version,
         }
         atomic_json(temporary / "transaction.json", transaction)
         if final.exists():
@@ -798,8 +931,13 @@ def recovery_status() -> dict:
             "version": transaction.get("version", ""), "sha256": transaction.get("sha256", ""),
             "createdUtc": transaction.get("stagedUtc", ""), "verified": True,
         }
-    else:
+    elif active.get("mode") != "RECOVERY":
         raise Denied("This graphical Recovery build does not support the staged request mode.")
+    from neutronos_recovery_image import ImageRecovery
+    try:
+        result["images"] = ImageRecovery(globals()).catalog()
+    except (Denied, OSError, ValueError, KeyError, TypeError):
+        result["images"] = []
     return result
 
 
@@ -831,6 +969,11 @@ def atomic_install(source: Path, destination: Path, mode: int) -> None:
         owner = owner_path.stat()
         os.chown(temporary, owner.st_uid, owner.st_gid)
         os.replace(temporary, destination)
+        directory_fd = os.open(destination.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     finally:
         try:
             os.unlink(temporary)
@@ -849,6 +992,17 @@ def apply_update() -> None:
     version = safe_version(str(transaction.get("version", "")))
     package = transaction_root / str(transaction.get("package", ""))
     envelope = transaction_root / "metadata-envelope.json"
+    journal_path = transaction_root / "apply-journal.json"
+    if journal_path.exists() and json.loads(journal_path.read_text()).get("status") == "APPLYING":
+        rollback_journal(transaction_root)
+        raise Denied("Interrupted update restored to its baseline; retry the verified transaction.")
+    if journal_path.exists() and json.loads(journal_path.read_text()).get("status") == "COMMITTED":
+        metadata = verify_release(package, envelope, version, transaction["previousVersion"])
+        journal = json.loads(journal_path.read_text())
+        if any(not Path(row["destination"]).is_file() or sha256(Path(row["destination"])) != row["newSha256"] for row in journal["prepared"]):
+            raise Denied("Committed deployment changed before finalization.")
+        finalize_update(transaction_root, transaction, state_root, envelope)
+        return
     try:
         current_version = str(json.loads((neutron_root / "config/version.json").read_text())["version"])
     except (OSError, KeyError, ValueError, TypeError, json.JSONDecodeError) as error:
@@ -856,45 +1010,52 @@ def apply_update() -> None:
     metadata = verify_release(package, envelope, version, current_version)
     with tempfile.TemporaryDirectory(prefix="neutronos-mainline-apply-") as temporary:
         package_manifest, files = validate_package(package, version, Path(temporary))
-        for field in ("updateClass", "minimumSupportedVersion", "maximumSupportedVersion", "requiredBaseline", "supersedes", "packageScope", "recoveryCapable"):
+        for field in ("updateClass", "minimumSupportedVersion", "maximumSupportedVersion", "requiredBaseline", "supersedes", "packageScope", "recoveryCapable", "minimumUpdateProtocol"):
             if field in package_manifest and package_manifest.get(field) != metadata.get(field):
                 raise Denied(f"Package and authenticated compatibility metadata disagree: {field}")
+        journal_path = transaction_root / "apply-journal.json"
+        if journal_path.exists():
+            previous = json.loads(journal_path.read_text())
+            if previous.get("status") == "APPLYING":
+                rollback_journal(transaction_root)
+                raise Denied("Interrupted update restored to its baseline; retry the verified transaction.")
+        validate_version_payload(package_manifest, Path(temporary) / "payload", version)
+        deployment = deployment_files(package_manifest, files, metadata, neutron_root)
         rollback = transaction_root / "rollback"
         rollback.mkdir(mode=0o700, exist_ok=True)
-        applied: list[str] = []
+        journal = {"schemaVersion": 1, "status": "APPLYING", "prepared": []}
+        atomic_json(journal_path, journal)
         try:
-            for item in files:
-                relative = Path(item["path"])
-                destination = neutron_root / relative
-                resolved_parent = destination.parent.resolve()
-                if neutron_root.resolve() not in (resolved_parent, *resolved_parent.parents):
-                    raise Denied(f"Payload leaves the NeutronOS root: {relative}")
-                source = Path(temporary) / "payload" / relative
-                snapshot = rollback / relative
-                if destination.exists():
-                    snapshot.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(destination, snapshot)
-                else:
-                    atomic_bytes(rollback / f"{relative}.absent", b"", 0o600)
+            for index, item in enumerate(deployment):
+                destination = Path(item["destination"])
+                source = Path(temporary) / "payload" / item["path"]
+                existed = destination.exists()
+                row = {"index": index, "destination": str(destination), "existed": existed, "newSha256": item["sha256"]}
+                if existed:
+                    snapshot = rollback / str(index)
+                    atomic_install(destination, snapshot, stat.S_IMODE(destination.stat().st_mode))
+                    row.update(oldMode=stat.S_IMODE(destination.stat().st_mode), oldSha256=sha256(snapshot))
+                # Persist intent and snapshot BEFORE replacing the current file.
+                journal["prepared"].append(row)
+                atomic_json(journal_path, journal)
                 atomic_install(source, destination, int(item["mode"]))
                 if sha256(destination) != item["sha256"]:
-                    raise Denied(f"Installed payload verification failed: {relative}")
-                applied.append(str(relative))
-        except Exception:
-            for name in reversed(applied):
-                destination = neutron_root / name
-                snapshot = rollback / name
-                if snapshot.exists():
-                    atomic_install(snapshot, destination, stat.S_IMODE(snapshot.stat().st_mode))
-                else:
-                    destination.unlink(missing_ok=True)
+                    raise Denied(f"Installed payload verification failed: {destination.name}")
+            journal["status"] = "COMMITTED"
+            atomic_json(journal_path, journal)
+        except BaseException:
+            rollback_journal(transaction_root)
             raise
+    finalize_update(transaction_root, transaction, state_root, envelope)
+
+
+def finalize_update(transaction_root: Path, transaction: dict, state_root: Path, envelope: Path) -> None:
     result = dict(transaction)
     result.update({"status": "APPLIED", "appliedUtc": now(), "metadataSha256": sha256(envelope)})
     atomic_json(transaction_root / "transaction.json", result)
     atomic_json(state_root / "last-result.json", result)
-    (state_root / "active-transaction.json").unlink()
-    print(f"Authenticated Mainline {version} applied and verified ({metadata['sha256']}).")
+    (state_root / "active-transaction.json").unlink(missing_ok=True)
+    print(f"Authenticated Mainline {transaction['version']} applied and verified ({transaction['packageSha256']}).")
 
 
 def apply_recovery_update() -> None:
@@ -914,7 +1075,12 @@ def main() -> int:
     if len(sys.argv) < 2:
         raise Denied("usage: neutronos-update-recovery {stage-update|apply-staged-update} ...")
     action = sys.argv[1]
-    if action == "stage-update" and len(sys.argv) == 5:
+    if action == "protocol-version" and len(sys.argv) == 2:
+        print(json.dumps({"updateProtocol": UPDATE_PROTOCOL, "imageProtocol": 1}))
+    elif action.startswith("image-"):
+        from neutronos_recovery_image import ImageRecovery
+        ImageRecovery(globals()).dispatch(action, sys.argv[2:])
+    elif action == "stage-update" and len(sys.argv) == 5:
         stage_update(Path(sys.argv[2]).resolve(), Path(sys.argv[3]).resolve(), sys.argv[4])
     elif action == "apply-staged-update" and len(sys.argv) == 2:
         apply_update()
@@ -946,7 +1112,13 @@ def main() -> int:
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(main())
+        if sys.argv[1:] in (["image-cancel"], ["protocol-version"]):
+            raise SystemExit(main())
+        _, state, _ = production_paths()
+        state.mkdir(parents=True, exist_ok=True)
+        with (state / "operation.lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            raise SystemExit(main())
     except (Denied, OSError, ValueError, KeyError, json.JSONDecodeError, subprocess.SubprocessError) as error:
         action = sys.argv[1] if len(sys.argv) > 1 else ""
         prefix = "Recovery operation denied" if action.startswith("recovery-") or "backup" in action else "Mainline update denied"

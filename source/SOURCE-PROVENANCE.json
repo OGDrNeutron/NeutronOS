@@ -1,12 +1,20 @@
 {
-  "product": "NeutronOS Gemini",
-  "version": "0.5.7",
-  "baselineOwnerApproved": true,
-  "baselineImage": "/NeutronMedia/NeutronOS-Gemini/revisions/0.5.6/r2/output/NeutronOS-Gemini-0.5.6.candidate.r2.img.xz",
+  "backendPrerequisite": {
+    "package": "Gemini-Update-Recovery-0.5.7.r3.napp",
+    "sha256": "e18d59263a2e2b5f6cb93333dd84c5bef0eb2a6034c16d6e207f6637a6c9da75",
+    "version": "0.5.7"
+  },
   "baselineCompressedSHA256": "7adc04d944db5d53b40636685520242a1490265608df6d2f9030b7bf7fa2c249",
+  "baselineImage": "/NeutronMedia/NeutronOS-Gemini/revisions/0.5.6/r2/output/NeutronOS-Gemini-0.5.6.candidate.r2.img.xz",
+  "baselineOwnerApproved": true,
   "baselineSourceContentCommit": "1fc79a18da033cf6906b81ceb9a8705d64d5dbd9",
   "baselineSourceManifest": "../manifests/source-hashes-r2-review4.json",
-  "historicalProvenancePreserved": "../manifests/inherited-source-provenance-R2.json",
   "buildJobsMaximum": 2,
-  "developmentRuntimeCopiedIntoRelease": false
+  "developmentRuntimeCopiedIntoRelease": false,
+  "historicalProvenancePreserved": "../manifests/inherited-source-provenance-R2.json",
+  "prior057SourceCommit": "9e268e1d99ceaed209b2e1e7410d079bdcc6eb15",
+  "product": "NeutronOS Gemini",
+  "recoveryImageProtocol": 1,
+  "updateBackendProtocol": 2,
+  "version": "0.5.7"
 }

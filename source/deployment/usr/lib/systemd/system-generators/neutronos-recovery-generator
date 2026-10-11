@@ -22,7 +22,17 @@ def request_root() -> Path:
     return Path(override) if override else Path("/var/lib/neutronos/recovery")
 
 
+def offline_requested() -> bool:
+    try:
+        return "neutronos.offline_recovery=1" in Path("/proc/cmdline").read_text().split()
+    except OSError:
+        return False
+
+
 def load_request(root: Path) -> dict:
+    if offline_requested():
+        return {"schemaVersion": 1, "mode": "RECOVERY", "oneShot": True,
+                "reason": "Explicit offline full-image Recovery boot"}
     for name in ("next-boot.json", "safe-mode-next-boot.json"):
         path = root / name
         try:

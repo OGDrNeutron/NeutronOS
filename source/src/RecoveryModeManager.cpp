@@ -43,7 +43,9 @@ bool RecoveryModeManager::busy() const { return m_busy; }
 bool RecoveryModeManager::start(Operation operation, const QStringList &arguments)
 {
     const QString sudoProgram = sudoPath();
-    const QString helperProgram = helperPath();
+    const bool imageOperation = !arguments.isEmpty() && arguments.first().startsWith(QStringLiteral("image-"));
+    const QString helperProgram = imageOperation && !qEnvironmentVariableIsSet("NEUTRONOS_RECOVERY_HELPER")
+        ? QStringLiteral("/usr/local/lib/neutronos/neutronos-update-recovery") : helperPath();
     if (m_process.state() != QProcess::NotRunning || !QFileInfo(sudoProgram).isExecutable() ||
         !QFileInfo(helperProgram).isExecutable()) {
         fail(QStringLiteral("The authenticated Recovery service is unavailable."));
@@ -89,6 +91,24 @@ void RecoveryModeManager::beginApply()
         ? m_recoveryPoints.at(m_selectedIndex).toMap() : QVariantMap();
     const QString kind = point.value(QStringLiteral("kind")).toString();
     const QString path = selectedPath();
+    if (kind == QStringLiteral("image-target")) {
+        m_view = QStringLiteral("progress");
+        m_title = QStringLiteral("Installing Verified OS Image");
+        m_message = QStringLiteral("Confirming the offline blank target and image checksum…");
+        m_progress = 0;
+        m_armed = false;
+        start(Operation::ImageInstall, {QStringLiteral("image-install"), m_selectedImage, path,
+                                        point.value(QStringLiteral("fingerprint")).toString()});
+        return;
+    }
+    if (kind == QStringLiteral("image")) {
+        m_selectedImage = path;
+        m_view = QStringLiteral("progress");
+        m_title = QStringLiteral("Downloading Verified OS Image");
+        m_progress = 0;
+        start(Operation::ImageDownload, {QStringLiteral("image-download"), path});
+        return;
+    }
     if (kind == QStringLiteral("backup") && path.isEmpty()) {
         fail(QStringLiteral("The selected recovery point is no longer available."));
         return;
@@ -134,7 +154,16 @@ void RecoveryModeManager::selectIndex(int index)
 bool RecoveryModeManager::handleAction(const QString &rawAction)
 {
     const QString action=rawAction.trimmed().toLower();
-    if(m_busy) return true;
+    if(m_busy) {
+        if (m_operation == Operation::ImageDownload && action == QStringLiteral("cancel")) {
+            QProcess::startDetached(sudoPath(), {QStringLiteral("-n"),
+                qEnvironmentVariableIsSet("NEUTRONOS_RECOVERY_HELPER") ? helperPath() : QStringLiteral("/usr/local/lib/neutronos/neutronos-update-recovery"),
+                QStringLiteral("image-cancel")});
+            m_message = QStringLiteral("Cancelling image download safely…");
+            emit stateChanged();
+        }
+        return true;
+    }
     if(m_view == QStringLiteral("landing")) {
         if(action == QStringLiteral("primary")) {m_view=QStringLiteral("menu");emit stateChanged();}
         return true;
@@ -145,15 +174,19 @@ bool RecoveryModeManager::handleAction(const QString &rawAction)
         } else if(action == QStringLiteral("cancel")) m_view=QStringLiteral("landing");
         else if(action == QStringLiteral("primary")) {
             m_armed=false;
-            if(m_menuIndex==0) m_view=QStringLiteral("selection");
-            else if(m_menuIndex==3) m_view=QStringLiteral("manage");
+            if(m_menuIndex==0) {m_recoveryPoints=m_savedRecoveryPoints;m_view=QStringLiteral("selection");}
+            else if(m_menuIndex==3) {m_recoveryPoints=m_savedRecoveryPoints;m_view=QStringLiteral("manage");}
             else if(m_menuIndex==4) m_view=QStringLiteral("tools");
             else if(m_menuIndex==5) {cancelRecovery();return true;}
-            else if(m_menuIndex==1 && m_context.value(QStringLiteral("mode")).toString()==QStringLiteral("UPDATE"))
-                m_view=QStringLiteral("selection");
+            else if(m_menuIndex==1 && m_context.value(QStringLiteral("mode")).toString()==QStringLiteral("UPDATE")) {
+                m_recoveryPoints=m_savedRecoveryPoints;m_view=QStringLiteral("selection");
+            } else if(m_menuIndex==2 && !m_imageReleases.isEmpty()) {
+                m_recoveryPoints=m_imageReleases;m_selectedIndex=0;m_view=QStringLiteral("selection");
+                m_message=QStringLiteral("Select a signed image to download and verify. Installation requires an external offline boot and a blank disk.");
+            }
             else {
                 m_view=QStringLiteral("unavailable");
-                m_message=QStringLiteral("A signature-verified full-install image and a supported Gemini reimage backend are required. This Recovery session preserves OS-owned code and does not erase disks. Return to System to stage a supported update.");
+                m_message=QStringLiteral("No authenticated image or staged update is available for this action. Refresh Mainline through OS Update. Full-image installation requires external offline Recovery and a blank unmounted disk.");
             }
         }
         emit stateChanged();return true;
@@ -180,7 +213,13 @@ bool RecoveryModeManager::handleAction(const QString &rawAction)
             else {m_armed=false;start(Operation::Delete,{QStringLiteral("backup-delete"),selectedPath()});return true;}
         } else if(action==QStringLiteral("primary") && m_view==QStringLiteral("selection")) {
             if(m_recoveryPoints.isEmpty())m_message=QStringLiteral("No verified recovery point is available.");
-            else if(!m_armed){m_armed=true;m_message=QStringLiteral("RESTORE ARMED — Press X again to restore. O cancels.");}
+            else if(!m_armed){m_armed=true;
+                const QVariantMap point=m_recoveryPoints.at(m_selectedIndex).toMap();
+                const QString kind=point.value(QStringLiteral("kind")).toString();
+                m_message=kind==QStringLiteral("image-target")
+                    ? QStringLiteral("ERASE ARMED — %1 (%2 bytes). Press X again to install; O cancels. No automatic rollback.").arg(point.value(QStringLiteral("name")).toString()).arg(point.value(QStringLiteral("size")).toLongLong())
+                    : kind==QStringLiteral("image") ? QStringLiteral("Press X again to download and verify this signed full image. O cancels.")
+                    : QStringLiteral("RESTORE ARMED — Press X again to restore. O cancels.");}
             else {beginApply();return true;}
         }
         emit stateChanged();return true;
@@ -246,6 +285,7 @@ void RecoveryModeManager::onFinished(int exitCode, QProcess::ExitStatus exitStat
             return;
         }
         m_context=object.toVariantMap();
+        m_imageReleases=object.value(QStringLiteral("images")).toArray().toVariantList();
         m_recoveryPoints.clear();
         const QJsonArray points = object.value(QStringLiteral("recoveryPoints")).toArray();
         const QString authorized = object.value(QStringLiteral("authorizedArchive")).toString();
@@ -265,6 +305,7 @@ void RecoveryModeManager::onFinished(int exitCode, QProcess::ExitStatus exitStat
             m_recoveryPoints = {point};
             authorizedIndex = 0;
         }
+        m_savedRecoveryPoints=m_recoveryPoints;
         m_selectedIndex = authorizedIndex >= 0 ? authorizedIndex : 0;
         m_view = m_catalogReturn;
         m_catalogReturn=QStringLiteral("landing");
@@ -275,6 +316,29 @@ void RecoveryModeManager::onFinished(int exitCode, QProcess::ExitStatus exitStat
         m_progress = -1;
         emit stateChanged();
         return;
+    }
+    if (operation == Operation::ImageDownload && exitStatus == QProcess::NormalExit && exitCode == 0) {
+        m_message=QStringLiteral("Image verified. Checking offline targets…");
+        start(Operation::ImageTargets,{QStringLiteral("image-targets"),m_selectedImage});
+        return;
+    }
+    if (operation == Operation::ImageTargets) {
+        const QJsonObject object=QJsonDocument::fromJson(m_output.trimmed()).object();
+        m_recoveryPoints=object.value(QStringLiteral("targets")).toArray().toVariantList();
+        m_selectedIndex=0;m_armed=false;
+        if (exitStatus!=QProcess::NormalExit || exitCode!=0 || m_recoveryPoints.isEmpty()) {
+            m_view=QStringLiteral("unavailable");
+            m_message=exitCode!=0?sanitizedMessage(m_output):QStringLiteral("No safe blank target is available. Active, mounted, partitioned and undersized disks are excluded. Retain your existing installation and data.");
+        } else {
+            m_view=QStringLiteral("selection");
+            m_message=QStringLiteral("Select the blank disk by model and serial. X arms replacement; a second X confirms that exact target.");
+        }
+        emit stateChanged();return;
+    }
+    if (operation == Operation::ImageInstall && exitStatus == QProcess::NormalExit && exitCode == 0) {
+        m_view=QStringLiteral("success");m_title=QStringLiteral("IMAGE INSTALLATION VERIFIED");
+        m_message=QStringLiteral("The offline target passed full SHA-256 readback. Shut down Recovery and boot the new disk. Retain the original installation.");
+        m_progress=100;emit stateChanged();return;
     }
     if ((operation == Operation::Verify || operation == Operation::Delete) && exitStatus == QProcess::NormalExit && exitCode == 0) {
         m_message=operation==Operation::Verify?QStringLiteral("Backup verified against its checksum and archive manifest."):QStringLiteral("Selected backup deleted. Refreshing the catalog…");

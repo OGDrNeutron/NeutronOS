@@ -106,6 +106,15 @@ def prepare_update(root: Path, transaction: str) -> dict:
 
 
 def begin(root: Path, runtime: Path) -> dict:
+    # The generator selects the existing Recovery UI for this explicit boot flag.
+    # State is volatile; no persistent one-shot request or active disk is replaced.
+    if "neutronos.offline_recovery=1" in Path("/proc/cmdline").read_text().split():
+        value = {"schemaVersion": 1, "mode": "RECOVERY", "active": True,
+                 "oneShot": True, "reason": "External offline full-image Recovery",
+                 "recoveryStartedUtc": now()}
+        atomic_json(runtime / "offline-recovery.json", {"active": True, "protocol": 1})
+        atomic_json(runtime / "recovery-active.json", value)
+        return value
     marker = root / "next-boot.json"
     safe = root / "safe-mode-next-boot.json"
     selected = marker if marker.exists() else safe

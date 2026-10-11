@@ -13,8 +13,8 @@ Item {
     readonly property var selectedPoint:backend&&backend.recoveryPoints.length?backend.recoveryPoints[Math.max(0,Math.min(backend.selectedIndex,backend.recoveryPoints.length-1))]:({})
     property var actions:[
         {title:"Restore from Backup",detail:"Restore configuration and data from a verified backup.",icon:"▱",context:"Restore saved settings and user data from a verified backup. Your installed operating system stays in place."},
-        {title:"Restore to Clean Image (Keep Data)",detail:"Requires a verified clean-install image.",icon:"↶",context:"Clean installation requires a verified full-install image and a Gemini reimage backend. A staged authenticated update can be applied in this session; backup restore does not reinstall the operating system."},
-        {title:"Restore to Clean Image (Erase All)",detail:"Clean-image erase is unavailable in this Recovery session.",icon:"▥",context:"Disk erasure is unavailable in this recovery session. No disk is erased by selecting this menu action."},
+        {title:"Apply Staged OS Update",detail:"Install an authenticated update staged through OS Update.",icon:"↶",context:"Apply the signed overlay transaction selected by OS Update. Its rollback snapshots preserve the previous OS files and user data."},
+        {title:"Install Verified OS Image",detail:"Download a signed image; install offline to a blank disk.",icon:"▥",context:"Discover and verify full OS images from Mainline. Installation requires external offline Recovery and a blank unmounted disk. The active system disk is always excluded. No user-data migration or automatic image rollback is implied."},
         {title:"Manage Backups",detail:"View, verify, and delete protected backup archives.",icon:"▣",context:"Browse real backup metadata. X verifies the selected backup; Square arms deletion, and a second Square confirms. O cancels an armed action."},
         {title:"Advanced Tools",detail:"Review Recovery status and refresh verified backups.",icon:"⚙",context:"Review the actual recovery request, archive integrity, and transaction state. Disk repair and arbitrary commands are not exposed through this controller menu."},
         {title:"Exit to System",detail:"Reboot and continue to NeutronOS.",icon:"⏻",context:"Cancel the one-shot recovery request safely and reboot into the normal signed NeutronOS system. Verified backups are preserved."}
@@ -116,12 +116,12 @@ Item {
                 objectName:"RecoveryBackupDetails"
                 x:844;y:504;width:755;height:278;radius:15;color:"#df020917";border.color:"#2c759d"
                 Column{x:30;y:24;width:690;spacing:12
-                    Text{text:"Backup Details";font.bold:true;font.pixelSize:24;color:"white"}
+                    Text{text:root.selectedPoint.kind==="image"?"OS Image Details":root.selectedPoint.kind==="image-target"?"Offline Target Details":"Backup Details";font.bold:true;font.pixelSize:24;color:"white"}
                     Text{text:"Name    "+String(root.selectedPoint.name||root.selectedPoint.version||"Unavailable");width:690;elide:Text.ElideMiddle;font.pixelSize:20;color:"#f0f5fc"}
                     Text{text:"Date      "+root.timestamp(root.selectedPoint.createdUtc||root.selectedPoint.modified);font.pixelSize:19;color:"#d2dfed"}
                     Text{text:"Type      "+String(root.selectedPoint.profile||"Not recorded")+"     Size  "+root.bytes(root.selectedPoint.size);font.pixelSize:19;color:"#d2dfed"}
                     Text{text:"SHA256  "+String(root.selectedPoint.sha256||"Not recorded");width:690;elide:Text.ElideMiddle;font.pixelSize:16;color:"#a9c5de"}
-                    Text{text:root.backend&&root.backend.armed?root.backend.message:"Restores saved settings and user data. Your installed operating system stays in place.";width:690;wrapMode:Text.Wrap;font.pixelSize:18;color:root.backend&&root.backend.armed?"#ffca54":"#b7d2e9"}
+                    Text{text:root.backend?root.backend.message:"Select a verified recovery item.";width:690;wrapMode:Text.Wrap;font.pixelSize:18;color:root.backend&&root.backend.armed?"#ffca54":"#b7d2e9"}
                 }
             }
         }
@@ -171,7 +171,7 @@ Item {
             Rectangle{anchors.fill:parent;anchors.margins:-5;radius:42;color:"transparent";border.width:5;border.color:"#3541ff9a"}
             Rectangle{anchors.fill:parent;anchors.margins:-10;radius:47;color:"transparent";border.width:5;border.color:"#1641ff9a"}
             Column{anchors.centerIn:parent;spacing:1
-                Text{anchors.horizontalCenter:parent.horizontalCenter;text:root.browsing?(root.view==="manage"?"VERIFY BACKUP":root.backend.armed?"CONFIRM RESTORE":"RESTORE BACKUP"):"SELECT    ›";font.bold:true;font.pixelSize:26;color:"#f2fff7"}
+                Text{anchors.horizontalCenter:parent.horizontalCenter;text:root.browsing?(root.view==="manage"?"VERIFY BACKUP":root.backend.armed?"CONFIRM":root.selectedPoint.kind==="image"?"DOWNLOAD IMAGE":root.selectedPoint.kind==="image-target"?"SELECT TARGET":"RESTORE BACKUP"):"SELECT    ›";font.bold:true;font.pixelSize:26;color:"#f2fff7"}
                 Text{anchors.horizontalCenter:parent.horizontalCenter;text:"PRESS X";font.bold:true;font.pixelSize:19;color:"#00ffb5"}
             }
             MouseArea{anchors.fill:parent;onClicked:root.handle("primary")}

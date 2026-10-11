@@ -1,0 +1,14 @@
+[Unit]
+Description=Activate signed NeutronOS Update/Recovery backend prerequisite
+After=local-fs.target
+ConditionPathExists=!/var/lib/neutronos/update-recovery/backend-migrations/protocol2/complete.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/neutronos/update-recovery-protocol2-r3/neutronos-backend-activate.py
+User=root
+UMask=0077
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

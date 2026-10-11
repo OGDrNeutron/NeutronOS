@@ -55,6 +55,34 @@
         },
         "qtVersion": "6.8.2"
       }
+    },
+    {
+      "id": "gemini-update-recovery",
+      "name": "Update & Recovery Support",
+      "version": "0.5.7",
+      "description": "Signed backend prerequisite for the complete Gemini 0.5.7 upgrade. Install this first, then use OS Update.",
+      "developer": "NeutronOS",
+      "platforms": [
+        "gemini"
+      ],
+      "architectures": [
+        "amd64"
+      ],
+      "permissions": [],
+      "debianDependencies": [],
+      "dependencies": [
+        "Gemini 0.5.6; existing trusted App Store system-file installation"
+      ],
+      "category": "System",
+      "requiresDeveloperMode": false,
+      "minNeutronOS": "0.5.6",
+      "osRequirements": {
+        "minimumVersion": "0.5.6"
+      },
+      "packageUrl": "Gemini-Update-Recovery-0.5.7.r3.napp",
+      "size": 26368,
+      "installedBytes": 89566,
+      "sha256": "e18d59263a2e2b5f6cb93333dd84c5bef0eb2a6034c16d6e207f6637a6c9da75"
     }
   ]
 }

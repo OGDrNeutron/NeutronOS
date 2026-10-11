@@ -46,10 +46,13 @@ private slots:
     void onFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
-    enum class Operation { None, Status, Apply, Verify, Delete, Cancel, Reboot };
+    enum class Operation { None, Status, Apply, Verify, Delete, Cancel, Reboot, ImageDownload, ImageTargets, ImageInstall };
     QProcess m_process;
     Operation m_operation = Operation::None;
     QVariantList m_recoveryPoints;
+    QVariantList m_imageReleases;
+    QVariantList m_savedRecoveryPoints;
+    QString m_selectedImage;
     QByteArray m_output;
     int m_selectedIndex = 0;
     int m_menuIndex = 0;
