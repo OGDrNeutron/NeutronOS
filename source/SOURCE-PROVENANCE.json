@@ -20,6 +20,13 @@
     "installedBaseline": "0.5.7 R6",
     "previousSourceCommit": "0007e4612892f3697008cfdab8d4024595204fa9"
   },
+  "incrementalRelease059": {
+    "baseline": "complete installed 0.5.8 R2",
+    "fullImageBuilt": false,
+    "ownerApproval": "pending",
+    "parentSourceCommit": "1a6eaf01738497135ef5ed3eab1f32fa565b9eaa",
+    "scope": "Settings UI only; version and release metadata"
+  },
   "prior057SourceCommit": "9e268e1d99ceaed209b2e1e7410d079bdcc6eb15",
   "product": "NeutronOS Gemini",
   "recoveryImageProtocol": 1,

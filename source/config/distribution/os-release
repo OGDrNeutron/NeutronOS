@@ -1,7 +1,7 @@
-PRETTY_NAME="NeutronOS Gemini 0.5.8 candidate"
+PRETTY_NAME="NeutronOS Gemini 0.5.9 candidate"
 NAME="NeutronOS"
-VERSION_ID="0.5.8"
-VERSION="0.5.8 candidate (Gemini)"
+VERSION_ID="0.5.9"
+VERSION="0.5.9 candidate (Gemini)"
 VERSION_CODENAME=gemini
 ID=neutronos
 ID_LIKE=debian

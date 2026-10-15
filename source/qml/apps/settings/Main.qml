@@ -64,9 +64,6 @@ Item {
 
     property int sidebarIndex: 0
     property int focusZone: 0       // 0 sidebar/tiles, 1 content, 2 pending footer, 3 header menu
-    property string displayMode: settingsBackend
-                                 ? String(settingsBackend.value("ui.settingsDisplayMode", "list"))
-                                 : "list"
     property int tileIndex: 0
     readonly property bool securityAttention: !securityCoreBackend || !securityCoreBackend.daemonOnline
                                                     || !securityCoreBackend.auditValid
@@ -115,7 +112,7 @@ Item {
     // the JavaScript-array/required-property delegate path that rendered no
     // delegates on Qt 6.
     property int developerPageIndex: 0
-    readonly property string activeCategoryId: categories[Math.max(0, Math.min(categories.length - 1, sidebarIndex))].id
+    readonly property string activeCategoryId: pageCategoryId
     // Patch 38: Performance and Advanced deliberately use the same proven
     // pageModel + SettingDelegate path as every working Settings category.
     // The separate developer-page renderer is disabled because it repeatedly
@@ -123,7 +120,7 @@ Item {
     readonly property bool developerPageActive: false
     readonly property bool performancePageActive: !searchActive && activeCategoryId === "performance"
 
-    readonly property var categories: [
+    readonly property var legacyCategories: [
         { id: "user", title: userDisplayName(), detail: "USER SETTINGS", icon: "●" },
         { id: "system", title: "System", detail: "IDENTITY & STARTUP", icon: "N" },
         { id: "display", title: "Display", detail: "SCREEN & HDMI", icon: "▣" },
@@ -148,6 +145,36 @@ Item {
         { id: "services", title: "Services", detail: "SYSTEMD & STARTUP", icon: "⚙" },
         { id: "help", title: "Help", detail: "GUIDES & TROUBLESHOOTING", icon: "?" },
         { id: "about", title: "About", detail: "DEVICE INFORMATION", icon: "i" }
+    ]
+
+    readonly property real uiScale: Math.min(width/1672,height/941)
+    property string pageCategoryId: "system"
+    property int previewIndex: 0
+    readonly property bool homePage: sidebarIndex === 0
+    readonly property var previewCategory: categories[Math.min(12,Math.max(1,tileIndex+1))]
+    readonly property var centerEntries: homePage ? categories.slice(1,13) : pageEntries(categories[sidebarIndex].id)
+    readonly property string defaultFooterMotto: "SECURE. INTELLIGENT. UNSTOPPABLE."
+    onFocusZoneChanged: { if(focusZone<0){clearFooterSelection();clearControllerHint()} }
+    property string footerSelectionContext: ""
+    property string controllerHintText: ""
+    readonly property string footerContext: controllerHintText.length > 0 ? controllerHintText : footerSelectionContext.length > 0 ? footerSelectionContext : defaultFooterMotto
+    Timer { id: controllerHintTimer059; interval: 2500; repeat: false; onTriggered: root.controllerHintText="" }
+    onHostActiveChanged: { if(!hostActive){clearControllerHint();clearFooterSelection()} }
+    readonly property var categories: [
+        {id:"home",title:"Home",icon:"⌂",detail:"Your NeutronOS experience",description:"Manage and customize your NeutronOS experience.",pages:[],context:"SECURE. INTELLIGENT. UNSTOPPABLE."},
+        {id:"system",title:"System",icon:"N",detail:"Device info, updates\nand performance",description:"View device information, manage updates, and configure system settings.",pages:["system","update-recovery","performance","diagnostics","backup-restore","user"],context:"KNOW. UPDATE. OPTIMIZE."},
+        {id:"display",title:"Display",icon:"▣",detail:"Resolution, HDR\nand appearance",description:"Configure your display and graphics settings.",pages:["display"],context:"SEE. ADJUST. ENJOY."},
+        {id:"network",title:"Network",icon:"WIFI",detail:"Wi-Fi, Ethernet\nand Tailscale",description:"Manage connections, interfaces and remote access.",pages:["network","interfaces"],context:"CONNECT. DISCOVER. COMMUNICATE."},
+        {id:"bluetooth",title:"Bluetooth",icon:"BT",detail:"Controllers, audio\nand peripherals",description:"Pair and manage nearby Bluetooth devices.",pages:["bluetooth"],context:"PAIR. CONNECT. PLAY."},
+        {id:"controllers",title:"Controller",icon:"✣",detail:"Mapping, haptics\nand calibration",description:"Manage controller profiles, testing and feedback.",pages:["controllers"],context:"MAP. CALIBRATE. PLAY."},
+        {id:"storage",title:"Storage",icon:"▤",detail:"Drives, USB and\nstorage management",description:"Inspect drives, verified backups and recovery points.",pages:["storage","backup-restore"],context:"INSPECT. ORGANIZE. PRESERVE."},
+        {id:"security",title:"Security",icon:"◆",detail:"Firewall, scanning\nand protection",description:"Review your actual protection and security controls.",pages:["security"],context:"PROTECT. VERIFY. TRUST."},
+        {id:"power",title:"Power",icon:"ϟ",detail:"Performance modes\nand power settings",description:"Configure power, cooling and maintenance behavior.",pages:["power"],context:"BALANCE. CONSERVE. PERFORM."},
+        {id:"apps",title:"Apps",icon:"▦",detail:"Manage, install\nand configure apps",description:"Manage applications, defaults and system services.",pages:["apps","services"],context:"DISCOVER. MANAGE. ENJOY."},
+        {id:"appearance",title:"Appearance",icon:"✦",detail:"Themes, colors\nand UI customization",description:"Personalize themes, wallpaper and your interface.",pages:["appearance"],context:"PERSONALIZE. STYLE. EXPRESS."},
+        {id:"localization",title:"Date & Time",icon:"◎",detail:"Time zone, NTP\nand clock settings",description:"Configure timezone, language and regional formats.",pages:["localization"],context:"SYNCHRONIZE. LOCALIZE. ORGANIZE."},
+        {id:"about",title:"About",icon:"i",detail:"NeutronOS information\nand legal",description:"View NeutronOS and device information.",pages:["about"],context:"EXPLORE. UNDERSTAND. DISCOVER."},
+        {id:"extra",title:"Extra",icon:"⚙",detail:"Additional settings",description:"Audio, accessibility, notifications, advanced settings and help.",pages:["audio","accessibility","notifications","advanced","help"],context:"ACCESS. REFINE. EXPLORE."}
     ]
 
     ListModel { id: pageModel; dynamicRoles: true }
@@ -538,7 +565,7 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: 24
                     anchors.verticalCenter: parent.verticalCenter
-                    width: Math.min(300, implicitWidth)
+                    width: Math.min(parent.width*.34,300,implicitWidth)
                     text: root.rowValueText(model)
                     color: model.locked === true ? root.warning
                            : model.danger === true ? root.danger
@@ -738,497 +765,127 @@ Item {
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: root.windowColor
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: root.lightMode ? "#F5F7FA" : root.chromeColor }
-            GradientStop { position: 0.34; color: root.lightMode ? "#EEF2F6" : "#04101F" }
-            GradientStop { position: 0.72; color: root.windowColor }
-            GradientStop { position: 1.0; color: root.lightMode ? "#E7EDF5" : root.chromeColor }
+    Rectangle { anchors.fill: parent; color: root.windowColor }
+    Image { anchors.fill: parent; source: Qt.resolvedUrl("../../../themes/Default/background.png"); fillMode: Image.PreserveAspectCrop; opacity: root.lightMode ? .18 : .6 }
+    Rectangle { anchors.fill: parent; color: root.lightMode ? "#d9eef2f6" : "#a000030a" }
+    Image { width: parent.width * .72; height: 96 * root.uiScale; anchors.right: parent.right; source: Qt.resolvedUrl("assets059/header-space.png"); fillMode: Image.Stretch; opacity: root.lightMode ? .25 : .85 }
+    Item {
+        id: topBar; width: parent.width; height: 87 * root.uiScale
+        Image { x: 26*root.uiScale; width: 90*root.uiScale; height: 88*root.uiScale; anchors.verticalCenter: parent.verticalCenter; source: Qt.resolvedUrl("assets059/icon-gear.png"); fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true }
+        Text { x: 143 * root.uiScale; anchors.verticalCenter: parent.verticalCenter; text: "S E T T I N G S"; color: root.textPrimary; font.pixelSize: 36 * root.uiScale; font.letterSpacing: 5 * root.uiScale }
+        Text { anchors.right: parent.right; anchors.rightMargin: 25; anchors.verticalCenter: parent.verticalCenter; text: "×"; color: root.focusZone === 3 ? root.focusBlue : root.textMuted; font.pixelSize: 30
+            MouseArea { anchors.fill: parent; onClicked: root.openExitPrompt() }
         }
     }
-
     Rectangle {
-        id: settingsChromeBody
-        visible: root.displayMode === "list"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: topBar.bottom
-        anchors.bottom: pendingBar.top
-        anchors.leftMargin: 18
-        anchors.rightMargin: 18
-        color: root.chromeColor
-        border.width: 0
-        z: 0
-    }
-
-    Rectangle {
-        id: topBar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.leftMargin: 18
-        anchors.rightMargin: 18
-        height: 54
-        // Match the shared footer/header surface so the chrome reads as one
-        // continuous frame instead of isolated dark bars.
-        color: root.chromeColor
-        radius: 5
-        border.width: 0
-        clip: true
-        z: 5
-
-        Shared.ReferenceAppHeader {
-            anchors.fill: parent
-            anchors.margins: -2
-            appTitle: "Settings"
-            primaryStatus: root.securityAttention ? "Unsecure" : "Secure"
-            primaryTone: root.securityAttention ? "danger" : "success"
-            attention: root.securityAttention
-            menuFocused: root.focusZone === 3 && !root.exitModalVisible
-            onMenuRequested: root.openExitPrompt()
-        }
-
-        Text {
-            visible: false
-            anchors.left: parent.left
-            anchors.leftMargin: 34
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Settings"
-            color: root.textPrimary
-            font.pixelSize: 32
-            font.bold: true
-        }
-
-        Rectangle {
-            id: searchBar
-            visible: false
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(720, parent.width * 0.40)
-            height: 58
-            radius: 20
-            color: root.panelRaised
-            border.width: root.searchActive ? 2 : 1
-            border.color: root.searchActive ? root.focusBlue : root.divider
-            Row {
-                anchors.fill: parent
-                anchors.margins: 15
-                spacing: 12
-                Text { text: "⌕"; color: root.focusBlue; font.pixelSize: 24; font.bold: true }
-                Text {
-                    width: parent.width - 110
-                    text: root.searchText.length > 0 ? root.searchText : "Search all settings…"
-                    color: root.searchText.length > 0 ? root.textPrimary : root.textMuted
-                    font.pixelSize: 16
-                    elide: Text.ElideRight
-                }
-                Text { text: "△"; color: root.textMuted; font.pixelSize: 15; font.bold: true }
-            }
-        }
-
-        Rectangle {
-            visible: false
-            anchors.right: parent.right
-            anchors.rightMargin: 34
-            anchors.verticalCenter: parent.verticalCenter
-            width: 184
-            height: 52
-            radius: 18
-            color: root.panelRaised
-            border.width: 1
-            border.color: root.divider
-            Row {
-                anchors.centerIn: parent
-                spacing: 10
-                Text { text: root.focusZone === 1 ? "✓" : (root.lightMode ? "☀" : "◐"); color: root.focusZone === 1 ? root.success : (root.lightMode ? root.warning : root.cyan); font.pixelSize: 20 }
-                Text { text: root.focusZone === 1 ? "APPLY" : (root.lightMode ? "DARK MODE" : "LIGHT MODE"); color: root.textPrimary; font.pixelSize: 14; font.bold: true; font.letterSpacing: 1.0 }
-                Text { text: "□"; color: root.focusBlue; font.pixelSize: 15; font.bold: true }
-            }
-        }
-    }
-
-    Rectangle {
-        id: sidebar
-        visible: root.displayMode === "list"
-        anchors.left: parent.left
-        anchors.leftMargin: 18
-        anchors.top: topBar.bottom
-        anchors.bottom: pendingBar.top
-        width: 336
-        color: root.sidebarColor
-        border.width: 0
-
+        id: sidebar; x: 18 * root.uiScale; y: 117 * root.uiScale; width: 222 * root.uiScale; height: pendingBar.y - y - 24 * root.uiScale
+        radius: 12 * root.uiScale; color: root.lightMode ? "#e8ffffff" : "#c0000711"; border.color: "#193e66"
         ListView {
-            id: sidebarList
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: sidebarBrand.top
-            anchors.margins: 14
-            anchors.bottomMargin: 8
-            spacing: 4
-            clip: true
-            model: root.categories
-            currentIndex: root.sidebarIndex
-            boundsBehavior: Flickable.StopAtBounds
-            highlightMoveDuration: 130
-            delegate: SidebarItem {
-                titleText: modelData.title
-                detailText: modelData.detail
-                iconText: modelData.icon
-                categoryId: modelData.id
-                speedometerIcon: modelData.id === "performance"
-                selected: index === root.sidebarIndex && root.focusZone === 0
-                activePage: index === root.sidebarIndex
-                locked: root.categoryLocked(modelData.id)
+            id: sidebarList; objectName: "SettingsSidebar059"; anchors.fill: parent; anchors.margins: 4 * root.uiScale; clip: true; spacing: 2 * root.uiScale; model: root.categories; currentIndex: root.sidebarIndex
+            delegate: Rectangle {
+                required property int index; required property var modelData
+                width: sidebarList.width; height: 58 * root.uiScale; radius: 10 * root.uiScale
+                color: index === root.sidebarIndex ? (root.lightMode ? "#d5ecff" : "#0b2049") : "transparent"
+                border.width: index === root.sidebarIndex ? 2 : 0; border.color: root.focusZone === 0 ? "#77dfff" : "#2361b0"
+                Image { x: 16*root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: 38*root.uiScale; height: 42*root.uiScale; source: ["home","system","display","network","bluetooth","controllers","storage","security","power","apps"].indexOf(modelData.id)>=0 ? Qt.resolvedUrl("assets059/icon-"+modelData.id+".png") : ""; fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true }
+                CategoryGlyph { visible: ["home","system","display","network","bluetooth","controllers","storage","security","power","apps"].indexOf(modelData.id)<0; x: 16 * root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: 32 * root.uiScale; height: width; categoryId: modelData.id; fallbackText: modelData.icon; glyphColor: root.textPrimary; systemColor: root.textPrimary }
+                Text { x: 73 * root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: parent.width-x-8; text: modelData.title; color: root.textPrimary; font.pixelSize: 18 * root.uiScale; elide: Text.ElideRight }
+                MouseArea { anchors.fill: parent; onClicked: { root.selectSidebar(index); root.focusZone = 0; root.forceActiveFocus() } }
             }
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
         }
-
-        Rectangle {
-            id: sidebarBrand
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: 14
-            height: 138
-            radius: 22
-            color: root.panelRaised
-            border.width: 1
-            border.color: root.divider
-            clip: true
-
-            AtomAnimation {
-                width: 96
-                height: 96
-                anchors.left: parent.left
-                anchors.leftMargin: 14
-                anchors.verticalCenter: parent.verticalCenter
-                running: root.hostActive
-            }
-
-            Column {
-                anchors.left: parent.left
-                anchors.leftMargin: 120
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 4
-                Text {
-                    width: parent.width
-                    text: "NeutronOS"
-                    color: root.lightMode ? "#071A33" : "#FFFFFF"
-                    font.pixelSize: 22
-                    font.bold: true
-                    elide: Text.ElideRight
-                }
-                Text {
-                    width: parent.width
-                    text: "GEMINI"
-                    color: root.cyan
-                    font.pixelSize: 12
-                    font.bold: true
-                    font.letterSpacing: 2.0
-                }
-                Text {
-                    width: parent.width
-                    text: "GEMINI EDITION"
-                    color: root.purple
-                    font.pixelSize: 10
-                    font.bold: true
-                    font.letterSpacing: 1.0
-                }
-            }
-        }
     }
-
-    Item {
-        id: contentHost
-        visible: root.displayMode === "list"
-        anchors.left: sidebar.right
-        anchors.right: parent.right
-        anchors.rightMargin: 18
-        anchors.top: topBar.bottom
-        anchors.bottom: pendingBar.top
-
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: 18
-            id: rightSettingsPanel
-            radius: 24
-            color: root.panelColor
-            border.width: 0
-            clip: true
-
-            Canvas {
-                anchors.fill: parent
-                z: 20
-                onWidthChanged: requestPaint()
-                onHeightChanged: requestPaint()
-                Component.onCompleted: requestPaint()
-                onPaint: {
-                    var c = getContext("2d")
-                    c.clearRect(0, 0, width, height)
-                    var inset = 1.0
-                    var r = 23
-                    c.strokeStyle = String(root.divider)
-                    c.lineWidth = 1.5
-                    c.beginPath()
-                    c.moveTo(inset + r, inset)
-                    c.lineTo(width - inset - r, inset)
-                    c.quadraticCurveTo(width - inset, inset, width - inset, inset + r)
-                    c.lineTo(width - inset, height - inset - r)
-                    c.quadraticCurveTo(width - inset, height - inset, width - inset - r, height - inset)
-                    c.lineTo(inset + r, height - inset)
-                    c.quadraticCurveTo(inset, height - inset, inset, height - inset - r)
-                    c.lineTo(inset, inset + r)
-                    c.quadraticCurveTo(inset, inset, inset + r, inset)
-                    c.stroke()
-                }
-            }
-
-            Column {
-                z: 1
-                anchors.fill: parent
-                anchors.margins: 26
-                spacing: 18
-
-                Row {
-                    width: parent.width
-                    height: 66
-                    spacing: 16
-                    Rectangle {
-                        width: 54; height: 54; radius: root.activeCategoryId === "user" ? 27 : 17
-                        color: root.activeCategoryId === "user" ? root.panelInset : root.focusBlue
-                        border.width: root.activeCategoryId === "user" ? 2 : 0
-                        border.color: root.activeCategoryId === "user" ? root.focusBlue : "transparent"
-                        clip: true
-
-                        Image {
-                            anchors.fill: parent
-                            anchors.margins: root.activeCategoryId === "user" ? 3 : 0
-                            visible: root.activeCategoryId === "user" && source !== ""
-                            source: root.activeCategoryId === "user" ? root.userAvatar() : ""
-                            fillMode: Image.PreserveAspectCrop
-                            smooth: true
-                            asynchronous: true
-                        }
-
-                        CategoryGlyph {
-                            anchors.centerIn: parent
-                            width: parent.width * 0.64
-                            height: width
-                            visible: root.activeCategoryId !== "user"
-                            categoryId: root.activeCategoryId
-                            fallbackText: root.categories[root.sidebarIndex].icon
-                            glyphColor: "#04111F"
-                            systemColor: root.danger
-                        }
-                    }
-                    Column {
-                        width: parent.width - 360
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 3
-                        Text {
-                            width: parent.width
-                            text: root.searchActive ? "Search Results" : root.categories[root.sidebarIndex].title
-                            color: root.textPrimary
-                            font.pixelSize: 27
-                            font.bold: true
-                            elide: Text.ElideRight
-                        }
-                        Text {
-                            width: parent.width
-                            text: root.searchActive ? pageModel.count + " matching settings"
-                                                    : root.categoryDescription(root.categories[root.sidebarIndex].id)
-                            color: root.textMuted
-                            font.pixelSize: 13
-                            elide: Text.ElideRight
-                        }
-                    }
-                    Rectangle {
-                        width: 260; height: 44; radius: 16
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: settingsBackend && settingsBackend.pendingCount > 0
-                               ? (root.lightMode ? "#FFF4D8" : "#3A2A0E")
-                               : root.developerModeEnabled
-                                 ? (root.lightMode ? "#DDFCEB" : "#0B3A28")
-                                 : root.panelInset
-                        border.width: 1
-                        border.color: settingsBackend && settingsBackend.pendingCount > 0
-                                      ? root.warning
-                                      : root.developerModeEnabled ? root.success : root.divider
-                        Text {
-                            anchors.centerIn: parent
-                            text: settingsBackend && settingsBackend.pendingCount > 0
-                                  ? String(settingsBackend.pendingCount) + " STAGED • X APPLY"
-                                  : root.developerModeEnabled ? "DEVELOPER MODE ON" : "STANDARD MODE"
-                            color: settingsBackend && settingsBackend.pendingCount > 0
-                                   ? root.warning
-                                   : root.developerModeEnabled ? root.success : root.textMuted
-                            font.pixelSize: 12
-                            font.bold: true
-                            font.letterSpacing: 1.0
-                        }
-                    }
-                }
-
-                ListView {
-                    id: contentList
-                    width: parent.width
-                    height: parent.height - 84
-                    visible: !root.developerPageActive && !root.performancePageActive
-                    model: pageModel
-                    clip: true
-                    spacing: 10
-                    currentIndex: 0
-                    boundsBehavior: Flickable.StopAtBounds
-                    highlightMoveDuration: 120
-                    delegate: SettingDelegate { }
-                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                }
-
-                ListView {
-                    id: developerContentList
-                    width: parent.width
-                    height: parent.height - 84
-                    visible: root.developerPageActive && !root.performancePageActive
-                    model: developerPageModel
-                    clip: true
-                    spacing: 10
-                    currentIndex: root.developerPageIndex
-                    boundsBehavior: Flickable.StopAtBounds
-                    highlightMoveDuration: 120
-                    delegate: SettingDelegate { }
-                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                }
-
-                PerformancePage {
-                    id: performancePage
-                    width: parent.width
-                    height: parent.height - 84
-                    visible: root.performancePageActive
-                    backend: root.performanceBackend
-                    developerModeEnabled: root.developerModeEnabled
-                    activeFocusMode: root.focusZone === 1
-                    lightMode: root.lightMode
-                    panelColor: root.panelColor
-                    raisedColor: root.panelRaised
-                    insetColor: root.panelInset
-                    textPrimary: root.textPrimary
-                    textSecondary: root.textSecondary
-                    textMuted: root.textMuted
-                    divider: root.divider
-                    focusBlue: root.focusBlue
-                    success: root.success
-                    warning: root.warning
-                    danger: root.danger
-                    purple: root.purple
-                    onStatusChanged: function(message, error) {
-                        root.statusMessage = message
-                        root.statusError = error
-                    }
-                }
-            }
-        }
-    }
-
     Rectangle {
-        id: pendingBar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: 18
-        anchors.rightMargin: 18
-        height: 72
-        color: root.chromeColor
-        border.width: 0
-        clip: true
-        z: 6
-
-        Shared.ReferenceAppFooter {
-            anchors.fill: parent
-            anchors.margins: -2
-            // NEUTRONOS_SETTINGS_FINAL_UX_V1
-            hintText: settingsBackend && settingsBackend.pendingCount > 0
-                      ? "STAGED CHANGE • X APPLY • O BACK"
-                      : "X SELECT/APPLY • O BACK"
-            controllerBackend: root.controllerBackend
+        id: settingsChromeBody; x: 258 * root.uiScale; y: topBar.height; width: parent.width-x-15*root.uiScale; height: pendingBar.y-y-26*root.uiScale
+        radius: 14 * root.uiScale; color: root.lightMode ? "#e8ffffff" : "#e0000710"; border.color: "#0788bd"
+    }
+    Item {
+        id: centerPanel; x: settingsChromeBody.x+16*root.uiScale; y: settingsChromeBody.y+18*root.uiScale
+        width: root.homePage ? settingsChromeBody.width*.687 : settingsChromeBody.width*.39
+        height: settingsChromeBody.height-18*root.uiScale
+        Text { id: centerTitle; text: root.homePage ? "Home" : root.categories[root.sidebarIndex].title; color: root.textPrimary; font.pixelSize: 32*root.uiScale; font.bold: true }
+        Text { y: 42*root.uiScale; width: parent.width; text: root.homePage ? "Manage and customize your NeutronOS experience." : "Choose a section. Your settings stay live."; color: root.textSecondary; font.pixelSize: 17*root.uiScale; wrapMode: Text.WordWrap }
+        GridView {
+            id: tileView; objectName: "SettingsCategoryTiles059"; y: 76*root.uiScale; width: parent.width; height: parent.height-y
+            model: root.centerEntries; cellWidth: width/(root.homePage?4:2); cellHeight: root.homePage ? height/3 : 165*root.uiScale; clip: true; currentIndex: root.tileIndex
+            delegate: Rectangle {
+                required property int index; required property var modelData
+                width: tileView.cellWidth-13*root.uiScale; height: tileView.cellHeight-13*root.uiScale; radius: 10*root.uiScale
+                color: root.panelColor; border.width: index===root.tileIndex && root.focusZone===4 ? 3 : 1; border.color: index===root.tileIndex && root.focusZone===4 ? "#6cdaff" : "#285270"; clip: true
+                Image { width: parent.width-4; height: root.homePage ? parent.height*.61 : parent.height*.55; anchors.horizontalCenter: parent.horizontalCenter; y: 2; source: root.artFor(modelData.id); fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true }
+                Column {
+                    x: 12*root.uiScale; y: parent.height*(root.homePage?.61:.55); width: parent.width-24*root.uiScale; spacing: 4*root.uiScale
+                    Text { width: parent.width; text: modelData.title; color: root.textPrimary; font.pixelSize: (root.homePage?22:18)*root.uiScale; font.bold: true; elide: Text.ElideRight }
+                    Text { width: parent.width; text: modelData.detail; color: root.textSecondary; font.pixelSize: 16*root.uiScale; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
+                }
+                MouseArea { anchors.fill: parent; onClicked: { root.selectCenter(index); root.focusZone=4; root.activateCenter(); root.forceActiveFocus() } }
+            }
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
         }
     }
-
-    GridView {
-        id: tileView
-        objectName: "settingsTileMode"
-        visible: root.displayMode === "tiles"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: topBar.bottom
-        anchors.bottom: pendingBar.top
-        anchors.margins: 30
-        cellWidth: width / 4
-        cellHeight: height / 3
-        clip: true
-        interactive: false
-        model: root.categories
-        currentIndex: root.tileIndex
-
-        delegate: Item {
-            required property var modelData
-            required property int index
-            width: tileView.cellWidth
-            height: tileView.cellHeight
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 9
-                radius: 20
-                color: index === root.tileIndex && root.focusZone === 0 ? root.panelRaised : root.panelColor
-                border.width: index === root.tileIndex && root.focusZone === 0 ? 3 : 1
-                border.color: index === root.tileIndex && root.focusZone === 0 ? root.focusBlue : root.divider
-                scale: index === root.tileIndex && root.focusZone === 0 ? 1.025 : 1
-                Behavior on scale { NumberAnimation { duration: 110 } }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 22
-                    spacing: 10
-                    Row {
-                        width: parent.width
-                        spacing: 14
-                        Rectangle {
-                            width: 48; height: 48; radius: 14
-                            color: root.focusBlue
-                            Text { anchors.centerIn: parent; text: modelData.icon; color: "#04111F"; font.pixelSize: 23; font.bold: true }
-                        }
-                        Column {
-                            width: parent.width - 62
-                            anchors.verticalCenter: parent.verticalCenter
-                            Text { width: parent.width; text: modelData.title; color: root.textPrimary; font.pixelSize: 20; font.bold: true; elide: Text.ElideRight }
-                            Text { width: parent.width; text: modelData.detail; color: root.textMuted; font.pixelSize: 10; font.bold: true; font.letterSpacing: 0.8; elide: Text.ElideRight }
-                        }
-                    }
-                    Rectangle { width: parent.width; height: 1; color: root.divider }
-                    Text {
-                        width: parent.width
-                        text: root.categoryDescription(modelData.id)
-                        color: root.textSecondary
-                        font.pixelSize: 13
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 3
-                        elide: Text.ElideRight
-                    }
-                    Item { width: 1; height: 1 }
-                    Text { text: index === root.tileIndex && root.focusZone === 0 ? "X  OPEN" : ""; color: root.focusBlue; font.pixelSize: 11; font.bold: true }
+    Rectangle {
+        id: rightSettingsPanel; objectName: "SettingsDetailPanel059"
+        x: centerPanel.x+centerPanel.width+14*root.uiScale; y: settingsChromeBody.y+22*root.uiScale; width: settingsChromeBody.x+settingsChromeBody.width-x-12*root.uiScale; height: settingsChromeBody.height-36*root.uiScale
+        radius: 10*root.uiScale; color: root.panelInset; border.color: "#07537b"; clip: true
+        Column {
+            id: preview; visible: root.homePage && !root.searchActive; anchors.fill: parent; anchors.margins: 16*root.uiScale; spacing: 10*root.uiScale
+            Image { width: parent.width; height: 196*root.uiScale; source: root.previewCategory.id==="system" ? Qt.resolvedUrl("assets059/system-detail.png") : root.artFor(root.previewCategory.id); fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true }
+            Text { text: root.previewCategory.title; color: root.textPrimary; font.pixelSize: 28*root.uiScale; font.bold: true }
+            Text { width: parent.width; text: root.previewCategory.description; color: root.textSecondary; font.pixelSize: 17*root.uiScale; wrapMode: Text.WordWrap }
+            ListView {
+                id: previewActions; objectName: "SettingsPreviewActions059"; width: parent.width; height: Math.max(0,preview.height-y); clip: true; currentIndex: root.previewIndex; model: root.pageEntries(root.previewCategory.id)
+                delegate: Rectangle {
+                    required property int index; required property var modelData
+                    width: previewActions.width; height: 56*root.uiScale; color: root.focusZone===1 && index===root.previewIndex ? root.panelRaised : "transparent"; border.color: root.divider
+                    Text { x: 16*root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: parent.width-42*root.uiScale; text: modelData.title; color: root.textPrimary; font.pixelSize: 17*root.uiScale; elide: Text.ElideRight }
+                    Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: root.textSecondary; font.pixelSize: 26*root.uiScale }
+                    MouseArea { anchors.fill: parent; onClicked: root.openCategoryById(modelData.id) }
+                }
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            }
+        }
+        Column {
+            anchors.fill: parent; anchors.margins: 18*root.uiScale; spacing: 12*root.uiScale; visible: !root.homePage || root.searchActive
+            Row {
+                width: parent.width; height: 56*root.uiScale; spacing: 12
+                Text { width: parent.width-104*root.uiScale; anchors.verticalCenter: parent.verticalCenter; text: root.searchActive ? "Search Results" : root.pageTitle(root.currentCategoryId()); color: root.textPrimary; font.pixelSize: 25*root.uiScale; font.bold: true; elide: Text.ElideRight }
+                Text { width: 90*root.uiScale; anchors.verticalCenter: parent.verticalCenter; text: "△ Search"; color: root.cyan; font.pixelSize: 13*root.uiScale; MouseArea { anchors.fill: parent; onClicked: root.openKeyboard("search",root.searchText,"Search Settings") } }
+            }
+            ListView { id: contentList; objectName: "SettingsControls059"; width: parent.width; height: parent.height-68*root.uiScale; visible: !root.performancePageActive; model: pageModel; clip: true; spacing: 8; currentIndex: 0; delegate: SettingDelegate {}
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded } }
+            ListView { id: developerContentList; visible: false; width: parent.width; height: 0; model: developerPageModel; currentIndex: root.developerPageIndex; delegate: SettingDelegate {} }
+            PerformancePage {
+                id: performancePage; width: parent.width; height: parent.height-68*root.uiScale; visible: root.performancePageActive
+                backend: root.performanceBackend; developerModeEnabled: root.developerModeEnabled; activeFocusMode: root.focusZone===1
+                lightMode: root.lightMode; panelColor: root.panelColor; raisedColor: root.panelRaised; insetColor: root.panelInset; textPrimary: root.textPrimary; textSecondary: root.textSecondary; textMuted: root.textMuted; divider: root.divider; focusBlue: root.focusBlue; success: root.success; warning: root.warning; danger: root.danger; purple: root.purple
+                onStatusChanged: function(message,error) { root.statusMessage=message;root.statusError=error }
+            }
+        }
+    }
+    Item {
+        id: pendingBar; width: parent.width; height: 72*root.uiScale; anchors.bottom: parent.bottom
+        SettingsFooter059 {
+            anchors.fill: parent; uiScale: root.uiScale; hostActive: root.hostActive
+            controllerBackend: root.controllerBackend; securityBackend: root.securityCoreBackend; networkBackend: root.networkBackend
+            clockBackend: typeof clockExperienceManager !== "undefined" ? clockExperienceManager : null
+            contextText: root.footerContext
+        }
+    }
+    Rectangle {
+        id: applyBar059; anchors.bottom: pendingBar.top; anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.min(720*root.uiScale,parent.width*.6); height: 40*root.uiScale; radius: 8; z: 9
+        visible: !!root.settingsBackend && root.settingsBackend.pendingCount>0
+        color: root.panelRaised; border.color: root.warning
+        Row { anchors.centerIn: parent; spacing: 24*root.uiScale
+            Text { text: root.settingsBackend ? root.settingsBackend.pendingCount+" pending" : ""; color: root.warning; font.pixelSize: 16*root.uiScale }
+            Repeater { model: ["Discard","Apply"]
+                Text { required property int index; required property string modelData; text: modelData; color: root.focusZone===2 && root.rebootChoice===index ? root.focusBlue : root.textPrimary; font.pixelSize: 16*root.uiScale; font.bold: true
+                    MouseArea { anchors.fill: parent; onClicked: { if(index===0)root.settingsBackend.discardPending();else root.applyPendingWithAuthorization() } }
                 }
             }
         }
     }
+    Text { x: sidebar.x+sidebar.width+16; y: pendingBar.y-24*root.uiScale; width: parent.width-x-20; text: root.statusMessage; color: root.statusError ? root.danger : root.textSecondary; font.pixelSize: 13*root.uiScale; elide: Text.ElideRight; z: 10; visible: text.length>0 && !applyBar059.visible }
 
     DashboardV2.SystemOverviewManager {
         id: systemOverviewManager
@@ -2822,8 +2479,54 @@ Item {
         return false
     }
 
+    function pageTitle(id) {
+        var names={system:"Device Information","update-recovery":"System Updates",performance:"Performance Settings",diagnostics:"Logs & Diagnostics","backup-restore":"Recovery & Backups",user:"Users"}
+        if(names[id])return names[id]
+        for(var i=0;i<legacyCategories.length;i++)if(legacyCategories[i].id===id)return legacyCategories[i].title
+        return "Settings"
+    }
+    function pageEntries(id) {
+        for(var i=0;i<categories.length;i++)if(categories[i].id===id)return categories[i].pages.map(function(p){return {id:p,title:pageTitle(p),detail:categoryDescription(p)}})
+        return []
+    }
+    function artFor(id) {
+        var aliases={user:"system","update-recovery":"system",performance:"power",diagnostics:"system","backup-restore":"storage",interfaces:"network",services:"apps",audio:"bluetooth",accessibility:"appearance",notifications:"system",advanced:"system",help:"about",extra:"about"}
+        return Qt.resolvedUrl("assets059/"+(aliases[id]||id)+".png")
+    }
+    function selectSidebar(index) {
+        sidebarIndex=index;tileIndex=0;previewIndex=0;searchText="";clearControllerHint();selectFooterCategory()
+        pageCategoryId=index===0?"system":categories[index].pages[0]
+        sidebarList.positionViewAtIndex(index,ListView.Contain);refreshPage()
+    }
+    function selectCenter(index) {
+        tileIndex=index;previewIndex=0;tileView.positionViewAtIndex(index,GridView.Contain)
+        if(!homePage) {pageCategoryId=centerEntries[index].id;refreshPage();selectFooterCategory()}
+    }
+    function activateCenter() {
+        if(homePage) {selectSidebar(tileIndex+1);focusZone=4}
+        else {pageCategoryId=centerEntries[tileIndex].id;refreshPage();focusZone=1;selectFooterSetting()}
+    }
+    function firstSelectableFromEnd() {for(var i=pageModel.count-1;i>=0;i--)if(isSelectable(i))return i;return -1}
+    function clearFooterSelection() { footerSelectionContext="" }
+    function clearControllerHint() { controllerHintTimer059.stop();controllerHintText="" }
+    function showControllerHint(message,durationMs) {
+        controllerHintText=String(message||"")
+        controllerHintTimer059.stop()
+        if(controllerHintText.length>0){controllerHintTimer059.interval=Math.max(1,durationMs===undefined?2500:durationMs);controllerHintTimer059.start()}
+    }
+    function selectFooterCategory() {footerSelectionContext=sidebarIndex>0?categories[sidebarIndex].context:""}
+    function selectFooterSetting() {
+        if(homePage){selectFooterCategory();return}
+        if(contentList.currentIndex<0 || contentList.currentIndex>=pageModel.count){selectFooterCategory();return}
+        var row=pageModel.get(contentList.currentIndex)
+        if(row.danger===true){footerSelectionContext="REVIEW. AUTHORIZE. CONFIRM.";return}
+        var words=String(row.title||"Settings").replace(/[^A-Za-z0-9 ]/g," ").trim().split(/ +/).slice(0,3)
+        while(words.length<3)words.push(words.length===1?"REVIEW":"CONFIGURE")
+        footerSelectionContext=words.join(". ").toUpperCase()+"."
+    }
+
     function currentCategoryId() {
-        return categories[Math.max(0, Math.min(categories.length - 1, sidebarIndex))].id
+        return pageCategoryId
     }
 
     function categoryDescription(id) {
@@ -3073,7 +2776,7 @@ Item {
         row.selectable = true
         return row
     }
-    function warning(title, detail) {
+    function warningRow(title, detail) {
         var row = baseRow("warning", title, detail)
         row.valueText = "X  DETAILS"
         row.selectable = true
@@ -3416,7 +3119,7 @@ Item {
             var urTrust = ur && ur.trustedKeyAvailable === true ? "PINNED KEY" : "KEY REQUIRED"
             var urManifest = ur && ur.releaseManifestAvailable === true ? "INSTALLED" : "MISSING"
             var urLatestRecovery = ur ? String(ur.latestRecoveryPoint || "None") : "None"
-            rows = [warning("Signed Update Safety", "NeutronOS installs only LIVE Mainline packages whose authenticated metadata verifies with the pinned NeutronOS OpenPGP release public key and whose bytes match its signed SHA-256 and size."),
+            rows = [warningRow("Signed Update Safety", "NeutronOS installs only LIVE Mainline packages whose authenticated metadata verifies with the pinned NeutronOS OpenPGP release public key and whose bytes match its signed SHA-256 and size."),
                     section("Status"),
                     info("Installed Version", "Current NeutronOS release", ur ? String(ur.currentVersion || "0.5 candidate") : "UNAVAILABLE"),
                     choice("update.channel", "Update Channel", "Mainline offers signed LIVE NeutronOS OS releases", ur ? String(ur.channel || "mainline") : "mainline", ["mainline"], "immediate"),
@@ -3468,7 +3171,7 @@ Item {
             var brProgress = brBusy && br && Number(br.progress) >= 0 ? String(br.progress) + "%" : String(br ? br.status || "Ready" : "BACKEND UNAVAILABLE")
             var latestName = br ? String(br.latestBackupName || "None") : "None"
             var packageState = br && br.cleanReinstallReady === true ? "VERIFIED PACKAGE READY" : "VERIFY FULL PACKAGE IN UPDATE & RECOVERY"
-            rows = [warning("Backup Before Destructive Changes", "Restore, secure reset and clean reinstall can replace configuration or user data. Store an additional backup on removable storage before continuing."),
+            rows = [warningRow("Backup Before Destructive Changes", "Restore, secure reset and clean reinstall can replace configuration or user data. Store an additional backup on removable storage before continuing."),
                     section("Backup Profile"),
                     choice("backup.profile", "Backup Profile", "Full system, Settings, Apps or Personal data", br ? String(br.profile || "full") : "full", ["full", "settings", "apps", "personal"], "immediate"),
                     toggle("backup.includeRoms", "Include Game ROMs", "ROM libraries may make backups substantially larger", br ? br.includeRoms === true : false, "immediate"),
@@ -3490,7 +3193,7 @@ Item {
                     action("backup-reinstall-details", "Clean Reinstall Requirements", "Review exactly what is replaced and what can be preserved", "X  VIEW"),
                     info("Clean Reinstall NeutronOS", "Available only when Recovery has a signed complete full-system package. Overlay updates cannot be used for clean reinstall.", "FULL-SYSTEM PACKAGE REQUIRED"),
                     section("Secure Data Reset"),
-                    warning("Flash Storage Limitation", "NeutronOS overwrites small sensitive files before removal, but SD-card and SSD wear-leveling prevents a forensic-erasure guarantee. A full offline device reimage is required for that guarantee."),
+                    warningRow("Flash Storage Limitation", "NeutronOS overwrites small sensitive files before removal, but SD-card and SSD wear-leveling prevents a forensic-erasure guarantee. A full offline device reimage is required for that guarantee."),
                     action("backup-wipe-details", "Secure Reset Details", "Review which data is removed and the full-device recovery requirement", "X  VIEW"),
                     action("backup-wipe-data", "Wipe NeutronOS User Data", "Remove profiles, app state, configuration, backup archives and security credentials; ROM removal follows Include Game ROMs", "X  WIPE", true),
                     info("Offline Recovery Environment", "Required for a complete boot-drive wipe and reimage", br && br.recoveryEnvironmentReady === true ? "READY" : "NOT INSTALLED"),
@@ -3515,7 +3218,7 @@ Item {
             rows = [
                 action("refresh-services", "Refresh Service Inventory", "Re-read systemd unit files, loaded runtime units and NeutronOS helpers from the local system", "X  REFRESH"),
                 info("Discovered Entries", "Systemd services, timers, sockets, paths, targets and installed NeutronOS helpers", String(serviceRows ? serviceRows.length : 0) + " ITEMS"),
-                warning("Protected Services", "Critical NeutronOS, security, networking and boot services are inventory-only here. Selecting any entry opens its exact state and startup details.")
+                warningRow("Protected Services", "Critical NeutronOS, security, networking and boot services are inventory-only here. Selecting any entry opens its exact state and startup details.")
             ]
 
             var systemdKinds = ["service", "timer", "socket", "path", "target"]
@@ -3559,7 +3262,7 @@ Item {
             }
 
             if (!serviceRows || serviceRows.length === 0)
-                rows.push(warning("Service Inventory Unavailable", "The system service backend returned no entries. Refresh the inventory to retry."))
+                rows.push(warningRow("Service Inventory Unavailable", "The system service backend returned no entries. Refresh the inventory to retry."))
         } else if (id === "power") {
             rows = [section("Power Mode"),
                     choice("power.mode", "Power Mode", "Normal, Eco or Performance", "normal", ["normal", "eco", "performance"], "apply"),
@@ -3575,7 +3278,7 @@ Item {
                     action("shutdown", "Shut Down Pi", "Safely power off the device", "X  SHUT DOWN", true)]
         } else if (id === "performance") {
             var psi = settingsBackend ? settingsBackend.systemInfo : ({})
-            rows = [warning(developerModeEnabled ? "Developer Controls Active" : "Developer Mode Required", developerModeEnabled ? "Performance controls are unlocked. Cooling and stability safeguards still apply." : "Performance controls remain fully visible for reference and unlock when Developer Mode is enabled."),
+            rows = [warningRow(developerModeEnabled ? "Developer Controls Active" : "Developer Mode Required", developerModeEnabled ? "Performance controls are unlocked. Cooling and stability safeguards still apply." : "Performance controls remain fully visible for reference and unlock when Developer Mode is enabled."),
                     section("Live Status"),
                     info("CPU Architecture", "Detected processor architecture", String(psi.architecture || "x86_64")),
                     info("Installed Memory", "Physical memory available to Linux", String(psi.memory || "Unavailable")),
@@ -3592,7 +3295,7 @@ Item {
                     action("diagnostics", "Run Stability Diagnostics", "CPU, memory, temperature and throttling checks", "X  RUN")]
         } else if (id === "advanced") {
             var asi = settingsBackend ? settingsBackend.systemInfo : ({})
-            rows = [warning(developerModeEnabled ? "Developer Controls Active" : "Developer Mode Required", developerModeEnabled ? "Advanced controls are unlocked. Changes are validated before they are written." : "Advanced controls remain fully visible for reference and unlock when Developer Mode is enabled."),
+            rows = [warningRow(developerModeEnabled ? "Developer Controls Active" : "Developer Mode Required", developerModeEnabled ? "Advanced controls are unlocked. Changes are validated before they are written." : "Advanced controls remain fully visible for reference and unlock when Developer Mode is enabled."),
                     section("System Context"),
                     info("Kernel", "Currently running Linux kernel", String(asi.kernel || "Unavailable")),
                     info("Boot Device", "Root filesystem capacity", String(asi.rootTotal || "Unknown") + " total • " + String(asi.rootFree || "Unknown") + " available"),
@@ -3633,7 +3336,7 @@ Item {
                     var diagnosticCheck = diagnosticChecks[diagnosticIndex]
                     if (!diagnosticCheck) continue
                     if (String(diagnosticCheck.status || "warn") === "fail")
-                        rows.push(warning(String(diagnosticCheck.title || "Diagnostic failure"), String(diagnosticCheck.value || "") + " • " + String(diagnosticCheck.detail || "")))
+                        rows.push(warningRow(String(diagnosticCheck.title || "Diagnostic failure"), String(diagnosticCheck.value || "") + " • " + String(diagnosticCheck.detail || "")))
                     else
                         rows.push(info(String(diagnosticCheck.title || "Diagnostic check"), String(diagnosticCheck.detail || ""), String(diagnosticCheck.value || "")))
                 }
@@ -3681,7 +3384,11 @@ Item {
         return rows
     }
 
+    property string lastRefreshedPage059: ""
     function refreshPage() {
+        var previousRow = contentList.currentIndex>=0 && contentList.currentIndex<pageModel.count ? pageModel.get(contentList.currentIndex) : null
+        var previousIdentity = previousRow ? String(previousRow.key||"")+"|"+String(previousRow.action||"")+"|"+String(previousRow.title||"") : ""
+        var preserveSelection = lastRefreshedPage059===currentCategoryId() && focusZone===1 && !searchActive
         pageModel.clear()
         // Patch 37: clear both concrete ListModels before rebuilding the
         // selected page. Performance and Advanced no longer use a JS array.
@@ -3689,17 +3396,17 @@ Item {
         var source = []
         if (searchActive) {
             var query = searchText.trim().toLowerCase()
-            for (var c = 0; c < categories.length; c++) {
-                var categoryRows = allRowsForCategory(categories[c].id)
+            for (var c = 0; c < legacyCategories.length; c++) {
+                var categoryRows = allRowsForCategory(legacyCategories[c].id)
                 for (var r = 0; r < categoryRows.length; r++) {
                     var candidate = categoryRows[r]
                     if (candidate.kind === "section" || candidate.kind === "storage")
                         continue
-                    var haystack = (String(candidate.title || "") + " " + String(candidate.detail || "") + " " + categories[c].title + " " + String(candidate.key || "") + " " + String(candidate.action || "")).toLowerCase()
+                    var haystack = (String(candidate.title || "") + " " + String(candidate.detail || "") + " " + legacyCategories[c].title + " " + String(candidate.key || "") + " " + String(candidate.action || "")).toLowerCase()
                     if (haystack.indexOf(query) >= 0) {
                         var copy = normalizedPageEntry(candidate)
-                        copy.detail = categories[c].title + " › " + String(candidate.detail || "")
-                        if (categoryLocked(categories[c].id))
+                        copy.detail = legacyCategories[c].title + " › " + String(candidate.detail || "")
+                        if (categoryLocked(legacyCategories[c].id))
                             copy.locked = true
                         pageModel.append(copy)
                     }
@@ -3715,7 +3422,7 @@ Item {
                     source = allRowsForCategory(criticalId)
             } catch (pageError) {
                 console.error("[Settings] Failed to build " + currentCategoryId() + ": " + pageError)
-                source = [warning("Settings Page Error", "This page could not be generated. Return to the category list and try again."),
+                source = [warningRow("Settings Page Error", "This page could not be generated. Return to the category list and try again."),
                           info("Category", "Failed settings category", currentCategoryId().toUpperCase())]
             }
             if (developerPageActive) {
@@ -3727,7 +3434,7 @@ Item {
                     developerPageModel.append(developerEntry)
                 }
             } else {
-                var pageIsLocked = categoryLocked(categories[sidebarIndex].id)
+                var pageIsLocked = categoryLocked(currentCategoryId())
                 for (var i = 0; i < source.length; i++) {
                     var pageEntry = normalizedPageEntry(source[i])
                     if (pageIsLocked && pageEntry.kind !== "section" && pageEntry.kind !== "warning")
@@ -3737,8 +3444,16 @@ Item {
             }
         }
         if (!developerPageActive && pageModel.count === 0)
-            pageModel.append(normalizedPageEntry(warning("No Settings Rows", "The selected category returned no visible settings.")))
-        contentList.currentIndex = firstSelectableIndex(0)
+            pageModel.append(normalizedPageEntry(warningRow("No Settings Rows", "The selected category returned no visible settings.")))
+        var restoredIndex=firstSelectableIndex(0)
+        if(preserveSelection && previousIdentity.length>0){
+            for(var matchIndex=0;matchIndex<pageModel.count;matchIndex++){
+                var matchRow=pageModel.get(matchIndex)
+                if(String(matchRow.key||"")+"|"+String(matchRow.action||"")+"|"+String(matchRow.title||"")===previousIdentity){restoredIndex=matchIndex;break}
+            }
+        }
+        lastRefreshedPage059=currentCategoryId()
+        contentList.currentIndex = restoredIndex
         if (contentList.currentIndex >= 0)
             contentList.positionViewAtIndex(contentList.currentIndex, ListView.Contain)
         if (developerPageActive) {
@@ -3826,13 +3541,7 @@ Item {
         }
     }
 
-    function changeCategory(delta) {
-        sidebarIndex = (sidebarIndex + delta + categories.length) % categories.length
-        sidebarList.currentIndex = sidebarIndex
-        sidebarList.positionViewAtIndex(sidebarIndex, ListView.Contain)
-        searchText = ""
-        refreshPage()
-    }
+    function changeCategory(delta) { selectSidebar((sidebarIndex+delta+categories.length)%categories.length) }
 
     function cycleRow(row, delta) {
         var options = row.options || []
@@ -4289,20 +3998,11 @@ Item {
     }
 
     function openCategoryById(categoryId) {
-        for (var index = 0; index < categories.length; index++) {
-            if (categories[index].id === categoryId) {
-                sidebarIndex = index
-                focusZone = 1
-                Qt.callLater(function() {
-                    refreshPage()
-                    contentList.currentIndex = firstSelectableIndex(0)
-                    contentList.positionViewAtIndex(contentList.currentIndex, ListView.Contain)
-                    forceActiveFocus()
-                })
-                return true
+        for (var i=1;i<categories.length;i++) {
+            if ((categoryId!=="backup-restore" || categories[i].id==="storage") && categories[i].pages.indexOf(categoryId)>=0) {
+                selectSidebar(i);tileIndex=categories[i].pages.indexOf(categoryId);pageCategoryId=categoryId;refreshPage();focusZone=1;selectFooterSetting();forceActiveFocus();return
             }
         }
-        return false
     }
 
     function showUpdateRecoveryText(title, subtitle, body) {
@@ -4759,6 +4459,7 @@ Item {
     }
 
     function closeKeyboard() {
+        clearControllerHint()
         keyboardOpen = false
         virtualKeyboard.visibleMode = false
         forceActiveFocus()
@@ -5035,6 +4736,7 @@ Item {
     }
 
     function closeTransientModal(name) {
+        clearControllerHint()
         if (name === "edition") editionModalVisible = false
         else if (name === "pi") piModalVisible = false
         else if (name === "easter") { easterEggVisible = false; easterEggTimer.stop() }
@@ -5286,151 +4988,61 @@ Item {
             return performancePage.handleControllerPressed(action)
         }
 
-        if (action === "context") {
-            openKeyboard("search", searchText, "Search Settings")
+        if (action === "context") { openKeyboard("search",searchText,"Search Settings");return true }
+        if (action === "l1") { changeCategory(-1);focusZone=0;return true }
+        if (action === "r1") { changeCategory(1);focusZone=0;return true }
+        if (action === "system") return true // One permanent Settings layout; modal Options handling above is preserved.
+        if (action === "secondary") {
+            if (focusZone===0 || focusZone===4) toggleThemeFromSquare()
+            else { statusMessage="Use X to apply the selected setting.";statusError=false;showControllerHint("X SELECT/APPLY · O BACK",2500) }
             return true
         }
-        if (action === "l1") { changeCategory(-1); return true }
-        if (action === "r1") { changeCategory(1); return true }
-
         if (action === "cancel") {
-            if (displayMode === "tiles") { openExitPrompt(); return true }
-            if (focusZone === 1 || focusZone === 2) {
-                focusZone = 0
-                sidebarList.currentIndex = sidebarIndex
-                sidebarList.positionViewAtIndex(sidebarIndex, ListView.Contain)
-                statusMessage = "Returned to the Settings category list."
-                statusError = false
-            } else {
-                openExitPrompt()
-            }
+            if (focusZone===2) focusZone=1
+            else if (focusZone===1) focusZone=4
+            else if (focusZone===4) focusZone=0
+            else openExitPrompt()
+            clearControllerHint();selectFooterCategory()
             return true
         }
-
-        if (action === "up") {
-            if (focusZone === 3) return true
-            if (displayMode === "tiles") {
-                if (tileIndex < 4) focusZone = 3
-                else tileIndex = Math.max(0, tileIndex - 4)
-                return true
-            }
-            if (focusZone === 0) {
-                sidebarIndex = (sidebarIndex - 1 + categories.length) % categories.length
-                sidebarList.positionViewAtIndex(sidebarIndex, ListView.Contain)
-                refreshPage()
-            } else if (focusZone === 1) {
-                moveContent(-1)
-            } else {
-                focusZone = 1
-                if (developerPageActive) {
-                    developerPageIndex = firstSelectableDeveloperIndex(developerPageIndex)
-                    developerContentList.currentIndex = developerPageIndex
-                } else {
-                    contentList.currentIndex = firstSelectableIndex(contentList.currentIndex)
-                }
-            }
-            return true
-        }
-        if (action === "down") {
-            if (focusZone === 3) { focusZone = 0; return true }
-            if (displayMode === "tiles") { tileIndex = Math.min(categories.length - 1, tileIndex + 4); return true }
-            if (focusZone === 0) {
-                sidebarIndex = (sidebarIndex + 1) % categories.length
-                sidebarList.positionViewAtIndex(sidebarIndex, ListView.Contain)
-                refreshPage()
-            } else if (focusZone === 1) {
-                moveContent(1)
-            } else {
-                focusZone = 1
-                if (developerPageActive) {
-                    developerPageIndex = firstSelectableDeveloperIndex(developerPageIndex)
-                    developerContentList.currentIndex = developerPageIndex
-                } else {
-                    contentList.currentIndex = firstSelectableIndex(contentList.currentIndex)
-                }
-            }
+        if (action === "up" || action === "down") {
+            var delta=action==="up"?-1:1
+            if (focusZone===3) { if(delta>0)focusZone=0;return true }
+            if (focusZone===0) changeCategory(delta)
+            else if (focusZone===4) selectCenter(Math.max(0,Math.min(centerEntries.length-1,tileIndex+delta*(homePage?4:2))))
+            else if (focusZone===1 && homePage && !searchActive) { previewIndex=Math.max(0,Math.min(pageEntries(previewCategory.id).length-1,previewIndex+delta));previewActions.positionViewAtIndex(previewIndex,ListView.Contain) }
+            else if (focusZone===1) {
+                if(delta>0 && contentList.currentIndex===firstSelectableFromEnd() && settingsBackend && settingsBackend.pendingCount>0)focusZone=2
+                else {moveContent(delta);selectFooterSetting()}
+            } else if(focusZone===2 && delta<0)focusZone=1
             return true
         }
         if (action === "left") {
-            if (displayMode === "tiles") { tileIndex = Math.max(0, tileIndex - 1); return true }
-            if (focusZone === 1 || focusZone === 2) {
-                focusZone = 0
-                sidebarList.currentIndex = sidebarIndex
-                sidebarList.positionViewAtIndex(sidebarIndex, ListView.Contain)
-                statusMessage = "Returned to the Settings category list."
-                statusError = false
-            }
+            if(focusZone===4) { if(tileIndex%(homePage?4:2)===0)focusZone=0;else selectCenter(tileIndex-1) }
+            else if(focusZone===1) {
+                var leftRow=pageModel.get(contentList.currentIndex)
+                if(!homePage && leftRow && (leftRow.kind==="choice" || leftRow.kind==="slider")) { if(leftRow.kind==="choice")cycleRow(leftRow,-1);else adjustSlider(leftRow,-1) }
+                else focusZone=4
+            } else if(focusZone===2){rebootChoice=Math.max(0,rebootChoice-1);footerSelectionContext="REVIEW. DISCARD. RESET."}
             return true
         }
         if (action === "right") {
-            if (displayMode === "tiles") { tileIndex = Math.min(categories.length - 1, tileIndex + 1); return true }
-            if (focusZone === 0) {
-                focusZone = 1
-                if (performancePageActive) {
-                    performancePage.focusIndex = 0
-                } else if (developerPageActive) {
-                    developerPageIndex = firstSelectableDeveloperIndex(developerPageIndex)
-                    developerContentList.currentIndex = developerPageIndex
-                } else {
-                    contentList.currentIndex = firstSelectableIndex(contentList.currentIndex)
-                }
-            } else if (focusZone === 1) {
-                var rightRow = developerPageActive ? developerRowAt(developerPageIndex) : pageModel.get(contentList.currentIndex)
-                if (developerPageActive && developerRowLocked(rightRow)) {
-                    statusMessage = "Enable Developer Mode to change this setting."
-                    statusError = true
-                } else if (rightRow && rightRow.kind === "choice") cycleRow(rightRow, 1)
-                else if (rightRow && rightRow.kind === "slider") adjustSlider(rightRow, 1)
-            } else if (focusZone === 2) {
-                rebootChoice = Math.min(1, rebootChoice + 1)
-            }
+            if(focusZone===0)focusZone=4
+            else if(focusZone===4) { if(tileIndex%(homePage?4:2)===(homePage?3:1) || tileIndex===centerEntries.length-1)focusZone=1;else selectCenter(tileIndex+1) }
+            else if(focusZone===1 && !homePage) {
+                var rightRow=pageModel.get(contentList.currentIndex)
+                if(rightRow && rightRow.kind==="choice")cycleRow(rightRow,1)
+                else if(rightRow && rightRow.kind==="slider")adjustSlider(rightRow,1)
+            } else if(focusZone===2){rebootChoice=Math.min(1,rebootChoice+1);footerSelectionContext="REVIEW. AUTHORIZE. APPLY."}
             return true
         }
-        if (action === "primary") {
-            if (focusZone === 3) { openExitPrompt(); return true }
-            if (displayMode === "tiles") {
-                sidebarIndex = tileIndex
-                refreshPage()
-                displayMode = "list"
-                if (settingsBackend) settingsBackend.setUiPreference("ui.settingsDisplayMode", displayMode)
-                focusZone = 1
-                return true
-            }
-            if (focusZone === 0) {
-                focusZone = 1
-                if (performancePageActive) {
-                    performancePage.focusIndex = 0
-                } else if (developerPageActive) {
-                    developerPageIndex = firstSelectableDeveloperIndex(0)
-                    developerContentList.currentIndex = developerPageIndex
-                } else {
-                    contentList.currentIndex = firstSelectableIndex(0)
-                }
-            } else if (focusZone === 1) {
-                activateCurrent()
-            } else if (focusZone === 2) {
-                if (rebootChoice === 0) settingsBackend.discardPending()
-                else applyPendingWithAuthorization()
-                focusZone = 1
-                refreshPage()
-            }
-            return true
-        }
-        if (action === "secondary") {
-            // Square is never the Settings Apply button. X owns select/apply.
-            if (focusZone === 0)
-                toggleThemeFromSquare()
-            else {
-                statusMessage = "Use X to apply the selected setting."
-                statusError = false
-            }
-            return true
-        }
-        if (action === "system") {
-            displayMode = displayMode === "tiles" ? "list" : "tiles"
-            if (displayMode === "tiles") { tileIndex = sidebarIndex; focusZone = 0 }
-            else { sidebarIndex = tileIndex; refreshPage(); focusZone = 0 }
-            if (settingsBackend) settingsBackend.setUiPreference("ui.settingsDisplayMode", displayMode)
+        if(action === "primary") {
+            if(focusZone===3)openExitPrompt()
+            else if(focusZone===0)focusZone=4
+            else if(focusZone===4)activateCenter()
+            else if(focusZone===1 && homePage && !searchActive)openCategoryById(pageEntries(previewCategory.id)[previewIndex].id)
+            else if(focusZone===1)activateCurrent()
+            else if(focusZone===2) { if(rebootChoice===0)settingsBackend.discardPending();else applyPendingWithAuthorization();focusZone=1;refreshPage() }
             return true
         }
         return true
