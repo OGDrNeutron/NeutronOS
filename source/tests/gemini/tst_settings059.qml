@@ -18,13 +18,27 @@ TestCase {
  Settings.Main{id:ui;anchors.fill:parent;settingsBackend:preferences;controllerBackend:controller;securityCoreBackend:security}
  function init(){ui.exitModalVisible=false;ui.searchText="";ui.selectSidebar(0);ui.focusZone=0;preferences.themeMode="dark";preferences.autoLogin=false;preferences.pendingCount=0;preferences.pendingChanges=({});preferences.applyCalls=0;ui.statusMessage="";ui.statusError=false;ui.closeKeyboard()}
  function test_categories_and_all_pages_accessible(){
-  compare(ui.categories.length,14);compare(ui.centerEntries.length,12)
+  compare(ui.categories.length,19);compare(ui.centerEntries.length,12)
   var pages={}
   for(var i=1;i<ui.categories.length;i++){
    ui.selectSidebar(i)
    for(var p of ui.centerEntries){pages[p.id]=true;ui.openCategoryById(p.id);compare(ui.currentCategoryId(),p.id);verify(findChild(ui,"SettingsControls059").count>0,p.id);verify(!ui.statusError,p.id)}
   }
-  compare(Object.keys(pages).length,24);compare(ui.categories[13].title,"Extra")
+  compare(Object.keys(pages).length,24);compare(ui.categories[18].title,"Extra")
+ }
+ function test_promoted_categories_and_empty_extra(){
+  var expected=["Home","System","Display","Network","Bluetooth","Controller","Storage","Security","Power","Apps","Appearance","Date & Time","Audio","Accessibility","Notifications","Advanced","Help","About","Extra"]
+  for(var i=0;i<expected.length;i++)compare(ui.categories[i].title,expected[i])
+  ui.selectSidebar(0);compare(ui.centerEntries.length,12);compare(ui.centerEntries[11].id,"about")
+  ui.selectCenter(11);ui.activateCenter();compare(ui.sidebarIndex,17);compare(ui.currentCategoryId(),"about")
+  for(var id of ["audio","accessibility","notifications","advanced","help"]){
+   ui.openCategoryById(id);compare(ui.categories[ui.sidebarIndex].id,id);compare(ui.centerEntries.length,1);compare(ui.currentCategoryId(),id)
+   verify(findChild(ui,"SettingsControls059").count>0);ui.focusZone=4;ui.activateCenter();compare(ui.focusZone,1)
+  }
+  ui.selectSidebar(18);compare(ui.centerEntries.length,0);compare(ui.currentCategoryId(),"extra");ui.selectCenter(-1);ui.activateCenter();verify(!ui.statusError)
+  ui.focusZone=0;ui.handleControllerPressed("up");compare(ui.sidebarIndex,17);ui.handleControllerPressed("down");compare(ui.sidebarIndex,18)
+  var sidebar=findChild(ui,"SettingsSidebar059");wait(60);verify(sidebar.contentY>0);verify(sidebar.currentItem.y>=sidebar.contentY);verify(sidebar.currentItem.y+sidebar.currentItem.height<=sidebar.contentY+sidebar.height+1)
+  ui.handleControllerPressed("down");compare(ui.sidebarIndex,0)
  }
  function test_navigation_and_theme(){
   ui.handleControllerPressed("right");compare(ui.focusZone,4)
@@ -90,7 +104,8 @@ TestCase {
  function test_render_home_and_extra(){
   ui.selectSidebar(0);ui.focusZone=4;wait(500);grabImage(ui).save('/gemini/validation/screenshots/settings059-home-development.png')
   ui.selectSidebar(1);ui.focusZone=1;wait(100);grabImage(ui).save('/gemini/validation/screenshots/settings059-system-development.png')
-  ui.selectSidebar(13);wait(100);grabImage(ui).save('/gemini/validation/screenshots/settings059-extra-development.png')
+  for(var id of ["audio","accessibility","notifications","advanced","help"]){ui.openCategoryById(id);wait(100);grabImage(ui).save("/gemini/validation/screenshots/settings059-"+id+"-development.png")}
+  ui.selectSidebar(18);wait(100);grabImage(ui).save('/gemini/validation/screenshots/settings059-extra-development.png')
   preferences.themeMode="light";wait(100);grabImage(ui).save('/gemini/validation/screenshots/settings059-light-development.png')
  }
 }

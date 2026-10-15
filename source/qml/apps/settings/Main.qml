@@ -151,8 +151,9 @@ Item {
     property string pageCategoryId: "system"
     property int previewIndex: 0
     readonly property bool homePage: sidebarIndex === 0
-    readonly property var previewCategory: categories[Math.min(12,Math.max(1,tileIndex+1))]
-    readonly property var centerEntries: homePage ? categories.slice(1,13) : pageEntries(categories[sidebarIndex].id)
+    readonly property var homeCategoryIds: ["system","display","network","bluetooth","controllers","storage","security","power","apps","appearance","localization","about"]
+    readonly property var previewCategory: categories[categoryIndex(homeCategoryIds[Math.max(0,Math.min(11,tileIndex))])]
+    readonly property var centerEntries: homePage ? homeCategoryIds.map(function(id){return categories[categoryIndex(id)]}) : pageEntries(categories[sidebarIndex].id)
     readonly property string defaultFooterMotto: "SECURE. INTELLIGENT. UNSTOPPABLE."
     onFocusZoneChanged: { if(focusZone<0){clearFooterSelection();clearControllerHint()} }
     property string footerSelectionContext: ""
@@ -173,8 +174,13 @@ Item {
         {id:"apps",title:"Apps",icon:"▦",detail:"Manage, install\nand configure apps",description:"Manage applications, defaults and system services.",pages:["apps","services"],context:"DISCOVER. MANAGE. ENJOY."},
         {id:"appearance",title:"Appearance",icon:"✦",detail:"Themes, colors\nand UI customization",description:"Personalize themes, wallpaper and your interface.",pages:["appearance"],context:"PERSONALIZE. STYLE. EXPRESS."},
         {id:"localization",title:"Date & Time",icon:"◎",detail:"Time zone, NTP\nand clock settings",description:"Configure timezone, language and regional formats.",pages:["localization"],context:"SYNCHRONIZE. LOCALIZE. ORGANIZE."},
+        {id:"audio",title:"Audio",icon:"♪",detail:"Output and volume",description:"Output and volume.",pages:["audio"],context:"LISTEN. ADJUST. ENJOY."},
+        {id:"accessibility",title:"Accessibility",icon:"◈",detail:"Vision and input",description:"Vision and input.",pages:["accessibility"],context:"ACCESS. ADAPT. INTERACT."},
+        {id:"notifications",title:"Notifications",icon:"◍",detail:"Alerts and sounds",description:"Alerts and sounds.",pages:["notifications"],context:"REVIEW. PRIORITIZE. CONTROL."},
+        {id:"advanced",title:"Advanced",icon:"⚙",detail:"Developer settings",description:"Developer settings.",pages:["advanced"],context:"INSPECT. CONFIGURE. VERIFY."},
+        {id:"help",title:"Help",icon:"?",detail:"Guides and troubleshooting",description:"Guides and troubleshooting.",pages:["help"],context:"LEARN. DIAGNOSE. RESOLVE."},
         {id:"about",title:"About",icon:"i",detail:"NeutronOS information\nand legal",description:"View NeutronOS and device information.",pages:["about"],context:"EXPLORE. UNDERSTAND. DISCOVER."},
-        {id:"extra",title:"Extra",icon:"⚙",detail:"Additional settings",description:"Audio, accessibility, notifications, advanced settings and help.",pages:["audio","accessibility","notifications","advanced","help"],context:"ACCESS. REFINE. EXPLORE."}
+        {id:"extra",title:"Extra",icon:"⚙",detail:"Additional settings",description:"All current settings have a dedicated category.",pages:[],context:"ACCESS. REFINE. EXPLORE."}
     ]
 
     ListModel { id: pageModel; dynamicRoles: true }
@@ -787,8 +793,8 @@ Item {
                 width: sidebarList.width; height: 58 * root.uiScale; radius: 10 * root.uiScale
                 color: index === root.sidebarIndex ? (root.lightMode ? "#d5ecff" : "#0b2049") : "transparent"
                 border.width: index === root.sidebarIndex ? 2 : 0; border.color: root.focusZone === 0 ? "#77dfff" : "#2361b0"
-                Image { x: 16*root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: 38*root.uiScale; height: 42*root.uiScale; source: ["home","system","display","network","bluetooth","controllers","storage","security","power","apps"].indexOf(modelData.id)>=0 ? Qt.resolvedUrl("assets059/icon-"+modelData.id+".png") : ""; fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true }
-                CategoryGlyph { visible: ["home","system","display","network","bluetooth","controllers","storage","security","power","apps"].indexOf(modelData.id)<0; x: 16 * root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: 32 * root.uiScale; height: width; categoryId: modelData.id; fallbackText: modelData.icon; glyphColor: root.textPrimary; systemColor: root.textPrimary }
+                Image { x: 16*root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: 38*root.uiScale; height: 42*root.uiScale; source: ["home","system","display","network","bluetooth","controllers","storage","security","power","apps","audio","accessibility","notifications","advanced","help"].indexOf(modelData.id)>=0 ? Qt.resolvedUrl("assets059/icon-"+modelData.id+(["audio","accessibility","notifications","advanced","help"].indexOf(modelData.id)>=0?(root.lightMode?"-light.svg":".svg"):".png")) : ""; fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true }
+                CategoryGlyph { visible: ["home","system","display","network","bluetooth","controllers","storage","security","power","apps","audio","accessibility","notifications","advanced","help"].indexOf(modelData.id)<0; x: 16 * root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: 32 * root.uiScale; height: width; categoryId: modelData.id; fallbackText: modelData.icon; glyphColor: root.textPrimary; systemColor: root.textPrimary }
                 Text { x: 73 * root.uiScale; anchors.verticalCenter: parent.verticalCenter; width: parent.width-x-8; text: modelData.title; color: root.textPrimary; font.pixelSize: 18 * root.uiScale; elide: Text.ElideRight }
                 MouseArea { anchors.fill: parent; onClicked: { root.selectSidebar(index); root.focusZone = 0; root.forceActiveFocus() } }
             }
@@ -805,6 +811,7 @@ Item {
         height: settingsChromeBody.height-18*root.uiScale
         Text { id: centerTitle; text: root.homePage ? "Home" : root.categories[root.sidebarIndex].title; color: root.textPrimary; font.pixelSize: 32*root.uiScale; font.bold: true }
         Text { y: 42*root.uiScale; width: parent.width; text: root.homePage ? "Manage and customize your NeutronOS experience." : "Choose a section. Your settings stay live."; color: root.textSecondary; font.pixelSize: 17*root.uiScale; wrapMode: Text.WordWrap }
+        Text { visible: !root.homePage && root.centerEntries.length===0; y: 100*root.uiScale; width: parent.width-16*root.uiScale; text: "No unclassified settings.\nChoose a category from the sidebar."; color: root.textSecondary; font.pixelSize: 18*root.uiScale; wrapMode: Text.WordWrap }
         GridView {
             id: tileView; objectName: "SettingsCategoryTiles059"; y: 76*root.uiScale; width: parent.width; height: parent.height-y
             model: root.centerEntries; cellWidth: width/(root.homePage?4:2); cellHeight: root.homePage ? height/3 : 165*root.uiScale; clip: true; currentIndex: root.tileIndex
@@ -2479,7 +2486,9 @@ Item {
         return false
     }
 
+    function categoryIndex(id) { for(var i=0;i<categories.length;i++)if(categories[i].id===id)return i;return 0 }
     function pageTitle(id) {
+        if(id==="extra")return "Extra"
         var names={system:"Device Information","update-recovery":"System Updates",performance:"Performance Settings",diagnostics:"Logs & Diagnostics","backup-restore":"Recovery & Backups",user:"Users"}
         if(names[id])return names[id]
         for(var i=0;i<legacyCategories.length;i++)if(legacyCategories[i].id===id)return legacyCategories[i].title
@@ -2495,15 +2504,17 @@ Item {
     }
     function selectSidebar(index) {
         sidebarIndex=index;tileIndex=0;previewIndex=0;searchText="";clearControllerHint();selectFooterCategory()
-        pageCategoryId=index===0?"system":categories[index].pages[0]
+        pageCategoryId=index===0?"system":categories[index].pages.length?categories[index].pages[0]:"extra"
         sidebarList.positionViewAtIndex(index,ListView.Contain);refreshPage()
     }
     function selectCenter(index) {
+        if(index<0 || index>=centerEntries.length)return
         tileIndex=index;previewIndex=0;tileView.positionViewAtIndex(index,GridView.Contain)
         if(!homePage) {pageCategoryId=centerEntries[index].id;refreshPage();selectFooterCategory()}
     }
     function activateCenter() {
-        if(homePage) {selectSidebar(tileIndex+1);focusZone=4}
+        if(centerEntries.length===0)return
+        if(homePage) {selectSidebar(categoryIndex(centerEntries[tileIndex].id));focusZone=4}
         else {pageCategoryId=centerEntries[tileIndex].id;refreshPage();focusZone=1;selectFooterSetting()}
     }
     function firstSelectableFromEnd() {for(var i=pageModel.count-1;i>=0;i--)if(isSelectable(i))return i;return -1}
@@ -3419,7 +3430,7 @@ Item {
                         criticalId === "performance" || criticalId === "advanced")
                     source = stableCriticalRows(criticalId)
                 else
-                    source = allRowsForCategory(criticalId)
+                    source = criticalId==="extra" ? [info("No additional settings", "All current settings have a dedicated category.", "")] : allRowsForCategory(criticalId)
             } catch (pageError) {
                 console.error("[Settings] Failed to build " + currentCategoryId() + ": " + pageError)
                 source = [warningRow("Settings Page Error", "This page could not be generated. Return to the category list and try again."),
@@ -5018,7 +5029,7 @@ Item {
             return true
         }
         if (action === "left") {
-            if(focusZone===4) { if(tileIndex%(homePage?4:2)===0)focusZone=0;else selectCenter(tileIndex-1) }
+            if(focusZone===4) { if(centerEntries.length===0 || tileIndex%(homePage?4:2)===0)focusZone=0;else selectCenter(tileIndex-1) }
             else if(focusZone===1) {
                 var leftRow=pageModel.get(contentList.currentIndex)
                 if(!homePage && leftRow && (leftRow.kind==="choice" || leftRow.kind==="slider")) { if(leftRow.kind==="choice")cycleRow(leftRow,-1);else adjustSlider(leftRow,-1) }
@@ -5028,7 +5039,7 @@ Item {
         }
         if (action === "right") {
             if(focusZone===0)focusZone=4
-            else if(focusZone===4) { if(tileIndex%(homePage?4:2)===(homePage?3:1) || tileIndex===centerEntries.length-1)focusZone=1;else selectCenter(tileIndex+1) }
+            else if(focusZone===4) { if(centerEntries.length===0 || tileIndex%(homePage?4:2)===(homePage?3:1) || tileIndex===centerEntries.length-1)focusZone=1;else selectCenter(tileIndex+1) }
             else if(focusZone===1 && !homePage) {
                 var rightRow=pageModel.get(contentList.currentIndex)
                 if(rightRow && rightRow.kind==="choice")cycleRow(rightRow,1)
