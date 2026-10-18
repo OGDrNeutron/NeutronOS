@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "product": "NeutronOS Gemini",
+  "channel": "stable",
+  "architecture": "amd64",
+  "distribution": "github-public-releases",
+  "images": []
+}
