@@ -4,5 +4,22 @@
   "channel": "stable",
   "architecture": "amd64",
   "distribution": "github-public-releases",
-  "images": []
+  "images": [
+    {
+      "version": "0.6.0",
+      "channel": "stable",
+      "architecture": "amd64",
+      "url": "https://github.com/OGDrNeutron/NeutronOS/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.img.xz",
+      "bytes": 981444712,
+      "sha256": "cf7021d91f654cddb21b3b546267282d5bf2473d041a072e1398335984acf77b",
+      "manifest": "https://github.com/OGDrNeutron/NeutronOS/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.image-manifest.json",
+      "signature": "https://github.com/OGDrNeutron/NeutronOS/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.image-manifest.json.sig",
+      "checksums": "https://github.com/OGDrNeutron/NeutronOS/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.SHA256SUMS",
+      "checksumsSignature": "https://github.com/OGDrNeutron/NeutronOS/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.SHA256SUMS.sig",
+      "signatureFormat": "base64-openpgp-detached",
+      "releaseTag": "gemini-0.6.0",
+      "available": true,
+      "status": "available"
+    }
+  ]
 }
