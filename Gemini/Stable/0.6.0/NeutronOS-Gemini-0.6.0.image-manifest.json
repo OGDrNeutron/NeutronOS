@@ -1,0 +1,63 @@
+{
+  "algorithm": "OpenPGP",
+  "allowedInstallModes": [
+    "erase-everything"
+  ],
+  "architecture": "amd64",
+  "blankTargetRequired": false,
+  "build": 3,
+  "channel": "stable",
+  "codename": "Gemini",
+  "dataPreservation": {
+    "reason": "The full-disk image replaces GPT/filesystems; the current verified backup format does not preserve complete accounts, homes, UID/GID and authentication state. No preservation guarantee is made.",
+    "supported": false
+  },
+  "distribution": "github-public-releases",
+  "externalBootRequired": true,
+  "firmware": "uefi-x86_64",
+  "format": "neutronos.recovery-image.v1",
+  "image": {
+    "bytes": 981444712,
+    "compression": "xz",
+    "name": "NeutronOS-Gemini-0.6.0.img.xz",
+    "path": "images/NeutronOS-Gemini-0.6.0.img.xz",
+    "rawBytes": 17179869184,
+    "rawSHA256": "1cf59d8e4ad36bc9c240f5d34a2ef37b7589a08d4185a3ba5b70aa60789de90d",
+    "sha256": "cf7021d91f654cddb21b3b546267282d5bf2473d041a072e1398335984acf77b",
+    "transport": "github-public-release",
+    "url": "https://github.com/OGDrNeutron/NeutronOS/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.img.xz"
+  },
+  "imageProtocol": 2,
+  "keepDataSupported": false,
+  "minimumRecoveryVersion": "0.6.1",
+  "minimumTargetBytes": 22548578304,
+  "partitions": [
+    {
+      "firstSector": 2048,
+      "lastSector": 1050623,
+      "typeGuid": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+    },
+    {
+      "firstSector": 1050624,
+      "lastSector": 33554398,
+      "typeGuid": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    }
+  ],
+  "product": "NeutronOS",
+  "revision": "official",
+  "schema": 1,
+  "sectorSize": 512,
+  "signedAt": 1792333734,
+  "sourceArchive": {
+    "bytes": 235833772,
+    "name": "NeutronOS-Gemini-0.6.0.source.tar.xz",
+    "sha256": "17ff00a4b6d12f0e3cc65d559e894b02a3bc7dc963ff5778e239a970df7991ce",
+    "url": "https://github.com/OGDrNeutron/NeutronOS-Mainline/releases/download/gemini-0.6.0/NeutronOS-Gemini-0.6.0.source.tar.xz"
+  },
+  "sourceCommit": "d95e95f3d4ae2148cceec67865459428987f1e00",
+  "stableApproved": true,
+  "validationLimitations": [
+    "Existing physical 0.6 component evidence is preserved; this clean image has not been freshly physically booted. No physical recovery installation was performed."
+  ],
+  "version": "0.6.0"
+}
