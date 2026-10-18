@@ -87,7 +87,7 @@
     {
       "id": "ios-studio",
       "name": "iOS Studio",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Testing: local Flutter Linux development, Dart editor/diagnostics and secure IPA inspection. Physical preview integration is unverified; see included limitations.",
       "developer": "NeutronOS",
       "category": "Development",
@@ -121,11 +121,11 @@
         "qtVersion": "6.8.2"
       },
       "requiresDeveloperMode": false,
-      "packageUrl": "NeutronOS-iOS-Studio-1.0.1.napp",
+      "packageUrl": "NeutronOS-iOS-Studio-1.0.2.napp",
       "icon": "icons/ios-studio.png",
       "poster": "posters/ios-studio.png",
-      "size": 1183565,
-      "sha256": "152bd506c7a75b192c09aa6547f7825e33734c4cd28f48165fbae5e1def5bdd8"
+      "size": 1228346,
+      "sha256": "1a4b0085cfc3a2d29ff865843d6e09b2ec01a5587ea9fee312177a02c84da132"
     }
   ]
 }
