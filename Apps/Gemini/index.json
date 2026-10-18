@@ -83,6 +83,49 @@
       "size": 18393,
       "installedBytes": 66019,
       "sha256": "0898dd626fe627c265b8012af6ac6446696dea44fad487ab418dbf24451fd396"
+    },
+    {
+      "id": "ios-studio",
+      "name": "NeutronOS iOS Studio",
+      "version": "1.0.0-test.1",
+      "description": "Testing: local Flutter Linux development, Dart editor/diagnostics and secure IPA inspection. Physical preview integration is unverified; see included limitations.",
+      "developer": "NeutronOS",
+      "category": "Development",
+      "platforms": [
+        "gemini"
+      ],
+      "architectures": [
+        "amd64"
+      ],
+      "permissions": [
+        "filesystem",
+        "controller",
+        "graphics",
+        "network"
+      ],
+      "debianDependencies": [
+        "python3",
+        "clang",
+        "ninja-build",
+        "libgtk-3-dev",
+        "liblzma-dev",
+        "qml6-module-qtwayland-compositor"
+      ],
+      "minNeutronOS": "0.6.0",
+      "osRequirements": {
+        "capabilities": {
+          "appstore-dependency-lifecycle": 1,
+          "package-session": 1
+        },
+        "minimumVersion": "0.6.0",
+        "qtVersion": "6.8.2"
+      },
+      "requiresDeveloperMode": false,
+      "packageUrl": "NeutronOS-iOS-Studio-1.0.0-test.1.napp",
+      "icon": "icons/ios-studio.png",
+      "poster": "posters/ios-studio.png",
+      "size": 427973,
+      "sha256": "a15f15f483078828bc9e1fb4664d63962ac42534738e7023f1776e57dd1c1811"
     }
   ]
 }
