@@ -87,8 +87,8 @@
     {
       "id": "ios-studio",
       "name": "iOS Studio",
-      "version": "1.0.2",
-      "description": "Testing: local Flutter Linux development, Dart editor/diagnostics and secure IPA inspection. Physical preview integration is unverified; see included limitations.",
+      "version": "1.0.3",
+      "description": "Flutter and Flame development with the shared NeutronOS keyboard, Linux preview, secure IPA inspection and source export.",
       "developer": "NeutronOS",
       "category": "Development",
       "platforms": [
@@ -105,6 +105,9 @@
       ],
       "debianDependencies": [
         "python3",
+        "cmake",
+        "pkg-config",
+        "libqt6network6",
         "clang",
         "ninja-build",
         "libgtk-3-dev",
@@ -121,11 +124,11 @@
         "qtVersion": "6.8.2"
       },
       "requiresDeveloperMode": false,
-      "packageUrl": "NeutronOS-iOS-Studio-1.0.2.napp",
+      "packageUrl": "NeutronOS-iOS-Studio-1.0.3.napp",
       "icon": "icons/ios-studio.png",
       "poster": "posters/ios-studio.png",
-      "size": 1228346,
-      "sha256": "1a4b0085cfc3a2d29ff865843d6e09b2ec01a5587ea9fee312177a02c84da132"
+      "size": 1247257,
+      "sha256": "b7b869b88b4a2e629c01a2e369baffef640541c2325a104cedb8c0d8fdaa8c76"
     }
   ]
 }
