@@ -114,7 +114,12 @@ async def session(request: Request):
 async def activity(request: Request):
     # Only genuine UI interactions send this; periodic data polling does not.
     verify_request(request, write=True)
-    return {"ok": True}
+    response = JSONResponse({"ok": True})
+    # Renew the absolute cookie lifetime ONLY on real user interactions.
+    response.set_cookie("__Host-nm", request.cookies["__Host-nm"],
+                        max_age=SESSION_LIFETIME_SECONDS,
+                        httponly=True, secure=True, samesite="strict", path="/")
+    return response
 
 
 @app.get("/api/status")
@@ -287,14 +292,25 @@ async def terminal(ws: WebSocket):
     remote = ws.client.host if ws.client else ""
     cookie = ws.cookies.get("__Host-nm", "")
     entry = SESSIONS.get(cookie)
-    token = ws.query_params.get("csrf", "")
     if (origin != "https://" + HOSTNAME or host != HOSTNAME or remote not in {"127.0.0.1", "::1"}
-        or not entry or time.monotonic() - entry["last"] >= SESSION_LIFETIME_SECONDS
-        or not hmac.compare_digest(token, entry["csrf"])):
+        or not entry or time.monotonic() - entry["last"] >= SESSION_LIFETIME_SECONDS):
+        await ws.close(code=1008)
+        return
+    await ws.accept()
+    # Authenticate the first frame; never log a CSRF token in the URL.
+    try:
+        hello = await asyncio.wait_for(ws.receive_text(), timeout=10)
+        auth = json.loads(hello)
+        valid = (isinstance(auth, dict) and auth.get("type") == "auth"
+                 and isinstance(auth.get("csrf"), str)
+                 and hmac.compare_digest(auth["csrf"], entry["csrf"]))
+        if not valid:
+            await ws.close(code=1008)
+            return
+    except (ValueError, asyncio.TimeoutError, WebSocketDisconnect):
         await ws.close(code=1008)
         return
     entry["last"] = time.monotonic()
-    await ws.accept()
     # Spawn an interactive PTY under the non-root service account.
     pid, master = pty.fork()
     if pid == 0:
