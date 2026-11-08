@@ -1,0 +1,13 @@
+# sudoers TEMPLATE (review against actual installed units and binary paths!)
+# sudo -n only. No shells, arbitrary service names, wildcards, or docker group.
+Cmnd_Alias NM_ACTIONS = \
+  /usr/bin/systemctl start torrentlab2.service, \
+  /usr/bin/systemctl stop torrentlab2.service, \
+  /usr/bin/systemctl restart torrentlab2.service, \
+  /usr/bin/systemctl start neutronllm-http.service, \
+  /usr/bin/systemctl stop neutronllm-http.service, \
+  /usr/bin/systemctl restart neutronllm-http.service, \
+  /usr/bin/systemctl start neutronllm-ingress.service, \
+  /usr/bin/systemctl stop neutronllm-ingress.service, \
+  /usr/bin/systemctl restart neutronllm-ingress.service
+neutron-manager ALL=(root) NOPASSWD: NM_ACTIONS
