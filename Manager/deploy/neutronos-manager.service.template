@@ -11,7 +11,7 @@ Group=neutron-manager
 WorkingDirectory=/opt/neutronos-manager/Manager
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/opt/neutronos-manager/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --proxy-headers=false
+ExecStart=/opt/neutronos-manager/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --no-proxy-headers
 Restart=on-failure
 RestartSec=3
 UMask=0077
