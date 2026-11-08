@@ -133,7 +133,22 @@ async def status(request: Request):
         disk_label = f"{disk.used / 1e12:.2f} / {disk.total / 1e12:.2f} TB"
     else:
         disk_label = "Not mounted"
-    return {"load": f"{os.getloadavg()[0]:.2f}", "memory": mem, "disk": disk_label,
+    user_data = Path(os.getenv("MANAGER_USER_DATA_PATH", "/NeutronOS/drneutron"))
+    if user_data.is_dir():
+        usage = shutil.disk_usage(user_data)
+        user_label = f"{usage.used / 1e9:.1f} / {usage.total / 1e9:.1f} GB"
+    else:
+        user_label = "Path not configured"
+    with open("/proc/stat", encoding="utf-8") as cpu_file:
+        first = [int(n) for n in cpu_file.readline().split()[1:]]
+    await asyncio.sleep(0.15)
+    with open("/proc/stat", encoding="utf-8") as cpu_file:
+        second = [int(n) for n in cpu_file.readline().split()[1:]]
+    total = sum(second) - sum(first)
+    idle = (second[3] + second[4]) - (first[3] + first[4])
+    cpu_usage = 100.0 * (total - idle) / total if total > 0 else 0.0
+    return {"cpu": f"{cpu_usage:.1f}%", "memory": mem,
+            "media": disk_label, "user_data": user_label,
             "hostname": socket.gethostname()}
 
 
@@ -186,7 +201,15 @@ def safe_path(raw, require_exists=True):
         deny("Absolute path required")
     if not FILE_ROOTS:
         deny("No file roots configured")
+    # Never write to an unmounted media directory on the system partition.
+    media_root = Path("/NeutronMedia")
+    if media_root in Path(raw).parents or Path(raw) == media_root:
+        if not media_root.is_mount():
+            deny("NeutronMedia is not mounted; file access disabled", 503)
     path = Path(raw).resolve(strict=require_exists)
+    if media_root in path.parents or path == media_root:
+        if not media_root.is_mount():
+            deny("NeutronMedia is not mounted; file access disabled", 503)
     if not any(path == root or root in path.parents for root in FILE_ROOTS):
         deny("Outside allowed file roots")
     return path
