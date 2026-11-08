@@ -1,0 +1,35 @@
+# NGINX TEMPLATE ONLY. Must be included in the EXISTING Gemini Nginx
+# process that already listens on Tailscale port 443 for NeutronAI.
+# Replace CERT and CLIENT CA paths after verifying the live configuration.
+# Never put private keys in a repo; never publish this vhost via Cloudflare.
+server {
+  listen 100.69.100.100:443 ssl;
+  server_name neutronos.neutronprojects.com;
+
+  ssl_certificate /etc/neutronos-manager/server-fullchain.pem;
+  ssl_certificate_key /etc/neutronos-manager/server-key.pem;
+  ssl_client_certificate /etc/neutronos-manager/torrentlab-client-ca.pem;
+  ssl_verify_client on;
+  ssl_verify_depth 2;
+  ssl_protocols TLSv1.2 TLSv1.3;
+
+  allow 100.64.0.0/10;
+  deny all;
+
+  client_max_body_size 128m;
+  add_header Cache-Control "no-store" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "no-referrer" always;
+
+  location / {
+    proxy_pass http://127.0.0.1:8877;
+    proxy_http_version 1.1;
+    proxy_set_header Host neutronos.neutronprojects.com;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 3600s;
+    proxy_buffering off;
+  }
+}
