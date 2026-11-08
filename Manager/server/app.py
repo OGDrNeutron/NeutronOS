@@ -53,7 +53,6 @@ def session_cookie(request):
     cookie = request.cookies.get("__Host-nm")
     entry = SESSIONS.get(cookie) if cookie else None
     if entry and time.monotonic() - entry["last"] < SESSION_LIFETIME_SECONDS:
-        entry["last"] = time.monotonic()
         return entry
     if cookie:
         SESSIONS.pop(cookie, None)
@@ -74,6 +73,8 @@ def verify_request(request: Request, write=False):
         deny("Session expired", 401)
     if write and not hmac.compare_digest(request.headers.get("x-csrf-token", ""), entry["csrf"]):
         deny("Invalid CSRF token")
+    if write:
+        entry["last"] = time.monotonic()
     return entry
 
 
@@ -107,6 +108,13 @@ async def session(request: Request):
     response.set_cookie("__Host-nm", cookie, max_age=SESSION_LIFETIME_SECONDS,
                         httponly=True, secure=True, samesite="strict", path="/")
     return response
+
+
+@app.post("/api/activity")
+async def activity(request: Request):
+    # Only genuine UI interactions send this; periodic data polling does not.
+    verify_request(request, write=True)
+    return {"ok": True}
 
 
 @app.get("/api/status")
@@ -286,7 +294,15 @@ async def terminal(ws: WebSocket):
                 return
             entry["last"] = time.monotonic()
             await asyncio.to_thread(os.write, master, chunk.encode("utf-8"))
-    tasks = [asyncio.create_task(send_output()), asyncio.create_task(receive_commands())]
+    async def expire_idle():
+        while True:
+            await asyncio.sleep(5)
+            if time.monotonic() - entry["last"] >= SESSION_LIFETIME_SECONDS:
+                await ws.close(code=1008)
+                return
+
+    tasks = [asyncio.create_task(send_output()), asyncio.create_task(receive_commands()),
+             asyncio.create_task(expire_idle())]
     try:
         await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
     finally:
