@@ -50,7 +50,7 @@ input[type=text],input[type=file],textarea{border:1px solid #345478;color:var(--
 <section id="home" class="view active">
 <div class="hero"><span class="eyebrow">PRIVATE · TAILSCALE · CERTIFICATE REQUIRED</span><h1>System Manager</h1><p>NeutronOS Gemini · Remote administration</p></div>
 <div class="grid">
-<div class="card"><div class="k">System load</div><div class="v" id="load">…</div><div class="small">1-minute average</div></div>
+<div class="card"><div class="k">CPU usage</div><div class="v" id="load">…</div><div class="small">Current utilization</div></div>
 <div class="card"><div class="k">Memory used</div><div class="v" id="memory">…</div><div class="small">Host RAM</div></div>
 <div class="card"><div class="k">Media storage</div><div class="v" id="disk">…</div><div class="small">/NeutronMedia</div></div>
 <div class="card"><div class="k">Hostname</div><div class="v" style="font-size:17px" id="hostname">…</div><div class="small">Managed device</div></div>
@@ -98,8 +98,8 @@ function tab(id){document.querySelectorAll('.view').forEach(e=>e.classList.toggl
 async function refresh(){
  try{
   const [info,services]=await Promise.all([api('/api/status'),api('/api/services')]);
-  document.getElementById('load').textContent=info.load;document.getElementById('memory').textContent=info.memory;
-  document.getElementById('disk').textContent=info.disk;document.getElementById('hostname').textContent=info.hostname;
+  document.getElementById('load').textContent=info.cpu;document.getElementById('memory').textContent=info.memory;
+  document.getElementById('disk').textContent=info.media;document.getElementById('hostname').textContent=info.hostname;
   const node=document.getElementById('services');node.innerHTML='';
   services.forEach(function(s){
    const row=document.createElement('div');row.className='service';
