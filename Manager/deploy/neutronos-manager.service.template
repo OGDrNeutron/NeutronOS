@@ -1,0 +1,32 @@
+# TEMPLATE: adjust working directory and user before enabling.
+[Unit]
+Description=NeutronOS private Gemini manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=neutron-manager
+Group=neutron-manager
+WorkingDirectory=/opt/neutronos-manager/Manager
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/neutronos-manager/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --proxy-headers=false
+Restart=on-failure
+RestartSec=3
+UMask=0077
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+ReadWritePaths=/var/lib/neutron-manager /NeutronMedia
+# NoNewPrivileges must be unset for narrowly allowed sudo -n systemctl operations.
+# Do NOT grant unscoped sudo to this account.
+
+[Install]
+WantedBy=multi-user.target
