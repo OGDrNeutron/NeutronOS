@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="NeutronOS">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="icon" type="image/png" href="/apple-touch-icon.png">
 <title>NeutronOS Manager</title>
 <style>
 :root{color-scheme:dark;--bg:#050b19;--panel:#0e1b33;--panel2:#122443;--line:#294067;--blue:#39baff;--red:#ff304c;--text:#f3f7ff;--muted:#9cb1cf;--green:#53dea8}
@@ -45,7 +45,7 @@ input[type=text],input[type=file],textarea{border:1px solid #345478;color:var(--
 </style>
 </head>
 <body>
-<header><div class="head"><div class="brand"><img src="/icon.svg" alt=""><span>Neutron<b>OS</b></span></div><div class="status"><i id="status-dot" class="dot"></i><span id="connection">Connecting</span></div></div></header>
+<header><div class="head"><div class="brand"><img src="/apple-touch-icon.png" alt=""><span>Neutron<b>OS</b></span></div><div class="status"><i id="status-dot" class="dot"></i><span id="connection">Connecting</span></div></div></header>
 <main>
 <section id="home" class="view active">
 <div class="hero"><span class="eyebrow">PRIVATE · TAILSCALE · CERTIFICATE REQUIRED</span><h1>System Manager</h1><p>NeutronOS Gemini · Remote administration</p></div>
@@ -148,6 +148,14 @@ function connectTerm(){if(socket&&socket.readyState===1)return;
 }
 function sendTerm(){const input=document.getElementById('terminput');if(socket?.readyState!==1){alert('Connect terminal first');return}socket.send(input.value+'\n');input.value=''}
 function termControl(cmd){if(socket?.readyState===1)socket.send(cmd==='interrupt'?'\u0003':'')}
+let lastActivity=0;
+function markActivity(){
+  if(!csrf||Date.now()-lastActivity<30000)return;
+  lastActivity=Date.now();
+  api('/api/activity',{method:'POST'}).catch(function(){});
+}
+document.addEventListener('pointerdown',markActivity,{passive:true});
+document.addEventListener('keydown',markActivity,{passive:true});
 initialize();setInterval(function(){if(document.visibilityState==='visible'&&document.getElementById('home').classList.contains('active'))refresh()},15000);
 </script>
 </body></html>
