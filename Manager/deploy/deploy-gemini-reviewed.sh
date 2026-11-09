@@ -79,9 +79,6 @@ say "Validated existing HTTPS config: $HTTPS_CONF"
 [[ -f "$ROOT/server/app.py" && -f "$ROOT/web/index.html" ]] || stop "Expected partial Manager installation missing"
 [[ -f "$CERT" && -f "$KEY" && -f "$CONF/environment" ]] || stop "Expected signed Manager certificate or configuration missing"
 [[ ! -e "/etc/sudoers.d/neutron-manager" ]] || stop "Existing manager sudo permissions found; review before proceeding"
-command -v visudo >/dev/null || stop "visudo is required for the restricted Docker-status permissions"
-[[ -x /usr/bin/docker ]] || stop "Docker binary not at /usr/bin/docker"
-[[ -x /usr/bin/sudo ]] || stop "sudo binary not at /usr/bin/sudo"
 DNSMASQ="$(command -v dnsmasq 2>/dev/null || true)"
 if [[ -z "$DNSMASQ" || ! -x "$DNSMASQ" ]]; then
  for p in /proc/[0-9]*/comm; do
@@ -248,6 +245,6 @@ fi
 
 say "Installed: HTTPS $HOST, mTLS signed by existing TorrentLab CA, native system Python at loopback:8877"
 say "Existing TorrentLab and NeutronAI HTTP configurations were left intact."
-say "REMOTE POWER, SERVICE MODIFICATIONS, FILE UPLOADS AND TERMINAL REMAIN LOCKED."
+say "SYSTEM PYTHON ONLY: NO VENV, PIP, APT OR NEW SUDO PRIVILEGES. REMOTE ADMINISTRATION REMAINS LOCKED."
 say "If iPhone doesn't resolve domain, add restricted Tailscale DNS nameserver $IP for $HOST at https://login.tailscale.com/admin/dns"
 say "On iPhone: connect Tailscale, open https://$HOST in Safari with installed client identity."
