@@ -1,6 +1,7 @@
-# Sample only. Must be installed and reviewed on Gemini by an administrator.
+# Reference only. Active service unit is created by deploy-gemini-reviewed.sh.
+# System Python standard library: no venv, pip or dependency installation.
 [Unit]
-Description=NeutronOS Gemini Private Manager
+Description=NeutronOS Manager (native Python read-only)
 After=network-online.target
 Wants=network-online.target
 
@@ -9,20 +10,20 @@ Type=simple
 User=neutron-manager
 Group=neutron-manager
 WorkingDirectory=/opt/neutronos-manager
-EnvironmentFile=-/etc/neutronos-manager/environment
-ExecStart=/opt/neutronos-manager/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --no-proxy-headers
+EnvironmentFile=/etc/neutronos-manager/environment
+ExecStart=/usr/bin/python3 -I /opt/neutronos-manager/server/native_manager.py
 Restart=on-failure
 RestartSec=4
 UMask=0077
-NoNewPrivileges=false
+NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=strict
 ProtectHome=read-only
+ProtectSystem=strict
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
-ReadWritePaths=/NeutronMedia /var/lib/neutron-manager
+ReadWritePaths=/var/lib/neutron-manager
 
 [Install]
 WantedBy=multi-user.target
