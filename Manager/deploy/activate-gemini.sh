@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 [[ $EUID == 0 ]] || { echo 'Run with sudo' >&2; exit 1; }
-SRC=\${1:?Pass the Manager source directory}
+SRC=${1:?Pass the Manager source directory}
 [[ -f "$SRC/server/app.py" && -f "$SRC/web/index.html" ]] || { echo 'Manager source is missing' >&2; exit 1; }
 DOMAIN=neutronos.neutronprojects.com
 CA=/root/neutronos-private-ca
@@ -53,7 +53,8 @@ MANAGER_HOSTNAME=$DOMAIN
 MANAGER_OS_VERSION=NeutronOS Gemini
 MANAGER_USER_DATA_PATH=/NeutronOS/drneutron
 MANAGER_FILES_HOME=/var/lib/neutron-manager
-MANAGER_ENABLE_POWER=1
+MANAGER_ENABLE_POWER=0
+MANAGER_READ_ONLY=1
 MANAGER_TOOL_TORRENTLAB=https://torrentlab.neutronprojects.com/torrentlab/
 MANAGER_TOOL_NEUTRONAI=https://neutronai.neutronprojects.com/
 MANAGER_CONTAINER_JELLYFIN=jellyfin
@@ -84,13 +85,7 @@ ReadWritePaths=/var/lib/neutron-manager /NeutronMedia
 [Install]
 WantedBy=multi-user.target
 EOF
-cat > /etc/sudoers.d/neutron-manager.tmp <<'EOF'
-Cmnd_Alias NM_SYSTEM = /usr/bin/systemctl start torrentlab2.service, /usr/bin/systemctl stop torrentlab2.service, /usr/bin/systemctl restart torrentlab2.service, /usr/bin/systemctl start neutronllm-http.service, /usr/bin/systemctl stop neutronllm-http.service, /usr/bin/systemctl restart neutronllm-http.service, /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff
-neutron-manager ALL=(root) NOPASSWD: NM_SYSTEM
-EOF
-chmod 0440 /etc/sudoers.d/neutron-manager.tmp
-visudo -cf /etc/sudoers.d/neutron-manager.tmp || exit 1
-mv /etc/sudoers.d/neutron-manager.tmp /etc/sudoers.d/neutron-manager
+# Initial deployment is read-only. Do not grant service, Docker or shutdown privileges.
 systemctl daemon-reload
 systemctl enable --now neutronos-manager.service
 systemctl is-active --quiet neutronos-manager.service || { echo 'Manager backend could not start'; exit 1; }
