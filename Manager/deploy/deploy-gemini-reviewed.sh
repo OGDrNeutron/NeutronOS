@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NeutronOS Gemini private manager installer, prepared for the Nov 8 2026 inventory.
+# NO_VENV_NATIVE_V1: Resume existing Gemini Manager install using only system Python 3. No pip, no venv, no apt.
 # Creates a new SNI site; DOES NOT replace TorrentLab, NeutronAI, or NeutronStream.
 set -Eeuo pipefail
 umask 077
@@ -76,62 +76,43 @@ say "Validated existing HTTPS config: $HTTPS_CONF"
 
 # This is not meant to turn on any high-risk permissions.
 [[ ! -e "/etc/systemd/system/neutronos-manager.service" ]] || stop "Manager service already installed; review rather than overwrite"
-[[ ! -e "$ROOT" ]] || stop "Manager install directory already exists; review rather than overwrite"
-[[ ! -e "$CONF" ]] || stop "Manager configuration directory already exists; review rather than overwrite"
+[[ -f "$ROOT/server/app.py" && -f "$ROOT/web/index.html" ]] || stop "Expected partial Manager installation missing"
+[[ -f "$CERT" && -f "$KEY" && -f "$CONF/environment" ]] || stop "Expected signed Manager certificate or configuration missing"
 [[ ! -e "/etc/sudoers.d/neutron-manager" ]] || stop "Existing manager sudo permissions found; review before proceeding"
 command -v visudo >/dev/null || stop "visudo is required for the restricted Docker-status permissions"
 [[ -x /usr/bin/docker ]] || stop "Docker binary not at /usr/bin/docker"
 [[ -x /usr/bin/sudo ]] || stop "sudo binary not at /usr/bin/sudo"
-[[ -x /usr/sbin/dnsmasq ]] || stop "dnsmasq binary not at /usr/sbin/dnsmasq"
-
-# Validate certificate and toolchain ahead of touching existing HTTPS or DNS.
-openssl x509 -in "$CA_CERT" -noout -checkend 86400 >/dev/null || stop "TorrentLab CA certificate expired or nearly expired"
-openssl pkey -in "$CA_KEY" -noout >/dev/null || stop "Existing CA signing key cannot be read (possibly passphrase-protected)"
-command -v pip3 >/dev/null || say "Using venv-provided pip"
-mkdir -p "$CONF"
-chmod 700 "$CONF"
-openssl req -new -newkey rsa:3072 -nodes -subj "/O=Neutron Projects/CN=$HOST" \
- -keyout "$KEY" -out "$CONF/server.csr"
-cat > "$CONF/server.ext" <<EOF
-basicConstraints=critical,CA:FALSE
-keyUsage=critical,digitalSignature,keyEncipherment
-extendedKeyUsage=serverAuth
-subjectAltName=DNS:$HOST
-EOF
-openssl x509 -req -in "$CONF/server.csr" -CA "$CA_CERT" -CAkey "$CA_KEY" -CAcreateserial \
- -out "$CERT" -days 365 -sha256 -extfile "$CONF/server.ext"
-openssl verify -CAfile "$CA_CERT" "$CERT" || stop "New certificate cannot be verified against TorrentLab CA"
-openssl x509 -in "$CERT" -noout -checkhost "$HOST" || stop "Certificate hostname mismatch"
-cp "$CA_CERT" "$CLIENT_CA"
-chmod 600 "$KEY"
-chmod 644 "$CERT" "$CLIENT_CA"
-PROXY_SECRET="$(openssl rand -hex 32)"
-cat > "$CONF/environment" <<EOF
-MANAGER_HOSTNAME=$HOST
-MANAGER_PROXY_SECRET=$PROXY_SECRET
-MANAGER_OS_VERSION=NeutronOS Gemini
-MANAGER_USER_DATA_PATH=/NeutronOS/drneutron
-MANAGER_FILES_HOME=/var/lib/neutron-manager
-MANAGER_ENABLE_POWER=0
-MANAGER_READ_ONLY=1
-MANAGER_CONTAINER_JELLYFIN=jellyfin
-MANAGER_CONTAINER_QBITTORRENT=qbittorrent
-MANAGER_TOOL_TORRENTLAB=https://torrentlab.neutronprojects.com/torrentlab/
-MANAGER_TOOL_NEUTRONAI=https://neutronai.neutronprojects.com/
-EOF
-chmod 600 "$CONF/environment"
-
-if ! id neutron-manager >/dev/null 2>&1; then
- useradd --system --user-group --home-dir /var/lib/neutron-manager --create-home \
-  --shell /usr/sbin/nologin neutron-manager
+DNSMASQ="$(command -v dnsmasq 2>/dev/null || true)"
+if [[ -z "$DNSMASQ" || ! -x "$DNSMASQ" ]]; then
+ for p in /proc/[0-9]*/comm; do
+  [[ "$(cat "$p" 2>/dev/null)" == dnsmasq ]] || continue
+  exe="${p%/comm}/exe"
+  if [[ -x "$exe" ]]; then DNSMASQ="$exe"; break; fi
+ done
 fi
-install -d -m 0700 -o neutron-manager -g neutron-manager /var/lib/neutron-manager
-install -d -m 0755 -o root -g root "$ROOT"
-cp -a "$SOURCE/web" "$SOURCE/server" "$ROOT/"
-chown -R root:root "$ROOT/web" "$ROOT/server"
-python3 -m venv "$ROOT/.venv" || stop "Python venv failed; install python3-venv"
-"$ROOT/.venv/bin/pip" -q install --disable-pip-version-check -r "$ROOT/server/requirements.txt"
+[[ -n "$DNSMASQ" && -x "$DNSMASQ" ]] || stop "Could not locate existing dnsmasq executable"
 
+# Reuse the already signed server certificate and existing Manager configuration.
+# No CA key opening, no passphrase, no new private key, no environment or package installation.
+openssl verify -CAfile "$CA_CERT" "$CERT" || stop "Existing server certificate failed CA verification"
+openssl x509 -in "$CERT" -noout -checkhost "$HOST" || stop "Existing certificate hostname mismatch"
+openssl x509 -in "$CERT" -noout -checkend 86400 >/dev/null || stop "Existing certificate expired"
+PUBCERT="$(openssl x509 -in "$CERT" -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum | cut -d" " -f1)"
+PUBKEY="$(openssl pkey -in "$KEY" -pubout -outform DER | sha256sum | cut -d" " -f1)"
+[[ "$PUBCERT" == "$PUBKEY" ]] || stop "Certificate/private server key mismatch"
+[[ -f "$CONF/trusted-clients.crt" ]] || stop "Existing client CA trust bundle missing"
+grep -qx "MANAGER_READ_ONLY=1" "$CONF/environment" || stop "Manager read-only safety lock missing"
+grep -qx "MANAGER_ENABLE_POWER=0" "$CONF/environment" || stop "Manager power safety lock missing"
+PROXY_SECRET="$(sed -n "s/^MANAGER_PROXY_SECRET=//p" "$CONF/environment" | head -1)"
+[[ "$PROXY_SECRET" =~ ^[a-fA-F0-9]{64}$ ]] || stop "Existing reverse-proxy secret missing"
+id neutron-manager >/dev/null 2>&1 || stop "Expected previously created Manager user missing"
+[[ -x /usr/bin/python3 ]] || stop "Existing system Python 3 unavailable"
+/usr/bin/python3 -I -c "import ast, http.server, http.cookies, socket, pathlib, subprocess, secrets, json" || stop "System Python standard libraries unavailable"
+[[ -f "$SOURCE/server/native_manager.py" ]] || stop "Native system-Python backend not included in source"
+/usr/bin/python3 -I -c "import ast, pathlib,sys; ast.parse(pathlib.Path(sys.argv[1]).read_text())" "$SOURCE/server/native_manager.py" || stop "Native Python source invalid"
+[[ ! -e /etc/sudoers.d/neutron-manager.docker-status ]] || stop "Unexpected manager Docker sudo rule already present; stop for review"
+install -m 0644 -o root -g root "$SOURCE/server/native_manager.py" "$ROOT/server/native_manager.py"
+say "Using existing system Python and signed certificate. No virtual environment or packages."
 cat > "/etc/systemd/system/neutronos-manager.service" <<EOF
 [Unit]
 Description=NeutronOS Manager (private mTLS/Tailscale)
@@ -144,11 +125,11 @@ User=neutron-manager
 Group=neutron-manager
 WorkingDirectory=$ROOT
 EnvironmentFile=$CONF/environment
-ExecStart=$ROOT/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --no-proxy-headers
+ExecStart=/usr/bin/python3 -I $ROOT/server/native_manager.py
 Restart=on-failure
 RestartSec=4
 UMask=0077
-NoNewPrivileges=false
+NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
 ProtectHome=read-only
@@ -162,14 +143,7 @@ ReadWritePaths=/var/lib/neutron-manager
 [Install]
 WantedBy=multi-user.target
 EOF
-# Only exact read-only docker inspect operations are authorized. No start/stop/restart
-# or blanket Docker group access. Change this only after live security validation.
-cat > /etc/sudoers.d/neutron-manager.docker-status <<'EOF'
-Cmnd_Alias NEUTRON_DOCKER_STATUS = /usr/bin/docker inspect --format {{.State.Status}} jellyfin, /usr/bin/docker inspect --format {{.State.Status}} qbittorrent
-neutron-manager ALL=(root) NOPASSWD: NEUTRON_DOCKER_STATUS
-EOF
-chmod 0440 /etc/sudoers.d/neutron-manager.docker-status
-visudo -cf /etc/sudoers.d/neutron-manager.docker-status || stop "Restricted docker status sudoers validation failed"
+# No sudoers rules, no service-control privileges, no Docker group access.
 systemctl daemon-reload
 systemctl enable --now neutronos-manager.service
 systemctl is-active --quiet neutronos-manager.service || stop "Manager backend did not start: journalctl -u neutronos-manager -n 40"
@@ -262,7 +236,7 @@ if ! grep -Fq "host-record=$HOST," "$DNS"; then
  printf '\n# NeutronOS Manager (Tailscale only)\nhost-record=%s,%s\nlocal=/%s/\n' \
   "$HOST" "$IP" "$HOST" >> "$DNS"
 fi
-if ! /usr/sbin/dnsmasq --test --conf-file="$DNS" >/dev/null 2>&1; then
+if ! "$DNSMASQ" --test --conf-file="$DNS" >/dev/null 2>&1; then
  cp -a "$DNS_BACKUP" "$DNS"
  stop "DNS syntax check failed, original DNS restored"
 fi
@@ -272,7 +246,7 @@ if ! systemctl restart "$DNS_UNIT"; then
  stop "Private DNS failed, original DNS restored"
 fi
 
-say "Installed: HTTPS $HOST, mTLS signed by existing TorrentLab CA, backend at loopback:8877"
+say "Installed: HTTPS $HOST, mTLS signed by existing TorrentLab CA, native system Python at loopback:8877"
 say "Existing TorrentLab and NeutronAI HTTP configurations were left intact."
 say "REMOTE POWER, SERVICE MODIFICATIONS, FILE UPLOADS AND TERMINAL REMAIN LOCKED."
 say "If iPhone doesn't resolve domain, add restricted Tailscale DNS nameserver $IP for $HOST at https://login.tailscale.com/admin/dns"
