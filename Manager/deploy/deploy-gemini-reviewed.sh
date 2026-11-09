@@ -50,6 +50,9 @@ fi
 [[ "$HTTPS_CONF" == /* && -r "$HTTPS_CONF" ]] || stop "Unable to discover the existing HTTPS Nginx config. Do not guess; share systemctl cat torrentlab2-https.service."
 [[ "$HTTPS_CONF" != "/etc/neutronai/nginx.conf" ]] || stop "HTTPS and HTTP unexpectedly share a configuration; review before proceeding"
 grep -Eq '^[[:space:]]*http[[:space:]]*\{' "$HTTPS_CONF" || stop "HTTPS config lacks an editable http block"
+if grep -Eq '^[[:space:]]*server_name[[:space:]]+neutronos\.neutronprojects\.com([[:space:];]|$)' "$HTTPS_CONF"; then
+ stop "The manager hostname already appears in the existing HTTPS config; review before proceeding"
+fi
 nginx -t -c "$HTTPS_CONF" || stop "Existing HTTPS config fails nginx -t BEFORE changes"
 say "Validated existing HTTPS config: $HTTPS_CONF"
 
@@ -58,6 +61,10 @@ say "Validated existing HTTPS config: $HTTPS_CONF"
 [[ ! -e "$ROOT" ]] || stop "Manager install directory already exists; review rather than overwrite"
 [[ ! -e "$CONF" ]] || stop "Manager configuration directory already exists; review rather than overwrite"
 [[ ! -e "/etc/sudoers.d/neutron-manager" ]] || stop "Existing manager sudo permissions found; review before proceeding"
+command -v visudo >/dev/null || stop "visudo is required for the restricted Docker-status permissions"
+[[ -x /usr/bin/docker ]] || stop "Docker binary not at /usr/bin/docker"
+[[ -x /usr/bin/sudo ]] || stop "sudo binary not at /usr/bin/sudo"
+[[ -x /usr/sbin/dnsmasq ]] || stop "dnsmasq binary not at /usr/sbin/dnsmasq"
 
 # Validate certificate and toolchain ahead of touching existing HTTPS or DNS.
 openssl x509 -in "$CA_CERT" -noout -checkend 86400 >/dev/null || stop "TorrentLab CA certificate expired or nearly expired"
@@ -123,7 +130,7 @@ ExecStart=$ROOT/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --
 Restart=on-failure
 RestartSec=4
 UMask=0077
-NoNewPrivileges=true
+NoNewPrivileges=false
 PrivateTmp=true
 PrivateDevices=true
 ProtectHome=read-only
@@ -137,6 +144,14 @@ ReadWritePaths=/var/lib/neutron-manager
 [Install]
 WantedBy=multi-user.target
 EOF
+# Only exact read-only docker inspect operations are authorized. No start/stop/restart
+# or blanket Docker group access. Change this only after live security validation.
+cat > /etc/sudoers.d/neutron-manager.docker-status <<'EOF'
+Cmnd_Alias NEUTRON_DOCKER_STATUS = /usr/bin/docker inspect --format {{.State.Status}} jellyfin, /usr/bin/docker inspect --format {{.State.Status}} qbittorrent
+neutron-manager ALL=(root) NOPASSWD: NEUTRON_DOCKER_STATUS
+EOF
+chmod 0440 /etc/sudoers.d/neutron-manager.docker-status
+visudo -cf /etc/sudoers.d/neutron-manager.docker-status || stop "Restricted docker status sudoers validation failed"
 systemctl daemon-reload
 systemctl enable --now neutronos-manager.service
 systemctl is-active --quiet neutronos-manager.service || stop "Manager backend did not start: journalctl -u neutronos-manager -n 40"
