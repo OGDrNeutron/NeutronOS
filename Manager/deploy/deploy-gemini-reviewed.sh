@@ -222,14 +222,17 @@ fi
 IPHONE_CRT="$CA/issued/iphone15-client.crt.pem"
 IPHONE_KEY="$CA/issued/iphone15-client.key.pem"
 if [[ -r "$IPHONE_CRT" && -r "$IPHONE_KEY" ]]; then
- VALID_STATUS="$(curl -sS --noproxy '*' --cacert "$CA_CERT" --cert "$IPHONE_CRT" --key "$IPHONE_KEY" \
+ # Check the ACTUAL Manager API, not merely an unrelated 200 OK page
+ # from an existing default virtual host. Do not print the session CSRF response.
+ API_RESPONSE="$(curl -fsS --noproxy '*' --cacert "$CA_CERT" --cert "$IPHONE_CRT" --key "$IPHONE_KEY" \
   --resolve "$HOST:443:$IP" --connect-timeout 3 --max-time 9 \
-  -o /dev/null -w '%{http_code}' "https://$HOST/" || true)"
- if [[ "$VALID_STATUS" != 200 ]]; then
+  "https://$HOST/api/session" || true)"
+ if ! printf '%s' "$API_RESPONSE" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert isinstance(data.get("csrf"),str) and len(data["csrf"])>20 and data.get("idle_timeout_seconds")==1800' 2>/dev/null; then
    cp -a "$BACKUP" "$HTTPS_CONF"
    nginx -s reload -c "$HTTPS_CONF" || true
-   stop "Valid client cert test returned $VALID_STATUS; existing HTTPS config restored"
+   stop "Valid certificate did not reach the Manager API; existing HTTPS config restored"
  fi
+ unset API_RESPONSE
 else
  say "No local iPhone test key present; server-side mTLS rejection was verified"
 fi
