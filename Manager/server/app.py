@@ -46,7 +46,21 @@ SERVICES = {
 # Docker service identity names can be overridden after local verification.
 DOCKER_NAMES = {id: os.getenv('MANAGER_CONTAINER_'+id.upper(), unit) for id,(_,kind,unit,*_) in SERVICES.items() if kind=='docker'}
 
+PROXY_SECRET = os.getenv('MANAGER_PROXY_SECRET', '')
+READ_ONLY = os.getenv('MANAGER_READ_ONLY','1') != '0'
 app = FastAPI(docs_url=None,redoc_url=None,openapi_url=None)
+
+def trusted_proxy(headers):
+    supplied = headers.get('x-neutron-proxy-secret', '')
+    return (len(PROXY_SECRET) >= 32 and
+            len(supplied) == len(PROXY_SECRET) and
+            hmac.compare_digest(PROXY_SECRET, supplied) and
+            headers.get('x-neutron-client-verified', '') == 'SUCCESS')
+
+def require_mutations_enabled():
+    if READ_ONLY:
+        denied('Administration is locked pending verified deployment', 403)
+
 
 
 def denied(reason='Permission denied',code=403):
@@ -81,8 +95,8 @@ def verify(request: Request,write=False):
     host=request.headers.get('host','').split(':')[0].lower()
     if peer not in ('127.0.0.1','::1') or host!=HOSTNAME:
         denied()
-    if request.headers.get('x-neutron-client-verified','')!='SUCCESS':
-        denied('Client certificate required')
+    if not trusted_proxy(request.headers):
+        denied('Verified client certificate and trusted ingress required')
     if request.method not in ('GET','HEAD'):
         origin=request.headers.get('origin','')
         if origin!=f'https://{HOSTNAME}':
@@ -101,7 +115,7 @@ def verify(request: Request,write=False):
 def verify_entry(request: Request):
     peer=request.client.host if request.client else ''
     host=request.headers.get('host','').split(':')[0].lower()
-    if peer not in ('127.0.0.1','::1') or host!=HOSTNAME or request.headers.get('x-neutron-client-verified')!='SUCCESS':
+    if peer not in ('127.0.0.1','::1') or host!=HOSTNAME or not trusted_proxy(request.headers):
         denied()
 
 
@@ -216,6 +230,7 @@ async def status(request:Request):
         load='Unavailable'
     memory_gb=mem['MemTotal']/1e9
     return {
+        'read_only':READ_ONLY,
         'name':'Gemini','version':os.getenv('MANAGER_OS_VERSION','NeutronOS Gemini'),
         'os':'NeutronOS Gemini','online':True,'cpu_pct':pct,
         'ram_used_gb':round(used/1e9,1),'ram_total_gb':round(memory_gb,1),
@@ -269,6 +284,7 @@ async def services(request:Request):
 @app.post('/api/services/{identifier}/{action}')
 async def service_action(identifier:str,action:str,request:Request):
     verify(request,write=True)
+    require_mutations_enabled()
     if identifier not in SERVICES or action not in ('start','stop','restart'):
         denied('Unknown service or operation')
     name,kind,unit,*_=SERVICES[identifier]
@@ -341,6 +357,7 @@ class PowerRequest(BaseModel):
 @app.post('/api/system/power')
 async def power(request:Request,payload:PowerRequest):
     verify(request,write=True)
+    require_mutations_enabled()
     if os.getenv('MANAGER_ENABLE_POWER')!='1':
         denied('Remote power controls are disabled')
     action=payload.action
@@ -409,6 +426,7 @@ async def download(request:Request,path:str):
 @app.post('/api/upload')
 async def upload(request:Request,path:str=Form(...),file:UploadFile=File(...)):
     verify(request,write=True)
+    require_mutations_enabled()
     folder=file_path(path)
     if not folder.is_dir():
         denied('Invalid upload directory',400)
@@ -446,7 +464,7 @@ async def terminal(ws:WebSocket):
     entry=SESSIONS.get(token)
     if (peer not in ('127.0.0.1','::1') or ws.headers.get('host','').split(':')[0].lower()!=HOSTNAME
         or ws.headers.get('origin','')!=f'https://{HOSTNAME}'
-        or ws.headers.get('x-neutron-client-verified')!='SUCCESS'
+        or not trusted_proxy(ws.headers) or READ_ONLY
         or not entry or time.monotonic()-entry['last']>=IDLE_SECONDS):
         await ws.close(code=1008)
         return
