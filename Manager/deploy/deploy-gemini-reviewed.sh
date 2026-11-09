@@ -26,7 +26,7 @@ SITE="$CONF/neutronos-private-vhost.conf"
 
 say(){ printf '\n[NeutronOS Manager] %s\n' "$*"; }
 stop(){ printf '\n[STOP] %s\n' "$*" >&2; exit 1; }
-command -v nginx >/dev/null || stop "Nginx is missing"
+[[ -x /usr/sbin/nginx ]] || stop "Nginx binary is missing from /usr/sbin/nginx"
 command -v openssl >/dev/null || stop "OpenSSL is missing"
 command -v python3 >/dev/null || stop "Python3 is missing"
 command -v git >/dev/null || stop "git is missing"
@@ -53,7 +53,7 @@ grep -Eq '^[[:space:]]*http[[:space:]]*\{' "$HTTPS_CONF" || stop "HTTPS config l
 if grep -Eq '^[[:space:]]*server_name[[:space:]]+neutronos\.neutronprojects\.com([[:space:];]|$)' "$HTTPS_CONF"; then
  stop "The manager hostname already appears in the existing HTTPS config; review before proceeding"
 fi
-nginx -t -c "$HTTPS_CONF" || stop "Existing HTTPS config fails nginx -t BEFORE changes"
+/usr/sbin/nginx -t -c "$HTTPS_CONF" || stop "Existing HTTPS config fails nginx -t BEFORE changes"
 say "Validated existing HTTPS config: $HTTPS_CONF"
 
 # This is not meant to turn on any high-risk permissions.
@@ -198,13 +198,13 @@ m=re.search(r'(?m)^[ \t]*http[ \t]*\{',s)
 if not m: raise SystemExit('no http block')
 p.write_text(s[:m.end()]+'\n  '+inc+'\n'+s[m.end():])
 PY
-if ! nginx -t -c "$HTTPS_CONF"; then
+if ! /usr/sbin/nginx -t -c "$HTTPS_CONF"; then
  cp -a "$BACKUP" "$HTTPS_CONF"
  stop "New Nginx vhost rejected, ORIGINAL HTTPS CONFIG RESTORED"
 fi
-if ! nginx -s reload -c "$HTTPS_CONF"; then
+if ! /usr/sbin/nginx -s reload -c "$HTTPS_CONF"; then
  cp -a "$BACKUP" "$HTTPS_CONF"
- nginx -s reload -c "$HTTPS_CONF" || true
+ /usr/sbin/nginx -s reload -c "$HTTPS_CONF" || true
  stop "HTTPS Nginx reload failed, original config restored"
 fi
 
@@ -214,7 +214,7 @@ NO_CERT_STATUS="$(curl -skS --noproxy '*' --resolve "$HOST:443:$IP" --connect-ti
  -o /dev/null -w '%{http_code}' "https://$HOST/" || true)"
 if [[ "$NO_CERT_STATUS" != 400 && "$NO_CERT_STATUS" != 403 && "$NO_CERT_STATUS" != 495 && "$NO_CERT_STATUS" != 496 ]]; then
  cp -a "$BACKUP" "$HTTPS_CONF"
- nginx -s reload -c "$HTTPS_CONF" || true
+ /usr/sbin/nginx -s reload -c "$HTTPS_CONF" || true
  stop "mTLS rejection test failed (status $NO_CERT_STATUS); existing HTTPS config restored"
 fi
 
@@ -229,7 +229,7 @@ if [[ -r "$IPHONE_CRT" && -r "$IPHONE_KEY" ]]; then
   "https://$HOST/api/session" || true)"
  if ! printf '%s' "$API_RESPONSE" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert isinstance(data.get("csrf"),str) and len(data["csrf"])>20 and data.get("idle_timeout_seconds")==1800' 2>/dev/null; then
    cp -a "$BACKUP" "$HTTPS_CONF"
-   nginx -s reload -c "$HTTPS_CONF" || true
+   /usr/sbin/nginx -s reload -c "$HTTPS_CONF" || true
    stop "Valid certificate did not reach the Manager API; existing HTTPS config restored"
  fi
  unset API_RESPONSE
