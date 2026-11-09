@@ -1,0 +1,18 @@
+# COPY to /etc/neutronos-manager/environment with root-only permissions.
+MANAGER_HOSTNAME=neutronos.neutronprojects.com
+MANAGER_OS_VERSION=NeutronOS v0.5.6 R2
+MANAGER_USER_DATA_PATH=/NeutronOS/drneutron
+MANAGER_FILES_HOME=/var/lib/neutron-manager
+MANAGER_STREAM_SERVICE=
+MANAGER_CONTAINER_JELLYFIN=jellyfin
+MANAGER_CONTAINER_QBITTORRENT=qbittorrent
+# Power actions are intentionally locked until separate safety review.
+MANAGER_ENABLE_POWER=0
+MANAGER_SHELL_SERVICE=
+# Only configure routes that point to existing PRIVATE certificate-protected services.
+MANAGER_TOOL_NEUTRONAI=
+MANAGER_TOOL_TORRENTLAB=/torrentlab/
+MANAGER_TOOL_NEUTRONSTREAM=
+MANAGER_TOOL_JELLYFIN=
+MANAGER_TOOL_QBITTORRENT=
+MANAGER_TOOL_GAMES=

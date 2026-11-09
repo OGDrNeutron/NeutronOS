@@ -1,0 +1,35 @@
+# REVIEW ONLY: include this server block INSIDE Gemini's existing nginx process.
+# Replace placeholders only after checking TorrentLab's real mTLS CA location.
+# Don't start another nginx on 443, disrupt NeutronAI, or add a Cloudflare route.
+server {
+    listen 100.69.100.100:443 ssl;
+    server_name neutronos.neutronprojects.com;
+
+    # Server certificate must have neutronos.neutronprojects.com in SAN.
+    ssl_certificate /etc/neutronos-manager/server-fullchain.pem;
+    ssl_certificate_key /etc/neutronos-manager/server-key.pem;
+    # Client CA trust bundle may be REUSED from TorrentLab (not a private key).
+    ssl_client_certificate /etc/neutronos-manager/torrentlab-client-ca.pem;
+    ssl_verify_client on;
+    ssl_verify_depth 2;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    allow 100.64.0.0/10;
+    deny all;
+    client_max_body_size 128m;
+    server_tokens off;
+    add_header Cache-Control "no-store" always;
+
+    location / {
+        proxy_pass http://127.0.0.1:8877;
+        proxy_http_version 1.1;
+        proxy_set_header Host neutronos.neutronprojects.com;
+        proxy_set_header X-Neutron-Client-Verified $ssl_client_verify;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+        proxy_buffering off;
+    }
+}

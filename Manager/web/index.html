@@ -1,161 +1,77 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#060e21">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NeutronOS">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="/apple-touch-icon.png">
-<title>NeutronOS Manager</title>
-<style>
-:root{color-scheme:dark;--bg:#050b19;--panel:#0e1b33;--panel2:#122443;--line:#294067;--blue:#39baff;--red:#ff304c;--text:#f3f7ff;--muted:#9cb1cf;--green:#53dea8}
-*{box-sizing:border-box}html{min-height:100%;background:var(--bg)}body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif;color:var(--text);background:radial-gradient(ellipse at 20% -5%,#143668 0%,transparent 52%),var(--bg);min-height:100dvh}
-button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
-header{position:sticky;top:0;z-index:5;background:#07142be8;backdrop-filter:blur(18px);border-bottom:1px solid #234062;padding:calc(env(safe-area-inset-top) + 12px) 18px 12px}
-.head{display:flex;align-items:center;justify-content:space-between;max-width:1120px;margin:auto}
-.brand{display:flex;align-items:center;gap:10px;font-size:25px;letter-spacing:-.8px;font-weight:800}.brand b{color:var(--red)}.brand img{width:39px;height:39px;object-fit:contain}.status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);white-space:nowrap}
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffc65d;box-shadow:0 0 12px currentColor}.dot.online{background:var(--green)}
-main{max-width:1120px;margin:0 auto;padding:23px 17px calc(110px + env(safe-area-inset-bottom))}
-.view{display:none}.view.active{display:block}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--blue);font-weight:800}
-h1{margin:7px 0;font-size:31px;letter-spacing:-1.1px}h2{font-size:18px;margin:0 0 15px}p{color:var(--muted);margin:0 0 20px}
-.hero{background:linear-gradient(130deg,#123b74,#09162f 65%);border:1px solid #37659b;border-radius:22px;padding:24px;position:relative;overflow:hidden;margin-bottom:20px}
-.hero:after{content:'⚛';font-size:190px;line-height:1;opacity:.07;position:absolute;right:-16px;top:-28px;pointer-events:none}
-.hero p{margin:5px 0 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:linear-gradient(150deg,#122441,#0a1529);border:1px solid var(--line);border-radius:18px;padding:17px;min-width:0}
-.card .k{color:var(--muted);font-size:12px}.card .v{font-size:24px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:5px 0 0}.card .small{font-size:11px;color:var(--muted)}
-.section{margin:26px 0 12px}.section h2{display:flex;justify-content:space-between;align-items:center}
-button{background:#194b80;border:1px solid #306eae;color:white;border-radius:12px;padding:9px 13px;font-weight:650}
-button.secondary{background:#162942;border-color:#35506e}button.danger{background:#52212f;border-color:#8a3449}button:disabled{opacity:.48;cursor:not-allowed}
-.service{display:flex;align-items:center;gap:11px;justify-content:space-between;padding:12px 0;border-bottom:1px solid #263959}.service:last-child{border:0}.service-name{font-weight:700}.service-caption{color:var(--muted);font-size:12px}.service-controls{display:flex;gap:6px;flex-shrink:0}.service-controls button{font-size:12px;padding:7px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:13px}
-.tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tool{min-height:132px;display:flex;flex-direction:column;justify-content:space-between}.tool .symbol{font-size:27px}.tool strong{font-size:16px}.tool small{color:var(--muted)}.tool[aria-disabled=true]{opacity:.55}
-.tabs{position:fixed;bottom:0;left:0;right:0;padding:11px 13px calc(10px + env(safe-area-inset-bottom));background:#071429f5;display:flex;justify-content:space-around;border-top:1px solid #2b4873;backdrop-filter:blur(15px);z-index:6}
-.tabs button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;padding:7px 17px}.tabs button span{font-size:21px}.tabs button.active{color:var(--blue)}
-.pathbar{display:flex;gap:7px;margin-bottom:12px}.pathbar input{min-width:0;flex:1}
-input[type=text],input[type=file],textarea{border:1px solid #345478;color:var(--text);background:#0a162c;border-radius:10px;padding:11px;width:100%}
-.file-row{display:flex;align-items:center;gap:10px;padding:12px 8px;border-bottom:1px solid #263958;cursor:pointer}.file-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.file-row small{color:var(--muted)}
-.terminal{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#03070d;border:1px solid #31567b;border-radius:14px;color:#c6ffe0;height:49dvh;min-height:250px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;font-size:12px}
-.termrow{display:flex;gap:8px;margin-top:10px}.termrow input{flex:1;min-width:0}
-.banner{background:#41212e;border:1px solid #803a50;border-radius:10px;padding:12px;color:#ffbccc;margin:15px 0;font-size:13px}
-.notice{font-size:12px;color:var(--muted);margin:12px 0}.wide{width:100%}
-@media(min-width:730px){.grid{grid-template-columns:repeat(4,1fr)}.tool-grid{grid-template-columns:repeat(4,1fr)}.tabs{max-width:540px;left:50%;transform:translateX(-50%);border:1px solid #2b4873;border-bottom:0;border-radius:18px 18px 0 0}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080817">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NeutronOS">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="NeutronOS private Gemini system manager">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="./apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>NeutronOS • System Manager</title>
 </head>
 <body>
-<header><div class="head"><div class="brand"><img src="/apple-touch-icon.png" alt=""><span>Neutron<b>OS</b></span></div><div class="status"><i id="status-dot" class="dot"></i><span id="connection">Connecting</span></div></div></header>
-<main>
-<section id="home" class="view active">
-<div class="hero"><span class="eyebrow">PRIVATE · TAILSCALE · CERTIFICATE REQUIRED</span><h1>System Manager</h1><p>NeutronOS Gemini · Remote administration</p></div>
-<div class="grid">
-<div class="card"><div class="k">CPU usage</div><div class="v" id="load">…</div><div class="small">Current utilization</div></div>
-<div class="card"><div class="k">Memory used</div><div class="v" id="memory">…</div><div class="small">Host RAM</div></div>
-<div class="card"><div class="k">Media storage</div><div class="v" id="disk">…</div><div class="small">/NeutronMedia</div></div>
-<div class="card"><div class="k">Hostname</div><div class="v" style="font-size:17px" id="hostname">…</div><div class="small">Managed device</div></div>
-</div>
-<div class="section"><h2>Services <button class="secondary" onclick="refresh()">Refresh</button></h2></div>
-<div class="panel" id="services">Connecting to Gemini…</div>
-</section>
-<section id="tools" class="view">
-<div class="eyebrow">NeutronOS ecosystem</div><h1>Tools</h1><p>Secure entry points for your existing apps and services.</p>
-<div class="tool-grid" id="tool-grid"></div><div class="notice">Tools are enabled only after their private routes are configured on Gemini.</div>
-</section>
-<section id="files" class="view">
-<div class="eyebrow">Secure file workspace</div><h1>Files</h1>
-<div class="pathbar"><input id="path" type="text" value="/NeutronMedia" aria-label="Current path"><button onclick="openPath()">Go</button></div>
-<div class="panel"><button class="secondary" onclick="goParent()">↑ Parent</button> <label style="display:inline-block;margin-left:8px"><span class="notice">Upload</span><input id="upload" type="file" style="max-width:180px" onchange="uploadFile()"></label></div>
-<div class="panel" id="file-list">Choose a directory…</div>
-<div class="notice">Only configured directories are available. Use Tailscale SFTP for full SSH file-transfer clients.</div>
-</section>
-<section id="terminal" class="view">
-<div class="eyebrow">Authorized user shell</div><h1>Terminal</h1>
-<div class="banner">Terminal commands run as the dedicated NeutronOS manager service user. Treat access to this page as full access to that account.</div>
-<div id="termout" class="terminal" role="log" aria-live="off">Not connected.\n</div>
-<div class="termrow"><input type="text" id="terminput" autocomplete="off" spellcheck="false" placeholder="Type a command" onkeydown="if(event.key==='Enter')sendTerm()"><button onclick="sendTerm()">Send</button></div>
-<div style="display:flex;gap:8px;margin-top:10px"><button class="secondary" onclick="connectTerm()">Connect</button><button class="secondary" onclick="termControl('interrupt')">Ctrl+C</button><button class="secondary" onclick="document.getElementById('termout').textContent=''">Clear</button></div>
-</section>
-</main>
-<nav class="tabs" aria-label="App navigation">
-<button class="active" data-tab="home" onclick="tab('home')"><span>⌂</span>Home</button>
-<button data-tab="tools" onclick="tab('tools')"><span>⚙</span>Tools</button>
-<button data-tab="files" onclick="tab('files')"><span>▱</span>Files</button>
-<button data-tab="terminal" onclick="tab('terminal')"><span>⌘</span>Terminal</button>
-</nav>
-<script>
-'use strict';
-let csrf='',socket=null,tools={};
-function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-async function api(path,opts){
- opts=opts||{};opts.credentials='same-origin';opts.headers=Object.assign({'Accept':'application/json'},opts.headers||{});
- if(opts.method&&opts.method!=='GET')opts.headers['X-CSRF-Token']=csrf;
- const response=await fetch(path,opts);if(!response.ok){let msg=response.status+' '+response.statusText;try{const e=await response.json();msg=e.detail||msg}catch(e){}throw Error(msg)}
- return response.headers.get('content-type')?.includes('json')?response.json():response;
-}
-async function initialize(){try{const r=await api('/api/session');csrf=r.csrf;document.getElementById('connection').textContent='Protected';document.getElementById('status-dot').classList.add('online');await refresh();await loadTools()}catch(e){document.getElementById('connection').textContent='Unavailable';document.getElementById('services').textContent=e.message}}
-function tab(id){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('active',e.id===id));document.querySelectorAll('.tabs button').forEach(e=>e.classList.toggle('active',e.dataset.tab===id));if(id==='files')openPath();if(id==='terminal'&&!socket)connectTerm()}
-async function refresh(){
- try{
-  const [info,services]=await Promise.all([api('/api/status'),api('/api/services')]);
-  document.getElementById('load').textContent=info.cpu;document.getElementById('memory').textContent=info.memory;
-  document.getElementById('disk').textContent=info.media;document.getElementById('hostname').textContent=info.hostname;
-  const node=document.getElementById('services');node.innerHTML='';
-  services.forEach(function(s){
-   const row=document.createElement('div');row.className='service';
-   const label=document.createElement('div');label.style.minWidth='0';label.innerHTML='<div class="service-name">'+esc(s.label)+'</div><div class="service-caption">'+esc(s.state)+'</div>';
-   const controls=document.createElement('div');controls.className='service-controls';
-   ['start','stop','restart'].forEach(function(action){const b=document.createElement('button');b.textContent=action;b.className=action==='stop'?'danger':'secondary';b.disabled=!s.available;b.onclick=function(){serviceAction(s.id,action)};controls.appendChild(b)});
-   row.append(label,controls);node.appendChild(row);
-  })
- }catch(e){document.getElementById('services').textContent=e.message}
-}
-async function serviceAction(id,action){
- if(!confirm('Confirm '+action+' for '+id+'?'))return;
- try{await api('/api/services/'+encodeURIComponent(id)+'/'+action,{method:'POST'});await refresh()}catch(e){alert(e.message)}
-}
-async function loadTools(){
- try{tools=await api('/api/tools');const box=document.getElementById('tool-grid');box.innerHTML='';
-  [{id:'torrentlab',icon:'⌕',label:'TorrentLab'},{id:'neutronai',icon:'✦',label:'NeutronAI'},{id:'jellyfin',icon:'▶',label:'Jellyfin'},{id:'qbittorrent',icon:'⇣',label:'qBittorrent'},{id:'docker',icon:'⬡',label:'Docker'},{id:'sftp',icon:'▱',label:'SFTP'}].forEach(function(t){
-  const url=tools[t.id]||'';const link=document.createElement('a');link.className='card tool';link.setAttribute('aria-disabled',!url);
-  if(url)link.href=url;else link.onclick=function(e){e.preventDefault();alert('Configure the private route for '+t.label+' on Gemini.')};
-  link.innerHTML='<div class="symbol">'+t.icon+'</div><div><strong>'+t.label+'</strong><br><small>'+(url?'Open securely':'Not configured')+'</small></div>';box.appendChild(link)
- })}catch(e){document.getElementById('tool-grid').textContent=e.message}
-}
-async function openPath(){
- const path=document.getElementById('path').value;const box=document.getElementById('file-list');box.textContent='Loading…';
- try{const data=await api('/api/files?path='+encodeURIComponent(path));box.innerHTML='';document.getElementById('path').value=data.path;
-  data.entries.forEach(function(f){const row=document.createElement('div');row.className='file-row';
-   const name=document.createElement('span');name.textContent=(f.directory?'📁 ':'📄 ')+f.name;const size=document.createElement('small');size.textContent=f.directory?'Folder':human(f.size);row.append(name,size);
-   row.onclick=function(){if(f.directory){document.getElementById('path').value=f.path;openPath()}else{location.href='/api/download?path='+encodeURIComponent(f.path)}};box.appendChild(row)});
-  if(!data.entries.length)box.textContent='Empty folder.';
- }catch(e){box.textContent=e.message}
-}
-function human(b){return b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':b>1e3?(b/1e3).toFixed(1)+' KB':b+' B'}
-function goParent(){let x=document.getElementById('path');x.value=x.value.replace(/\/[^/]*\/?$/,'')||'/NeutronMedia';openPath()}
-async function uploadFile(){const inp=document.getElementById('upload');if(!inp.files.length)return;
- const file=inp.files[0];if(file.size>128*1024*1024){alert('Upload limit: 128 MB');return}
- const form=new FormData();form.append('path',document.getElementById('path').value);form.append('file',file);
- try{await api('/api/upload',{method:'POST',body:form});inp.value='';await openPath()}catch(e){alert(e.message)}
-}
-function termPrint(s){const out=document.getElementById('termout');out.textContent+=s.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g,'');out.scrollTop=out.scrollHeight;if(out.textContent.length>160000)out.textContent=out.textContent.slice(-80000)}
-function connectTerm(){if(socket&&socket.readyState===1)return;
- const scheme=location.protocol==='https:'?'wss://':'ws://';socket=new WebSocket(scheme+location.host+'/api/terminal?csrf='+encodeURIComponent(csrf));
- socket.onopen=function(){document.getElementById('termout').textContent='Connected to Gemini.\n'};
- socket.onmessage=function(e){termPrint(e.data)};
- socket.onclose=function(){termPrint('\n[Disconnected]\n');socket=null};
- socket.onerror=function(){termPrint('\n[Connection error]\n')}
-}
-function sendTerm(){const input=document.getElementById('terminput');if(socket?.readyState!==1){alert('Connect terminal first');return}socket.send(input.value+'\n');input.value=''}
-function termControl(cmd){if(socket?.readyState===1)socket.send(cmd==='interrupt'?'\u0003':'')}
-let lastActivity=0;
-function markActivity(){
-  if(!csrf||Date.now()-lastActivity<30000)return;
-  lastActivity=Date.now();
-  api('/api/activity',{method:'POST'}).catch(function(){});
-}
-document.addEventListener('pointerdown',markActivity,{passive:true});
-document.addEventListener('keydown',markActivity,{passive:true});
-initialize();setInterval(function(){if(document.visibilityState==='visible'&&document.getElementById('home').classList.contains('active'))refresh()},15000);
-</script>
-</body></html>
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-pc" viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M8 21h8M12 16.5V21"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 9h6v6H9zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4M2 15h4M18 9h4m-4 6h4"/></symbol>
+    <symbol id="i-ram" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 10v4m4-4v4m4-4v4m4-4v4M5 17v3m5-3v3m5-3v3m5-3v3"/></symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></symbol>
+    <symbol id="i-atom" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="3.5" ry="10"/><ellipse cx="12" cy="12" rx="3.5" ry="10" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="3.5" ry="10" transform="rotate(-60 12 12)"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6m-5 0v7l-6 9c-.7 1.1.2 2.5 1.5 2.5h13c1.3 0 2.2-1.4 1.5-2.5l-6-9V3M7 16h10"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M2.5 6a2 2 0 012-2h5l2.2 2.5h7.8a2 2 0 012 2v10a2 2 0 01-2 2h-15a2 2 0 01-2-2zM9 14h9m-3-3 3 3-3 3"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24"><rect x="2.5" y="3" width="19" height="18" rx="2.5"/><path d="m6 9 4 3-4 3m6 1h6"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M10 2h4l.7 2.6 2 1 2.5-1 2 3.5-1.9 2a8 8 0 010 2l1.9 2-2 3.5-2.5-1-2 1L14 22h-4l-.7-2.6-2-1-2.5 1-2-3.5 1.9-2a8 8 0 010-2l-1.9-2 2-3.5 2.5 1 2-1z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m2 11 10-8 10 8M5 10v11h14V10M9 21v-7h6v7"/></symbol>
+    <symbol id="i-stack" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7zM2 12l10 5 10-5M2 17l10 5 10-5"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M21 6a6 6 0 01-7.9 6L6 19a2 2 0 11-3-3l7.1-7.1A6 6 0 0118 2l-4 4 4 4z"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10M5.7 5.7a9 9 0 1012.6 0"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7V3l-3 3a9 9 0 00-15 7M4 17v4l3-3a9 9 0 0015-7"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="m10 8 6 4-6 4z"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7zM12 12 3 7m9 5 9-5m-9 5v10"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 2v14m-5-5 5 5 5-5M4 18v3h16v-3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="12" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20V4m0 16h18M6 15l5-5 4 2 6-7"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a16 16 0 010 20M12 2a16 16 0 000 20"/></symbol>
+    <symbol id="i-ai" viewBox="0 0 24 24"><path d="M12 2 14.8 9.2 22 12l-7.2 2.8L12 22l-2.8-7.2L2 12l7.2-2.8z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m15 15 7 7"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 5h14M8 12h14M8 19h14M2 5h2M2 12h2M2 19h2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 2 9 4v6c0 5-3.5 8.5-9 10-5.5-1.5-9-5-9-10V6zM8 12l3 3 5-6"/></symbol>
+  </svg>
+  <div class="app-shell">
+    <header class="app-header"><div class="header-glow"></div><div class="header-logo">Neutron<span>OS</span></div></header>
+    <div class="bg-wave wave-blue" aria-hidden="true"></div><div class="bg-wave wave-red" aria-hidden="true"></div>
+    <div class="preview-ribbon" id="preview-banner" hidden>PREVIEW MODE · DEMO DATA · ACTIONS DISABLED</div>
+    <main id="main-content">
+      <section class="screen active" id="screen-home" aria-label="Home">
+        <section class="hero-panel neon-frame"><div class="hero-world"></div>
+          <div class="machine"><div class="machine-icon"><svg><use href="#i-pc"></use></svg></div><div><div class="machine-title"><strong id="host-title">Gemini</strong><span class="online-label"><i id="host-dot"></i><span id="online-state">Connecting</span></span></div><p id="version">NeutronOS Gemini</p></div></div>
+          <div class="metrics" id="metric-grid"><div class="metric red"><div class="metric-top"><svg><use href="#i-cpu"></use></svg>CPU</div><div class="metric-value" id="cpu">--</div><div class="progress"><i id="cpu-bar"></i></div></div><div class="metric cyan"><div class="metric-top"><svg><use href="#i-ram"></use></svg>RAM</div><div class="metric-value" id="ram">--</div><div class="progress"><i id="ram-bar"></i></div></div><div class="metric violet"><div class="metric-top"><svg><use href="#i-disk"></use></svg>User Data</div><div class="metric-value" id="user-data">--</div><div class="progress"><i id="user-bar"></i></div></div><div class="metric green"><div class="metric-top"><svg><use href="#i-disk"></use></svg>NeutronMedia</div><div class="metric-value" id="media">--</div><div class="progress"><i id="media-bar"></i></div></div></div>
+        </section>
+        <div class="quick-grid" id="quick-grid"><button class="quick red" data-tool="neutronai"><svg><use href="#i-atom"></use></svg><span>NeutronAI</span></button><button class="quick green" data-tool="torrentlab"><svg><use href="#i-flask"></use></svg><span>TorrentLab</span></button><button class="quick cyan" data-target="files"><svg><use href="#i-folder"></use></svg><span>SFTP</span></button><button class="quick violet" data-target="terminal"><svg><use href="#i-term"></use></svg><span>Terminal</span></button></div>
+        <section class="services neon-frame"><div class="section-title"><div><svg><use href="#i-gear"></use></svg><h2>System Services</h2></div><button id="manage-all" class="pill-button">Manage All <svg><use href="#i-chevron"></use></svg></button></div><div id="home-services" class="services-list"></div></section>
+      </section>
+      <section class="screen" id="screen-system" aria-label="System"><div class="section-heading"><div class="eyebrow">GEMINI SYSTEM CONTROL</div><h1>System</h1><p>Hardware, operating system, storage and power.</p></div>
+        <div class="info-panel"><div class="info-title"><svg><use href="#i-pc"></use></svg>System overview</div><div class="facts" id="system-facts"></div></div>
+        <div class="system-metrics" id="system-metrics"></div>
+        <div class="info-panel"><div class="info-title"><svg><use href="#i-disk"></use></svg>Storage</div><div class="storage-list" id="storage-list"></div></div>
+        <div class="info-panel"><div class="info-title"><svg><use href="#i-power"></use></svg>Power & session</div><div class="action-grid"><button class="action-btn blue" data-power="shell"><svg><use href="#i-refresh"></use></svg>Restart NeutronOS</button><button class="action-btn orange" data-power="reboot"><svg><use href="#i-refresh"></use></svg>Reboot Computer</button><button class="action-btn red" data-power="shutdown"><svg><use href="#i-power"></use></svg>Shut Down</button></div><p class="help-text">Power operations require explicit approval and authorized server configuration.</p></div>
+        <div class="info-panel"><div class="info-title"><svg><use href="#i-list"></use></svg>Service control</div><div id="system-services"></div></div>
+      </section>
+      <section class="screen" id="screen-apps" aria-label="Apps"><div class="section-heading"><div class="eyebrow">YOUR NEUTRONOS ECOSYSTEM</div><h1>Applications</h1><p>Installed and available apps, three across.</p></div><div class="search-wrap"><svg><use href="#i-search"></use></svg><input id="app-search" type="search" placeholder="Search applications" autocomplete="off"></div><div class="apps-grid" id="apps-grid"></div></section>
+      <section class="screen" id="screen-tools" aria-label="Tools"><div class="section-heading"><div class="eyebrow">ONE WORKSPACE · EVERY APPLICATION</div><h1>Tools</h1><p>Shared utilities and dedicated controls for your services.</p></div><div class="tool-category">System & files</div><div class="tool-grid" id="system-tools"></div><div class="tool-category">Media & automation</div><div class="tool-grid" id="media-tools"></div><div class="tool-category">AI & diagnostics</div><div class="tool-grid" id="ai-tools"></div></section>
+      <section class="screen" id="screen-settings" aria-label="Settings"><div class="section-heading"><div class="eyebrow">YOUR PERSONAL CONTROL CENTER</div><h1>Settings</h1><p>Interface preferences, connected services and access status.</p></div><div class="info-panel"><div class="info-title"><svg><use href="#i-gear"></use></svg>Appearance</div><label class="setting-line"><span>Accent color</span><select id="accent-setting"><option value="red">Neutron Red</option><option value="blue">Electric Blue</option><option value="violet">Violet</option></select></label><label class="setting-line"><span>Live refresh</span><select id="refresh-setting"><option value="5000">5 seconds</option><option value="15000">15 seconds</option><option value="30000">30 seconds</option><option value="60000">60 seconds</option></select></label><label class="setting-line"><span>Interface effects</span><input type="checkbox" id="effects-setting" checked></label></div><div class="info-panel"><div class="info-title"><svg><use href="#i-lock"></use></svg>Access & security</div><div class="setting-line"><span>Network</span><strong id="security-network">Tailscale required</strong></div><div class="setting-line"><span>Client certificate</span><strong id="security-certificate">Required by server</strong></div><div class="setting-line"><span>Session timeout</span><strong>30 min inactive</strong></div><div class="setting-line"><span>Face ID</span><strong>iOS app lock*</strong></div><p class="help-text">*iOS may allow device passcode fallback. Browser apps cannot enforce Face ID as the only server authentication method. Client certificate + Tailscale remain mandatory.</p></div><div class="info-panel"><div class="info-title"><svg><use href="#i-cube"></use></svg>Application configuration</div><div id="settings-apps"></div><p class="help-text">System-level service endpoints and certificate settings are configured only on Gemini, never saved as secrets in the browser.</p></div><div class="info-panel"><div class="info-title"><svg><use href="#i-refresh"></use></svg>Maintenance</div><button id="refresh-all" class="button-block">Refresh system data</button><button id="clear-preferences" class="button-block secondary">Reset appearance settings</button></div></section>
+      <section class="screen" id="screen-files" aria-label="Files"><div class="section-heading"><div class="eyebrow">PRIVATE STORAGE</div><h1>File Manager</h1><p>Manage approved folders on Gemini over encrypted HTTPS.</p></div><div class="info-panel"><div class="path-row"><input id="file-path" aria-label="Folder path" value="/NeutronMedia"><button id="file-go">Go</button></div><div class="file-actions"><button id="file-parent">↑ Parent</button><label class="file-upload">Upload<input type="file" id="file-upload"></label></div><div id="file-list" class="file-list"></div><p class="help-text">The built-in browser uses HTTPS. Standard SFTP remains available to native clients over Tailscale SSH.</p></div></section>
+      <section class="screen" id="screen-terminal" aria-label="Terminal"><div class="section-heading"><div class="eyebrow">GEMINI REMOTE SHELL</div><h1>Terminal</h1><p>Private shell session with dedicated service-account permissions.</p></div><div class="info-panel"><div class="terminal-window" id="terminal-output">Not connected.\n</div><div class="terminal-bar"><input id="terminal-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter command"><button id="terminal-send">Send</button></div><div class="terminal-buttons"><button id="terminal-connect">Connect</button><button id="terminal-interrupt">Ctrl+C</button><button id="terminal-clear">Clear</button></div><p class="help-text">Terminal is disabled in preview mode. The live shell runs with restricted Unix permissions.</p></div></section>
+    </main>
+    <nav class="bottom-nav" aria-label="Main tabs"><button class="selected" data-tab="home"><svg><use href="#i-home"></use></svg><span>Home</span></button><button data-tab="system"><svg><use href="#i-pc"></use></svg><span>System</span></button><button data-tab="apps"><svg><use href="#i-stack"></use></svg><span>Apps</span></button><button data-tab="tools"><svg><use href="#i-wrench"></use></svg><span>Tools</span></button><button data-tab="settings"><svg><use href="#i-gear"></use></svg><span>Settings</span></button></nav>
+  </div>
+  <div class="modal-backdrop" id="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-title" id="modal-title"></div><p id="modal-description"></p><div id="modal-body"></div><div class="modal-actions" id="modal-actions"></div></div></div>
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>

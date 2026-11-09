@@ -1,0 +1,19 @@
+# REVIEW FIRST. This allows only exact actions, not arbitrary shell or Docker.
+# Install with visudo -f /etc/sudoers.d/neutron-manager and mode 0440.
+Cmnd_Alias NEUTRON_MANAGE = \
+  /usr/bin/systemctl start torrentlab2.service, \
+  /usr/bin/systemctl stop torrentlab2.service, \
+  /usr/bin/systemctl restart torrentlab2.service, \
+  /usr/bin/systemctl start neutronllm-http.service, \
+  /usr/bin/systemctl stop neutronllm-http.service, \
+  /usr/bin/systemctl restart neutronllm-http.service, \
+  /usr/bin/docker inspect --format {{.State.Status}} jellyfin, \
+  /usr/bin/docker inspect --format {{.State.Status}} qbittorrent, \
+  /usr/bin/docker start jellyfin, \
+  /usr/bin/docker stop jellyfin, \
+  /usr/bin/docker restart jellyfin, \
+  /usr/bin/docker start qbittorrent, \
+  /usr/bin/docker stop qbittorrent, \
+  /usr/bin/docker restart qbittorrent
+neutron-manager ALL=(root) NOPASSWD: NEUTRON_MANAGE
+# Power commands and arbitrary terminal sudo are intentionally excluded.

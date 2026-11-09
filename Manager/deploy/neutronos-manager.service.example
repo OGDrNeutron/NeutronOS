@@ -1,0 +1,28 @@
+# Sample only. Must be installed and reviewed on Gemini by an administrator.
+[Unit]
+Description=NeutronOS Gemini Private Manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=neutron-manager
+Group=neutron-manager
+WorkingDirectory=/opt/neutronos-manager
+EnvironmentFile=-/etc/neutronos-manager/environment
+ExecStart=/opt/neutronos-manager/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8877 --no-proxy-headers
+Restart=on-failure
+RestartSec=4
+UMask=0077
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/NeutronMedia /var/lib/neutron-manager
+
+[Install]
+WantedBy=multi-user.target
