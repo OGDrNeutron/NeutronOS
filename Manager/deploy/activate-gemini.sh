@@ -2,6 +2,13 @@
 set -Eeuo pipefail
 umask 077
 [[ $EUID == 0 ]] || { echo 'Run with sudo' >&2; exit 1; }
+# This activation template is intentionally DISABLED until the Gemini preflight
+# has been reviewed and its Nginx, DNS and certificate paths have been verified.
+# No services or security configuration are changed until that review.
+[[ "${MANAGER_DEPLOY_VERIFIED:-}" == "REVIEWED_FOR_THIS_GEMINI" ]] || {
+  printf '%s\n' 'STOP: Run the read-only preflight first. This activation template is not yet approved for this Gemini host.' >&2
+  exit 78
+}
 SRC=${1:?Pass the Manager source directory}
 [[ -f "$SRC/server/app.py" && -f "$SRC/web/index.html" ]] || { echo 'Manager source is missing' >&2; exit 1; }
 DOMAIN=neutronos.neutronprojects.com
@@ -48,6 +55,7 @@ cp -a "$SRC/web" "$SRC/server" "$BASE/"
 chown -R root:root "$BASE/web" "$BASE/server"
 python3 -m venv "$BASE/.venv" || { echo 'python3-venv is required'; exit 1; }
 "$BASE/.venv/bin/pip" -q install --disable-pip-version-check -r "$BASE/server/requirements.txt"
+PROXY_SECRET="$(openssl rand -hex 32)"
 cat > "$ETC/environment" <<EOF
 MANAGER_HOSTNAME=$DOMAIN
 MANAGER_OS_VERSION=NeutronOS Gemini
@@ -55,6 +63,7 @@ MANAGER_USER_DATA_PATH=/NeutronOS/drneutron
 MANAGER_FILES_HOME=/var/lib/neutron-manager
 MANAGER_ENABLE_POWER=0
 MANAGER_READ_ONLY=1
+MANAGER_PROXY_SECRET=$PROXY_SECRET
 MANAGER_TOOL_TORRENTLAB=https://torrentlab.neutronprojects.com/torrentlab/
 MANAGER_TOOL_NEUTRONAI=https://neutronai.neutronprojects.com/
 MANAGER_CONTAINER_JELLYFIN=jellyfin
@@ -107,6 +116,7 @@ server {
   proxy_http_version 1.1;
   proxy_set_header Host $DOMAIN;
   proxy_set_header X-Neutron-Client-Verified \$ssl_client_verify;
+  proxy_set_header X-Neutron-Proxy-Secret $PROXY_SECRET;
   proxy_set_header X-Forwarded-Proto https;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection "upgrade";
